@@ -1,3 +1,35 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme light {
+  --default-font-family: 'Consolas', 'Menlo', 'Monaco', 'Courier New', 'Liberation Mono', 'Courier', monospace;
+  --color-constant: #871094;
+  --color-declaration: #CC7832;
+  --color-string: #067d17;
+  --color-identifier: #2b2d30;
+  --color-keyword: #CC7832;
+  --color-number: #1750eb;
+  --color-background: #424242;
+  --color-base-100: white;
+  --color-base-200: #fefefe;
+  --color-base-300: var(--color-gray-200);
+  --color-primary: #CC7832;
+  --color-secondary: #d694f9;
+}
+
+@variant dark {
+  @theme dark{
+    --default-font-family: 'Consolas', 'Menlo', 'Monaco', 'Courier New', 'Liberation Mono', 'Courier', monospace;
+    --color-constant: #d694f9;
+    --color-declaration: #FFC66D;
+    --color-string: #a4c591;
+    --color-identifier: #D1D1D1;
+    --color-keyword: #CC7832;
+    --color-number: #9fd6ff;
+    --color-background: #424242;
+    --color-base-100: #121212;
+    --color-base-200: #1e1e1e;
+    --color-base-300: #484848;
+    --color-primary: #FFC66D;
+    --color-secondary: #d694f9;
+  }
+}

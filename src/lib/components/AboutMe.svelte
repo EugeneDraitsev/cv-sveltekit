@@ -2,8 +2,8 @@
 	import { base } from '$app/paths'; // Assuming you're using SvelteKit
 </script>
 
-<div class="px-2">
-	<h2 class="mb-5 text-3xl font-normal text-declaration">About me</h2>
+<div>
+	<h2 class="text-declaration mb-5 text-3xl font-normal">About me</h2>
 	<p class="my-8">
 		Hi, my name is Eugene and I'm a software engineer. I like math, science, cats, algorithms, good
 		UX and other boring things. I started working as a developer in 2011 and received my system
@@ -15,9 +15,11 @@
 	<p class="my-6">
 		You can find my
 		<a
-			class="cursor-pointer text-declaration underline"
+			class="text-declaration cursor-pointer underline"
 			href="{base}/eugene-draitsev.pdf"
-			target="_blank">detailed CV in pdf here</a
+			target="_blank"
 		>
+			detailed CV in pdf here
+		</a>
 	</p>
 </div>

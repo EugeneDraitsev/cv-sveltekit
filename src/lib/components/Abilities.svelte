@@ -1,4 +1,6 @@
 <script lang="ts">
+	import StarRating from '$lib/components/StarRating.svelte';
+
 	const skills = {
 		Javascript: 10,
 		Typescript: 10,
@@ -28,18 +30,10 @@
 		Russian: 10,
 		English: 9
 	};
-
-	const getStars = (rating: number) => {
-		const stars = [];
-		for (let i = 0; i < 10; i++) {
-			stars.push(i < rating);
-		}
-		return stars;
-	};
 </script>
 
 <div>
-	<h2 class="mb-5 text-3xl font-normal text-declaration">Skills</h2>
+	<h2 class="text-declaration mb-5 text-3xl font-normal">Skills</h2>
 	<div class="grid grid-cols-1 sm:grid-cols-[300px_300px]">
 		<div>
 			<div>Programming Languages:</div>
@@ -48,14 +42,10 @@
 			<span>{'{'}</span>
 			<div class="ml-4">
 				{#each Object.entries(skills) as [skill, rating]}
-					<div class="mb-2 flex items-center">
+					<div class="flex items-center">
 						<span class="text-constant">{skill}: </span>
-						<div class="flex ml-2">
-							{#each getStars(rating) as star}
-								{@const starClass = star ? 'bg-white' : 'bg-gray-600'}
-								<div class="mask mask-star-2 h-[16px] w-[8px] mask-half-1 {starClass}"></div>
-								<div class="mask mask-star-2 h-[16px] w-[8px] mask-half-2 {starClass}"></div>
-							{/each}
+						<div class="ml-2 flex">
+							<StarRating {rating} />
 						</div>
 						<span class="text-keyword">,</span>
 					</div>
@@ -71,14 +61,10 @@
 			<span>{'{'}</span>
 			<div class="ml-4">
 				{#each Object.entries(toolsAndTechnologies) as [tool, rating]}
-					<div class="mb-2 flex items-center">
+					<div class="flex items-center">
 						<span class="text-constant">{tool}: </span>
 						<div class="flex ml-2">
-							{#each getStars(rating) as star}
-								{@const starClass = star ? 'bg-white' : 'bg-gray-600'}
-								<div class="mask mask-star-2 h-[16px] w-[8px] mask-half-1 {starClass}"></div>
-								<div class="mask mask-star-2 h-[16px] w-[8px] mask-half-2 {starClass}"></div>
-							{/each}
+							<StarRating {rating} />
 						</div>
 						<span class="text-keyword">,</span>
 					</div>
@@ -88,18 +74,14 @@
 		</div>
 	</div>
 
-	<h2 class="mb-5 text-3xl font-normal text-declaration">Languages</h2>
+	<h2 class="text-declaration mb-5 text-3xl font-normal">Languages</h2>
 	<span>{'{'}</span>
 	<div class="ml-4">
 		{#each Object.entries(languages) as [language, rating]}
-			<div class="mb-2 flex items-center">
+			<div class="flex items-center">
 				<span class="text-constant">{language}: </span>
 				<div class="flex ml-2">
-					{#each getStars(rating) as star}
-						{@const starClass = star ? 'bg-white' : 'bg-gray-600'}
-						<div class="mask mask-star-2 h-[16px] w-[8px] mask-half-1 {starClass}"></div>
-						<div class="mask mask-star-2 h-[16px] w-[8px] mask-half-2 {starClass}"></div>
-					{/each}
+					<StarRating {rating} />
 				</div>
 				<span class="text-keyword">,</span>
 			</div>
