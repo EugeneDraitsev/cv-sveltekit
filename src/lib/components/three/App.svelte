@@ -15,14 +15,19 @@
     <Scene />
   </Canvas>
 
-  <div class="hidden lg:block relative mx-auto max-w-[1200px] w-full">
-    <Icon
-      class="absolute bottom-6 left-2 w-8 h-8 m-2 text-identifier/90 cursor-pointer transition-transform ease-in-out duration-200 {expanded
-        ? ''
-        : 'rotate-180'}"
-      icon="icons8:chevron-up-round"
+  <div class="relative mx-auto max-w-[1200px] w-full">
+    <button
+      class="absolute bottom-26 lg:bottom-6 left-2 m-2 cursor-pointer h-6"
       onclick={() => (expanded = !expanded)}
-    />
+      aria-label="Toggle 3d scene height"
+    >
+      <Icon
+        class="h-8 w-8 text-identifier/90 cursor-pointer transition-transform ease-in-out duration-200 {expanded
+          ? ''
+          : 'rotate-180'}"
+        icon="icons8:chevron-up-round"
+      />
+    </button>
   </div>
 
   <div

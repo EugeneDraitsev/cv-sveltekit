@@ -8,5 +8,5 @@
   <meta name="description" content="Eugene Draitsev CV" />
 </svelte:head>
 
-<slot />
 <ThemeSwitcher />
+<slot />

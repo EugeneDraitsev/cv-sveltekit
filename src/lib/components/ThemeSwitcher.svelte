@@ -22,20 +22,20 @@
 </script>
 
 <!-- TODO: Use bg-base-300/50 -->
-<nav class="fixed top-0 w-full">
+<nav class="fixed top-0 w-full z-10">
   <div
     class="text-2xl text-identifier max-w-[1300px] mx-auto py-4 px-6 flex justify-end"
   >
-    {#if theme === 'light'}
-      <button class="cursor-pointer h-6" onclick={() => setNewTheme('dark')}>
+    <button
+      class="cursor-pointer h-6"
+      aria-label="theme-switcher"
+      onclick={() => setNewTheme(theme === 'light' ? 'dark' : 'light')}
+    >
+      {#if theme === 'light'}
         <Icon icon="mdi:weather-night" />
-      </button>
-    {:else if theme === 'dark'}
-      <button class="cursor-pointer h-6" onclick={() => setNewTheme('light')}>
+      {:else if theme === 'dark'}
         <Icon icon="mdi:weather-sunny" />
-      </button>
-    {:else}
-      <div class="h-6"></div>
-    {/if}
+      {/if}
+    </button>
   </div>
 </nav>
