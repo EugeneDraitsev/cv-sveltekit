@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+  import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
   import '../global.css';
 </script>
 
@@ -8,3 +9,4 @@
 </svelte:head>
 
 <slot />
+<ThemeSwitcher />
