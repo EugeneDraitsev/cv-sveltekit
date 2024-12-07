@@ -24,7 +24,7 @@
     <button class=" cursor-pointer" onclick={() => setNewTheme('dark')}>
       🌚
     </button>
-  {:else}
+  {:else if theme === 'dark'}
     <button class="cursor-pointer" onclick={() => setNewTheme('light')}>
       🌞
     </button>

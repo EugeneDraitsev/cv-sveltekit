@@ -8,7 +8,7 @@
 
 <main class="bg-base-100 text-identifier leading-[1.4]">
   {#await import('$lib/components/three/App.svelte')}
-    <div class="min-h-[450px] w-full"></div>
+    <div class="min-h-[500px] w-full"></div>
   {:then { default: LazyComponent }}
     <LazyComponent />
   {:catch error}
