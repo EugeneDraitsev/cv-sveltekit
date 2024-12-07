@@ -21,10 +21,10 @@
   --default-font-family: 'Consolas', 'Menlo', 'Monaco', 'Courier New',
   'Liberation Mono', 'Courier', monospace;
   --color-constant: #871094;
-  --color-declaration: #cc7832;
+  --color-declaration: #aa5a09;
   --color-string: #067d17;
   --color-identifier: #2b2d30;
-  --color-keyword: #cc7832;
+  --color-keyword: #aa5a09;
   --color-number: #1750eb;
   --color-background: #424242;
   --color-base-100: white;
