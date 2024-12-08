@@ -6,7 +6,7 @@
   import Contacts from '$lib/components/Contacts.svelte';
 </script>
 
-<main class="bg-base-100 text-identifier leading-[1.4]">
+<main class="">
   {#await import('$lib/components/three/App.svelte')}
     <div class="min-h-[500px] w-full"></div>
   {:then { default: LazyComponent }}
@@ -15,9 +15,7 @@
     <p>{error.message}</p>
   {/await}
 
-  <div
-    class="relative mt-[-100px] flex flex-col items-center px-4 pb-5 max-w-[900px] mx-auto"
-  >
+  <div class="relative mt-[-100px] flex flex-col items-center px-4 pb-5 max-w-[900px] mx-auto">
     <div class="card">
       <AboutMe />
     </div>

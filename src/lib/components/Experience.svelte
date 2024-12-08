@@ -11,9 +11,7 @@
     {#each careers as career}
       <div class="px-2">
         <span>{'{'}</span>
-        <div
-          class="flex flex-col items-stretch justify-stretch md:flex-row md:items-center"
-        >
+        <div class="flex flex-col items-stretch justify-stretch md:flex-row md:items-center">
           <div class="w-15 h-15 mx-auto md:mx-5">
             <img
               alt="logo"
@@ -28,9 +26,7 @@
               src={career.logo}
             />
           </div>
-          <div
-            class="mr-4 flex min-w-[250px] flex-col text-center text-sm md:text-left"
-          >
+          <div class="mr-4 flex min-w-[250px] flex-col text-center text-sm md:text-left">
             <span class="text-constant text-[16px]">{career.company}</span>
             <span class="text-declaration">{career.location}</span>
             <div>{career.position}</div>
@@ -41,7 +37,7 @@
           </div>
         </div>
         <span>}</span>
-        <span class="text-keyword">,</span>
+        <span class="text-keyword -ml-2">,</span>
       </div>
     {/each}
   </div>
@@ -54,9 +50,7 @@
     {#each educations as education}
       <div class="px-2">
         <span>{'{'}</span>
-        <div
-          class="flex flex-col items-stretch justify-stretch md:flex-row md:items-center"
-        >
+        <div class="flex flex-col items-stretch justify-stretch md:flex-row md:items-center">
           <div class="w-15 h-15 mx-auto md:mx-5">
             <img
               alt="logo"
@@ -71,9 +65,7 @@
               src={education.logo}
             />
           </div>
-          <div
-            class="min-w-250px mr-4 flex flex-col text-center text-sm md:text-left"
-          >
+          <div class="min-w-250px mr-4 flex flex-col text-center text-sm md:text-left">
             <span class="text-constant text-lg">{education.name}</span>
             <span class="text-declaration">{education.location}</span>
             <div>{education.degree}</div>
@@ -82,7 +74,7 @@
           </div>
         </div>
         <span>}</span>
-        <span class="text-keyword">,</span>
+        <span class="text-keyword -ml-2">,</span>
       </div>
     {/each}
   </div>

@@ -5,7 +5,7 @@
 
 <div>
   <h2 class="subtitle">Skills</h2>
-  <div class="grid grid-cols-1 sm:grid-cols-[300px_300px]">
+  <div class="grid grid-cols-1 sm:grid-cols-[300px_300px] gap-6">
     {#each SITE_DATA.skills as skillSection}
       <div>
         <div>{skillSection.name}:</div>
@@ -28,7 +28,7 @@
     {/each}
   </div>
 
-  <h2 class="subtitle">Languages</h2>
+  <h2 class="subtitle mt-6">Languages</h2>
   <span>{'{'}</span>
   <div class="ml-4">
     {#each SITE_DATA.languages as language}

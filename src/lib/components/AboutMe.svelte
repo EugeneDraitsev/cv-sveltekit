@@ -30,11 +30,7 @@
     </p>
     <p class="my-6">
       You can find my
-      <a
-        class="text-declaration cursor-pointer underline"
-        href={SITE_DATA.pdf}
-        target="_blank"
-      >
+      <a class="text-declaration cursor-pointer underline" href={SITE_DATA.pdf} target="_blank">
         detailed CV in pdf here
       </a>
     </p>

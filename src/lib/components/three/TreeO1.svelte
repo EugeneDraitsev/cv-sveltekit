@@ -44,15 +44,8 @@
 <T.Group>
   <!-- Trunk -->
   <T.Mesh position={[0, trunkHeight / 2, 0]} rotation={[0, 0.2, 0]}>
-    <T.CylinderGeometry
-      args={[trunkBottomRadius, trunkTopRadius, trunkHeight, trunkSegments]}
-    />
-    <T.MeshStandardMaterial
-      color={trunkColor}
-      roughness={1}
-      flatShading={true}
-      metalness={0}
-    />
+    <T.CylinderGeometry args={[trunkBottomRadius, trunkTopRadius, trunkHeight, trunkSegments]} />
+    <T.MeshStandardMaterial color={trunkColor} roughness={1} flatShading={true} metalness={0} />
   </T.Mesh>
 
   <!-- Branches with multiple leaf clusters -->
@@ -62,12 +55,8 @@
       <!-- Slight upward tilt: rotateZ by a negative angle to lift branch tip upward -->
       <!-- Position branch so it extends from trunk outward along X -->
       <T.Group rotation={[0, 0, -0.3]}>
-        <T.Mesh
-          position={[branchBaseOffset + branchLength / 2, branch.height, 0]}
-        >
-          <T.BoxGeometry
-            args={[branchLength, branchRadius * 2, branchRadius * 2]}
-          />
+        <T.Mesh position={[branchBaseOffset + branchLength / 2, branch.height, 0]}>
+          <T.BoxGeometry args={[branchLength, branchRadius * 2, branchRadius * 2]} />
           <T.MeshStandardMaterial
             color={branchColor}
             roughness={1}
@@ -95,13 +84,7 @@
           >
             {#each Array(leavesPerCluster) as _, li}
               {@const angle = ((2 * Math.PI) / leavesPerCluster) * li}
-              <T.Mesh
-                position={[
-                  Math.cos(angle) * leafSpread,
-                  0,
-                  Math.sin(angle) * leafSpread,
-                ]}
-              >
+              <T.Mesh position={[Math.cos(angle) * leafSpread, 0, Math.sin(angle) * leafSpread]}>
                 <T.IcosahedronGeometry args={[leafSize, 0]} />
                 <T.MeshStandardMaterial
                   color={leafColor}
@@ -124,13 +107,7 @@
         >
           {#each Array(leavesPerCluster) as _, li}
             {@const angle = ((2 * Math.PI) / leavesPerCluster) * li}
-            <T.Mesh
-              position={[
-                Math.cos(angle) * leafSpread,
-                0,
-                Math.sin(angle) * leafSpread,
-              ]}
-            >
+            <T.Mesh position={[Math.cos(angle) * leafSpread, 0, Math.sin(angle) * leafSpread]}>
               <T.IcosahedronGeometry args={[leafSize, 0]} />
               <T.MeshStandardMaterial
                 color={leafColor}
@@ -149,12 +126,7 @@
   <T.Group position={[0, trunkHeight - leafSize * 0.3, 0]}>
     <T.Mesh>
       <T.IcosahedronGeometry args={[leafSize * 2, 0]} />
-      <T.MeshStandardMaterial
-        color={leafColor}
-        roughness={1}
-        flatShading={true}
-        metalness={0}
-      />
+      <T.MeshStandardMaterial color={leafColor} roughness={1} flatShading={true} metalness={0} />
     </T.Mesh>
 
     {#each Array(4) as _, i}
@@ -167,12 +139,7 @@
         ]}
       >
         <T.IcosahedronGeometry args={[leafSize, 0]} />
-        <T.MeshStandardMaterial
-          color={leafColor}
-          roughness={1}
-          flatShading={true}
-          metalness={0}
-        />
+        <T.MeshStandardMaterial color={leafColor} roughness={1} flatShading={true} metalness={0} />
       </T.Mesh>
     {/each}
   </T.Group>

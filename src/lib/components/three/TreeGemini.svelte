@@ -1,11 +1,6 @@
 <script lang="ts">
   import { T } from '@threlte/core';
-  import {
-    BufferGeometry,
-    Vector3,
-    Float32BufferAttribute,
-    CatmullRomCurve3,
-  } from 'three';
+  import { BufferGeometry, Vector3, Float32BufferAttribute, CatmullRomCurve3 } from 'three';
 
   export let height = 5;
   export let leafColor = 'green';
@@ -47,16 +42,8 @@
       // Create a curved path for the branch with more points
       const curve = new CatmullRomCurve3([
         new Vector3(x, height / 2 + Math.random(), z),
-        new Vector3(
-          x * 1.5,
-          height / 2 + (Math.random() * height) / 4,
-          z * 1.5,
-        ),
-        new Vector3(
-          x * 2.5,
-          branchHeight - (Math.random() * height) / 4,
-          z * 2.5,
-        ),
+        new Vector3(x * 1.5, height / 2 + (Math.random() * height) / 4, z * 1.5),
+        new Vector3(x * 2.5, branchHeight - (Math.random() * height) / 4, z * 2.5),
         new Vector3(x * 3, branchHeight, z * 3),
       ]);
 
@@ -80,26 +67,10 @@
           .multiplyScalar(0.1 - j * 0.001);
 
         // Generate vertices for the branch segment
-        vertices.push(
-          p1.x + perpendicular1.x,
-          p1.y + perpendicular1.y,
-          p1.z + perpendicular1.z,
-        );
-        vertices.push(
-          p1.x + perpendicular2.x,
-          p1.y + perpendicular2.y,
-          p1.z + perpendicular2.z,
-        );
-        vertices.push(
-          p2.x + perpendicular1.x,
-          p2.y + perpendicular1.y,
-          p2.z + perpendicular1.z,
-        );
-        vertices.push(
-          p2.x + perpendicular2.x,
-          p2.y + perpendicular2.y,
-          p2.z + perpendicular2.z,
-        );
+        vertices.push(p1.x + perpendicular1.x, p1.y + perpendicular1.y, p1.z + perpendicular1.z);
+        vertices.push(p1.x + perpendicular2.x, p1.y + perpendicular2.y, p1.z + perpendicular2.z);
+        vertices.push(p2.x + perpendicular1.x, p2.y + perpendicular1.y, p2.z + perpendicular1.z);
+        vertices.push(p2.x + perpendicular2.x, p2.y + perpendicular2.y, p2.z + perpendicular2.z);
 
         // Branch indices
         indices.push(currentIndex, currentIndex + 1, currentIndex + 2);
@@ -144,10 +115,7 @@
   <T.Group>
     {#each getBranchPoints(i, height, branchCount) as point, j}
       {#if j > 0 && j % 4 === 0}
-        <T.Mesh
-          position={[point.x, point.y, point.z]}
-          scale={Math.random() * 0.3 + 0.3}
-        >
+        <T.Mesh position={[point.x, point.y, point.z]} scale={Math.random() * 0.3 + 0.3}>
           <T.IcosahedronGeometry args={[1, 1]} />
           <T.MeshStandardMaterial color={leafColor} />
         </T.Mesh>

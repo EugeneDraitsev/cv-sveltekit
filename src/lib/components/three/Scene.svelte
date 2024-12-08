@@ -7,12 +7,7 @@
 </script>
 
 <T.PerspectiveCamera makeDefault position={[-10, 10, 10]} fov={20}>
-  <OrbitControls
-    enableDamping
-    target.y={0.25}
-    minDistance={10}
-    maxDistance={30}
-  />
+  <OrbitControls enableDamping target.y={0.25} minDistance={10} maxDistance={30} />
 </T.PerspectiveCamera>
 
 <T.DirectionalLight intensity={0.8} position.x={5} position.y={10} />

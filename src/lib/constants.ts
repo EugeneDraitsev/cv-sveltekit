@@ -92,8 +92,7 @@ export const SITE_DATA = {
       period: 'Nov 2012 –  Sep 2013',
       location: 'Minsk, Belarus',
       position: 'Software Engineer',
-      description:
-        'Support and develop web applications for bank systems (Java + Js/Jquery)',
+      description: 'Support and develop web applications for bank systems (Java + Js/Jquery)',
     },
     {
       company: 'Epam Systems',

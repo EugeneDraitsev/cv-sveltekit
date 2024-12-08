@@ -14,7 +14,10 @@
       if (theme) {
         document.documentElement.setAttribute(THEME_ATTRIBUTE, theme);
       } else {
-        const preferredScheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        const preferredScheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light';
+
         localStorage.setItem(LOCAL_STORAGE_KEY, preferredScheme);
         document.documentElement.setAttribute(THEME_ATTRIBUTE, preferredScheme);
       }

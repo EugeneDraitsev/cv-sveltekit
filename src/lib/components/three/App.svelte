@@ -17,7 +17,7 @@
 
   <div class="relative mx-auto max-w-[1200px] w-full">
     <button
-      class="absolute bottom-26 lg:bottom-6 left-2 m-2 cursor-pointer h-6"
+      class="absolute bottom-28 lg:bottom-6 left-2 m-2 cursor-pointer h-6"
       onclick={() => (expanded = !expanded)}
       aria-label="Toggle 3d scene height"
     >
@@ -31,6 +31,8 @@
   </div>
 
   <div
-    class="absolute bottom-0 left-0 w-full h-[100px] bg-gradient-to-t from-base-100 to-transparent pointer-events-none pointer-events-none"
+    class="{expanded
+      ? 'hidden'
+      : 'absolute'} bottom-0 left-0 w-full h-[100px] bg-gradient-to-t from-base-100 to-transparent pointer-events-none pointer-events-none"
   ></div>
 </div>

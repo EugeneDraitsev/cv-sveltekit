@@ -8,5 +8,8 @@
   <meta name="description" content="Eugene Draitsev CV" />
 </svelte:head>
 
-<ThemeSwitcher />
+<!-- TODO: Use bg-base-300/50 -->
+<nav class="fixed top-0 w-full z-10">
+  <ThemeSwitcher />
+</nav>
 <slot />

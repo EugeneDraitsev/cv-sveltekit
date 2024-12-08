@@ -5,11 +5,7 @@
 
 <h2 class="subtitle">You can find me here</h2>
 <div class="flex items-center justify-center space-x-2 py-4">
-  <a
-    class="transition-all hover:text-gray-500"
-    href={SITE_DATA.socials.github}
-    aria-label="github"
-  >
+  <a class="transition-all hover:text-gray-500" href={SITE_DATA.socials.github} aria-label="github">
     <Icon icon="mdi:github" height="32" width="32" />
   </a>
   <a

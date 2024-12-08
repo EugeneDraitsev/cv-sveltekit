@@ -1,8 +1,8 @@
 @import 'tailwindcss';
 
 @theme {
-  --default-font-family: 'Consolas', 'Menlo', 'Monaco', 'Courier New',
-    'Liberation Mono', 'Courier', monospace;
+  --default-font-family: 'Consolas', 'Menlo', 'Monaco', 'Courier New', 'Liberation Mono', 'Courier',
+    monospace;
   --color-constant: #d694f9;
   --color-declaration: #ffc66d;
   --color-string: #a4c591;
@@ -18,8 +18,8 @@
 }
 
 [data-theme='light'] {
-  --default-font-family: 'Consolas', 'Menlo', 'Monaco', 'Courier New',
-  'Liberation Mono', 'Courier', monospace;
+  --default-font-family: 'Consolas', 'Menlo', 'Monaco', 'Courier New', 'Liberation Mono', 'Courier',
+    monospace;
   --color-constant: #871094;
   --color-declaration: #aa5a09;
   --color-string: #067d17;
@@ -34,8 +34,12 @@
   --color-secondary: #d694f9;
 }
 
+body {
+  @apply bg-base-100 text-identifier leading-[1.4];
+}
+
 .card {
-  @apply bg-base-200 border-base-300 rounded w-full border p-6 shadow-lg;
+  @apply bg-base-200 border-base-300 w-full rounded border p-6 shadow-lg;
 }
 
 .title {
