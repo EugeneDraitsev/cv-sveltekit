@@ -21,16 +21,14 @@
   });
 </script>
 
-<div class="text-2xl text-identifier max-w-[1300px] mx-auto py-4 px-6 flex justify-end">
-  <button
-    class="cursor-pointer h-6"
-    aria-label="theme-switcher"
-    onclick={() => setNewTheme(theme === 'light' ? 'dark' : 'light')}
-  >
-    {#if theme === 'light'}
-      <Icon icon="mdi:weather-night" />
-    {:else if theme === 'dark'}
-      <Icon icon="mdi:weather-sunny" />
-    {/if}
-  </button>
-</div>
+<button
+  class="cursor-pointer h-8 text-2xl"
+  aria-label="theme-switcher"
+  onclick={() => setNewTheme(theme === 'light' ? 'dark' : 'light')}
+>
+  {#if theme === 'light'}
+    <Icon icon="mdi:weather-night" />
+  {:else if theme === 'dark'}
+    <Icon icon="mdi:weather-sunny" />
+  {/if}
+</button>

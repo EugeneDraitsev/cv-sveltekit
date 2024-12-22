@@ -125,11 +125,11 @@ export const SITE_DATA = {
   headerLinks: [
     {
       label: 'Home',
-      url: '/',
+      href: '/',
     },
     {
       label: 'About',
-      url: '/about',
+      href: '/about',
     },
   ],
 } as const;
