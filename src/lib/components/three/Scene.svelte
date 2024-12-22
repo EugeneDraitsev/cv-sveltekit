@@ -1,15 +1,8 @@
 <script lang="ts">
-  import { T, useTask } from '@threlte/core';
+  import { T, useTask, useThrelte } from '@threlte/core';
   import { OrbitControls } from '@threlte/extras';
   import { onMount } from 'svelte';
-  import {
-    ShaderMaterial,
-    BufferGeometry,
-    Color,
-    Points,
-    BufferAttribute,
-    AdditiveBlending,
-  } from 'three';
+  import { ShaderMaterial, BufferGeometry, Color, BufferAttribute, AdditiveBlending } from 'three';
 
   import vertexShader from './galaxyVertexShader.glsl';
   import fragmentShader from './galaxyFragmentShader.glsl';
@@ -17,22 +10,25 @@
   let time = 0;
 
   const parameters = {
-    particleSize: 115,
-    count: 200000,
-    radius: 11,
+    particleSize: 7,
+    count: 100_000,
+    radius: 20,
     branches: 5,
     spin: 1,
     randomness: 0.82,
-    randomnessPower: 4.8,
+    randomnessPower: 7.8,
     insideColor: '#0b1d95',
     outsideColor: '#aa837e',
   };
 
   let geometry: BufferGeometry;
   let material: ShaderMaterial;
-  let points: Points;
+
+  const { renderer } = useThrelte();
+  const pixelRatio = Math.min(window.devicePixelRatio, 2);
 
   onMount(() => {
+    renderer.setPixelRatio(pixelRatio);
     generateGalaxy();
     return () => {
       geometry?.dispose();
@@ -41,10 +37,8 @@
   });
 
   function generateGalaxy() {
-    if (points) {
-      geometry.dispose();
-      material.dispose();
-    }
+    geometry?.dispose();
+    material?.dispose();
 
     geometry = new BufferGeometry();
 
@@ -112,11 +106,9 @@
       fragmentShader,
       uniforms: {
         uTime: { value: 0 },
-        uSize: { value: parameters.particleSize },
+        uSize: { value: parameters.particleSize * pixelRatio },
       },
     });
-
-    points = new Points(geometry, material);
   }
 
   useTask((delta) => {
@@ -145,9 +137,9 @@
 <!--/>-->
 
 <!--<ContactShadows scale={10} blur={2} far={2.5} opacity={0.5} />-->
-
-<T.Group position.y={0.75}>
-  {#if points}
-    <T.Points geometry={points.geometry} material={points.material} />
-  {/if}
+<T.Group position.y={0.55}>
+  <T.Points>
+    <T is={geometry} />
+    <T is={material} />
+  </T.Points>
 </T.Group>

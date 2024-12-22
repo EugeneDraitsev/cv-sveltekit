@@ -1,5 +1,3 @@
-uniform vec3 color;
-
 varying vec3 vColor;
 
 void main() {
