@@ -8,8 +8,8 @@
 </script>
 
 <div
-  class="app relative overflow-hidden transition-all ease-in-out duration-200"
-  style="height: {expanded ? '100dvh' : '540px'};"
+  class="app theme-grayscale relative overflow-hidden transition-all ease-in-out duration-200"
+  style:height={expanded ? '100dvh' : '540px'}
 >
   <Canvas>
     <Scene />

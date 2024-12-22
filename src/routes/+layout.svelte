@@ -16,11 +16,11 @@
 </svelte:head>
 
 <nav
-  class="fixed top-0 w-full z-10 bg-gradient-to-br from-background/30 to-indigo-900/20 backdrop-blur-[1px]"
+  class="fixed theme-grayscale top-0 w-full z-10 bg-gradient-to-br from-background/30 to-indigo-900/20 backdrop-blur-[1px]"
 >
   <div class="text-identifier max-w-[1300px] mx-auto px-6 flex items-center justify-between py-1">
     <div class="flex gap-4">
-      {#each headerLinks as { label, href }, i}
+      {#each headerLinks as { label, href } (href)}
         <a
           {href}
           class="text-identifier hover:text-identifier/90 transition-colors duration-200"

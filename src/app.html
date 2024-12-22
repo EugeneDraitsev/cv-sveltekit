@@ -6,21 +6,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     %sveltekit.head%
     <script>
-      const LOCAL_STORAGE_KEY = 'cv-theme';
+      const THEME_LOCAL_STORAGE_KEY = 'cv-theme';
       const THEME_ATTRIBUTE = 'data-theme';
+      const GRAYSCALE_LOCAL_STORAGE_KEY = 'cv-grayscale';
+      const GRAYSCALE_ATTRIBUTE = 'data-grayscale';
 
-      const theme = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const savedTheme = localStorage.getItem(THEME_LOCAL_STORAGE_KEY);
 
-      if (theme) {
-        document.documentElement.setAttribute(THEME_ATTRIBUTE, theme);
+      if (savedTheme) {
+        document.documentElement.setAttribute(THEME_ATTRIBUTE, savedTheme);
       } else {
         const preferredScheme = window.matchMedia('(prefers-color-scheme: dark)').matches
           ? 'dark'
           : 'light';
 
-        localStorage.setItem(LOCAL_STORAGE_KEY, preferredScheme);
+        localStorage.setItem(THEME_LOCAL_STORAGE_KEY, preferredScheme);
         document.documentElement.setAttribute(THEME_ATTRIBUTE, preferredScheme);
       }
+
+      const savedGrayscale = localStorage.getItem(GRAYSCALE_LOCAL_STORAGE_KEY);
+      const grayscale = savedGrayscale ? savedGrayscale === 'true' : true;
+      localStorage.setItem(GRAYSCALE_LOCAL_STORAGE_KEY, String(grayscale));
+      console.log('grayscale', grayscale);
+      document.documentElement.setAttribute(GRAYSCALE_ATTRIBUTE, String(grayscale));
     </script>
   </head>
   <body data-sveltekit-preload-data="hover">

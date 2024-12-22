@@ -10,7 +10,7 @@
   import { T, useTask, useThrelte } from '@threlte/core';
   import { OrbitControls } from '@threlte/extras';
 
-  import theme from '$lib/components/theme.svelte';
+  import themeStore from '$lib/stores/theme.svelte';
   import vertexShader from './galaxyVertexShader.glsl';
   import fragmentShader from './galaxyFragmentShader.glsl';
 
@@ -35,10 +35,10 @@
   const pixelRatio = Math.min(window.devicePixelRatio, 2);
 
   $effect(() => {
-    parameters.insideColor = theme.value === 'dark' ? '#0b1d95' : '#bdc2f1';
-    parameters.outsideColor = theme.value === 'dark' ? '#aa837e' : '#aa5a09';
+    parameters.insideColor = themeStore.theme === 'dark' ? '#0b1d95' : '#bdc2f1';
+    parameters.outsideColor = themeStore.theme === 'dark' ? '#aa837e' : '#aa5a09';
 
-    renderer.setClearColor(theme.value === 'dark' ? 0x121212 : 0xffffff, 1.0);
+    renderer.setClearColor(themeStore.theme === 'dark' ? 0x121212 : 0xffffff, 1.0);
     renderer.setPixelRatio(pixelRatio);
     generateGalaxy();
 
@@ -111,7 +111,7 @@
 
     material = new ShaderMaterial({
       depthWrite: false,
-      blending: theme.value === 'dark' ? AdditiveBlending : MultiplyBlending,
+      blending: themeStore.theme === 'dark' ? AdditiveBlending : MultiplyBlending,
       vertexColors: true,
       vertexShader,
       fragmentShader,

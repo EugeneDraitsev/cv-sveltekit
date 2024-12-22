@@ -49,3 +49,7 @@ body {
 .subtitle {
   @apply text-declaration mb-5 text-3xl;
 }
+
+[data-grayscale='true'] .theme-grayscale {
+  @apply grayscale;
+}

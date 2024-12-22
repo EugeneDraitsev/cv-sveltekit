@@ -1,21 +1,27 @@
 <script lang="ts">
   import Icon from '@iconify/svelte';
 
-  import theme from '$lib/components/theme.svelte';
-
-  $effect(() => {
-    theme.sync();
-  });
+  import themeStore, { setGrayscale, setTheme } from '$lib/stores/theme.svelte';
 </script>
 
-<button
-  class="cursor-pointer h-8 text-2xl"
-  aria-label="theme-switcher"
-  onclick={() => theme.set(theme.value === 'light' ? 'dark' : 'light')}
->
-  {#if theme.value === 'light'}
-    <Icon icon="mdi:weather-night" />
-  {:else if theme.value === 'dark'}
-    <Icon icon="mdi:weather-sunny" />
-  {/if}
-</button>
+<div class="flex gap-4">
+  <button
+    class="cursor-pointer h-8 text-2xl"
+    aria-label="theme-switcher"
+    onclick={() => setGrayscale(!themeStore.grayscale)}
+  >
+    <Icon icon="ic:twotone-invert-colors" />
+  </button>
+
+  <button
+    class="cursor-pointer h-8 text-2xl"
+    aria-label="theme-switcher"
+    onclick={() => setTheme(themeStore.theme === 'light' ? 'dark' : 'light')}
+  >
+    {#if themeStore.theme === 'light'}
+      <Icon icon="mdi:weather-night" />
+    {:else if themeStore.theme === 'dark'}
+      <Icon icon="mdi:weather-sunny" />
+    {/if}
+  </button>
+</div>
