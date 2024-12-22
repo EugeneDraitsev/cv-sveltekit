@@ -1,9 +1,16 @@
 <script lang="ts">
+  import {
+    ShaderMaterial,
+    BufferGeometry,
+    Color,
+    BufferAttribute,
+    AdditiveBlending,
+    MultiplyBlending,
+  } from 'three';
   import { T, useTask, useThrelte } from '@threlte/core';
   import { OrbitControls } from '@threlte/extras';
-  import { onMount } from 'svelte';
-  import { ShaderMaterial, BufferGeometry, Color, BufferAttribute, AdditiveBlending } from 'three';
 
+  import theme from '$lib/components/theme.svelte';
   import vertexShader from './galaxyVertexShader.glsl';
   import fragmentShader from './galaxyFragmentShader.glsl';
 
@@ -17,19 +24,24 @@
     spin: 1,
     randomness: 0.82,
     randomnessPower: 7.8,
-    insideColor: '#0b1d95',
-    outsideColor: '#aa837e',
+    insideColor: '',
+    outsideColor: '',
   };
 
-  let geometry: BufferGeometry;
-  let material: ShaderMaterial;
+  let geometry = $state<BufferGeometry>();
+  let material = $state<ShaderMaterial>();
 
   const { renderer } = useThrelte();
   const pixelRatio = Math.min(window.devicePixelRatio, 2);
 
-  onMount(() => {
+  $effect(() => {
+    parameters.insideColor = theme.value === 'dark' ? '#0b1d95' : '#bdc2f1';
+    parameters.outsideColor = theme.value === 'dark' ? '#aa837e' : '#aa5a09';
+
+    renderer.setClearColor(theme.value === 'dark' ? 0x121212 : 0xffffff, 1.0);
     renderer.setPixelRatio(pixelRatio);
     generateGalaxy();
+
     return () => {
       geometry?.dispose();
       material?.dispose();
@@ -37,10 +49,7 @@
   });
 
   function generateGalaxy() {
-    geometry?.dispose();
-    material?.dispose();
-
-    geometry = new BufferGeometry();
+    const newGeometry = new BufferGeometry();
 
     const positions = new Float32Array(parameters.count * 3);
     const colors = new Float32Array(parameters.count * 3);
@@ -90,17 +99,19 @@
       colors[i3 + 2] = mixedColor.b;
 
       // Scale
-      scales[i] = Math.random();
+      scales[i] = Math.random() * 25;
     }
 
-    geometry.setAttribute('position', new BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new BufferAttribute(colors, 3));
-    geometry.setAttribute('aScale', new BufferAttribute(scales, 1));
-    geometry.setAttribute('aRandomness', new BufferAttribute(randomness, 3));
+    newGeometry.setAttribute('position', new BufferAttribute(positions, 3));
+    newGeometry.setAttribute('color', new BufferAttribute(colors, 3));
+    newGeometry.setAttribute('aScale', new BufferAttribute(scales, 1));
+    newGeometry.setAttribute('aRandomness', new BufferAttribute(randomness, 3));
+
+    geometry = newGeometry;
 
     material = new ShaderMaterial({
       depthWrite: false,
-      blending: AdditiveBlending,
+      blending: theme.value === 'dark' ? AdditiveBlending : MultiplyBlending,
       vertexColors: true,
       vertexShader,
       fragmentShader,
@@ -126,17 +137,6 @@
 <T.DirectionalLight intensity={0.8} position.x={5} position.y={10} />
 <T.AmbientLight intensity={0.2} />
 
-<!--<Grid-->
-<!--  position.y={-0.001}-->
-<!--  cellColor="#ffffff"-->
-<!--  sectionColor="#ffffff"-->
-<!--  sectionThickness={0}-->
-<!--  fadeDistance={38}-->
-<!--  gridSize={52}-->
-<!--  cellSize={2}-->
-<!--/>-->
-
-<!--<ContactShadows scale={10} blur={2} far={2.5} opacity={0.5} />-->
 <T.Group position.y={0.55}>
   <T.Points>
     <T is={geometry} />

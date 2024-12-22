@@ -2,16 +2,17 @@
   import { page } from '$app/state';
 
   import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
-  import '../global.css';
   import { SITE_DATA } from '$lib/constants';
+  import '../global.css';
 
   const headerLinks = SITE_DATA.headerLinks;
   const { children } = $props();
 </script>
 
 <svelte:head>
-  <title>CV | Eugene Draitsev</title>
+  <title>CV | {SITE_DATA.siteTitle}</title>
   <meta name="description" content="Eugene Draitsev CV" />
+  <meta name="keywords" content={SITE_DATA.keyWords?.join(', ')} />
 </svelte:head>
 
 <nav
@@ -35,11 +36,11 @@
 </nav>
 
 {#await import('$lib/components/three/ThrelteApp.svelte')}
-  <div class="min-h-[500px] w-full"></div>
+  <div class="min-h-[540px] w-full"></div>
 {:then { default: LazyComponent }}
   <LazyComponent />
 {:catch error}
-  <div class="min-h-[500px] w-full flex items-center justify-center">
+  <div class="min-h-[540px] w-full flex items-center justify-center">
     <div class="mt-[-100px]">Can't load 3d scene in your browser</div>
   </div>
 {/await}

@@ -1,12 +1,6 @@
 <script lang="ts">
-  import { SITE_DATA } from '$lib/constants';
-
   const { data } = $props();
 </script>
-
-<svelte:head>
-  <title>CV | {SITE_DATA.siteTitle}</title>
-</svelte:head>
 
 <div class="container mx-auto flex flex-col justify-center px-6">
   <div class="title text-center text-3xl leading-none">About</div>
@@ -16,7 +10,7 @@
     the future, I plan to turn it into a personal blog, but for now, it’s simply a CV.
   </p>
   <div class="my-4 text-center">
-    This is the third iteration of this site, based on Sveltekit. Source code can be found
+    This is the third iteration of this site, based on SvelteKit. Source code can be found
     <a
       href="https://github.com/EugeneDraitsev/cv-sveltekit"
       class="text-keyword underline"

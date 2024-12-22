@@ -26,7 +26,7 @@
   --color-identifier: #2b2d30;
   --color-keyword: #aa5a09;
   --color-number: #1750eb;
-  --color-background: #424242;
+  --color-background: white;
   --color-base-100: white;
   --color-base-200: #fefefe;
   --color-base-300: var(--color-gray-200);

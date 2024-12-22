@@ -2,6 +2,7 @@ export const SITE_DATA = {
   siteTitle: 'Eugene Draitsev',
   siteDescription: 'Eugene Draitsev CV',
   githubUsername: 'EugeneDraitsev',
+  keyWords: ['Eugene Draitsev', 'software-engineer', 'frontend-developer', 'fullstack-engineer'],
   authorDescription: `Hi, my name is Eugene and I'm a software engineer. I like math, science, cats, algorithms, good UX
   and other boring things. I started working as a developer in 2011 and received my system engineer diploma
   from BSUIR in 2013. Almost all my experience has been as a fullstack developer (Node/Java + Frontend). 
