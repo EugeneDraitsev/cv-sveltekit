@@ -55,7 +55,7 @@
         class="h-full w-full border-none bg-gray-100"
         srcDoc={data.lighthouseData}
         title="Lighthouse results"
-      />
+      ></iframe>
     {/if}
   </div>
 
