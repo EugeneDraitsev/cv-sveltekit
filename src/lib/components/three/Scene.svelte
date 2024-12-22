@@ -1,10 +1,18 @@
 <script lang="ts">
-  import { T, useTask, useThrelte } from '@threlte/core';
-  import { OrbitControls, Grid, ContactShadows } from '@threlte/extras';
-  import * as THREE from 'three';
+  import { T, useTask } from '@threlte/core';
+  import { OrbitControls } from '@threlte/extras';
+  import { onMount } from 'svelte';
+  import {
+    ShaderMaterial,
+    BufferGeometry,
+    Color,
+    Points,
+    BufferAttribute,
+    AdditiveBlending,
+  } from 'three';
+
   import vertexShader from './galaxyVertexShader.glsl';
   import fragmentShader from './galaxyFragmentShader.glsl';
-  import { onMount } from 'svelte';
 
   let time = 0;
 
@@ -20,9 +28,9 @@
     outsideColor: '#aa837e',
   };
 
-  let geometry: THREE.BufferGeometry;
-  let material: THREE.ShaderMaterial;
-  let points: THREE.Points;
+  let geometry: BufferGeometry;
+  let material: ShaderMaterial;
+  let points: Points;
 
   onMount(() => {
     generateGalaxy();
@@ -38,15 +46,15 @@
       material.dispose();
     }
 
-    geometry = new THREE.BufferGeometry();
+    geometry = new BufferGeometry();
 
     const positions = new Float32Array(parameters.count * 3);
     const colors = new Float32Array(parameters.count * 3);
     const scales = new Float32Array(parameters.count);
     const randomness = new Float32Array(parameters.count * 3);
 
-    const colorInside = new THREE.Color(parameters.insideColor);
-    const colorOutside = new THREE.Color(parameters.outsideColor);
+    const colorInside = new Color(parameters.insideColor);
+    const colorOutside = new Color(parameters.outsideColor);
 
     for (let i = 0; i < parameters.count; i++) {
       const i3 = i * 3;
@@ -91,14 +99,14 @@
       scales[i] = Math.random();
     }
 
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geometry.setAttribute('aScale', new THREE.BufferAttribute(scales, 1));
-    geometry.setAttribute('aRandomness', new THREE.BufferAttribute(randomness, 3));
+    geometry.setAttribute('position', new BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new BufferAttribute(colors, 3));
+    geometry.setAttribute('aScale', new BufferAttribute(scales, 1));
+    geometry.setAttribute('aRandomness', new BufferAttribute(randomness, 3));
 
-    material = new THREE.ShaderMaterial({
+    material = new ShaderMaterial({
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       vertexColors: true,
       vertexShader,
       fragmentShader,
@@ -108,7 +116,7 @@
       },
     });
 
-    points = new THREE.Points(geometry, material);
+    points = new Points(geometry, material);
   }
 
   useTask((delta) => {
