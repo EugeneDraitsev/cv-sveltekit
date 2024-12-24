@@ -7,6 +7,20 @@
 
   const headerLinks = SITE_DATA.headerLinks;
   const { children, data } = $props();
+  let ThrelteApp = $state<any>();
+
+  $effect(() => {
+    // Wait until the main thread is idle, then import and render 3D
+    requestIdleCallback(async () => {
+      // wait 500ms to show the 3D in case of interactive animation
+      if (data.interactiveAnimation) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+      const { default: App } = await import('$lib/components/three/ThrelteApp.svelte');
+      // once imported, show the 3D
+      ThrelteApp = App;
+    });
+  });
 </script>
 
 <svelte:head>
@@ -35,15 +49,21 @@
   </div>
 </nav>
 
-<!-- Some static fallback while 3D is not loaded yet -->
-{#await import('$lib/components/three/ThrelteApp.svelte')}
-  <div class="min-h-[540px] w-full"></div>
-{:then { default: ThrelteApp }}
+{#if ThrelteApp}
   <ThrelteApp interactiveAnimation={data.interactiveAnimation} />
-{:catch error}
-  <div class="min-h-[540px] w-full flex items-center justify-center">
-    <div class="mt-[-100px]">Can't load 3d scene</div>
-  </div>
-{/await}
+{:else}
+  <div class="min-h-[540px] w-full"></div>
+{/if}
+
+<!-- Some static fallback while 3D is not loaded yet -->
+<!--{#await import('$lib/components/three/ThrelteApp.svelte')}-->
+<!--  <div class="min-h-[540px] w-full"></div>-->
+<!--{:then { default: ThrelteApp }}-->
+<!--  <ThrelteApp interactiveAnimation={data.interactiveAnimation} />-->
+<!--{:catch error}-->
+<!--  <div class="min-h-[540px] w-full flex items-center justify-center">-->
+<!--    <div class="mt-[-100px]">Can't load 3d scene</div>-->
+<!--  </div>-->
+<!--{/await}-->
 
 {@render children?.()}
