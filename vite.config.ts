@@ -5,4 +5,5 @@ import glsl from 'vite-plugin-glsl';
 
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit(), glsl({ compress: true })],
+  ssr: { noExternal: ['postprocessing'] },
 });

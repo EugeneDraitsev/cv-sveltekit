@@ -1,5 +1,5 @@
 <script lang="ts">
-  const { rating } = $props();
+  const { rating = 0 } = $props();
   let ref = $state<HTMLSpanElement>();
   const width = $derived(ref?.getBoundingClientRect()?.width ?? 83);
 </script>

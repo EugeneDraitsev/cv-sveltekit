@@ -27,7 +27,6 @@
       const savedGrayscale = localStorage.getItem(GRAYSCALE_LOCAL_STORAGE_KEY);
       const grayscale = savedGrayscale ? savedGrayscale === 'true' : true;
       localStorage.setItem(GRAYSCALE_LOCAL_STORAGE_KEY, String(grayscale));
-      console.log('grayscale', grayscale);
       document.documentElement.setAttribute(GRAYSCALE_ATTRIBUTE, String(grayscale));
     </script>
   </head>

@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-
   import { page } from '$app/state';
 
   import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
@@ -8,17 +6,7 @@
   import '../global.css';
 
   const headerLinks = SITE_DATA.headerLinks;
-  const { children } = $props();
-  let ThrelteApp = $state<any>();
-
-  onMount(() => {
-    // Wait until the main thread is idle, then import and render 3D
-    requestIdleCallback(async () => {
-      const { default: App } = await import('$lib/components/three/ThrelteApp.svelte');
-      // once imported, show the 3D
-      ThrelteApp = App;
-    });
-  });
+  const { children, data } = $props();
 </script>
 
 <svelte:head>
@@ -48,19 +36,14 @@
 </nav>
 
 <!-- Some static fallback while 3D is not loaded yet -->
-{#if ThrelteApp}
-  <ThrelteApp />
-{:else}
+{#await import('$lib/components/three/ThrelteApp.svelte')}
   <div class="min-h-[540px] w-full"></div>
-{/if}
-<!--{#await import('$lib/components/three/ThrelteApp.svelte')}-->
-<!--  <div class="min-h-[540px] w-full"></div>-->
-<!--{:then { default: LazyComponent }}-->
-<!--  <LazyComponent />-->
-<!--{:catch error}-->
-<!--  <div class="min-h-[540px] w-full flex items-center justify-center">-->
-<!--    <div class="mt-[-100px]">Can't load 3d scene in your browser</div>-->
-<!--  </div>-->
-<!--{/await}-->
+{:then { default: ThrelteApp }}
+  <ThrelteApp interactiveAnimation={data.interactiveAnimation} />
+{:catch error}
+  <div class="min-h-[540px] w-full flex items-center justify-center">
+    <div class="mt-[-100px]">Can't load 3d scene</div>
+  </div>
+{/await}
 
 {@render children?.()}
