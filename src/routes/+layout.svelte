@@ -1,13 +1,15 @@
 <script lang="ts">
+  import type { Component, ComponentProps } from 'svelte';
   import { page } from '$app/state';
 
-  import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
   import { SITE_DATA } from '$lib/constants';
+  import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
+  import type ThrelteAppType from '$lib/components/three/ThrelteApp.svelte';
   import '../global.css';
 
   const headerLinks = SITE_DATA.headerLinks;
   const { children, data } = $props();
-  let ThrelteApp = $state<any>();
+  let ThrelteApp = $state<Component<ComponentProps<typeof ThrelteAppType>>>();
 
   $effect(() => {
     // Wait until the main thread is idle, then import and render 3D

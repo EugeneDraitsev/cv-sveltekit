@@ -1,12 +1,6 @@
-import themeStore from '$lib/stores/theme.svelte';
 import { Color } from 'three';
 
-function getGalaxyColors() {
-  return {
-    insideColor: new Color(themeStore.theme === 'dark' ? '#0b1d95' : '#bdc2f1'),
-    outsideColor: new Color(themeStore.theme === 'dark' ? '#aa837e' : '#aa5a09'),
-  };
-}
+import themeStore from '$lib/stores/theme.svelte';
 
 export const parameters = {
   particleSize: 7,
@@ -19,7 +13,22 @@ export const parameters = {
   ...getGalaxyColors(),
 };
 
-export const generateGalaxy = (newParameters = parameters) => {
+const initialData = generateGalaxy();
+
+export const positions = initialData.positions;
+export const randomness = initialData.randomness;
+export const colors = initialData.colors;
+export const scales = initialData.scales;
+const radii = initialData.radii;
+
+function getGalaxyColors() {
+  return {
+    insideColor: new Color(themeStore.theme === 'dark' ? '#0b1d95' : '#bdc2f1'),
+    outsideColor: new Color(themeStore.theme === 'dark' ? '#aa837e' : '#aa5a09'),
+  };
+}
+
+function generateGalaxy(newParameters = parameters) {
   const positions = new Float32Array(newParameters.count * 3);
   const randomness = new Float32Array(newParameters.count * 3);
   const colors = new Float32Array(newParameters.count * 3);
@@ -70,15 +79,7 @@ export const generateGalaxy = (newParameters = parameters) => {
   }
 
   return { positions, randomness, colors, scales, radii };
-};
-
-const initialData = generateGalaxy();
-
-export const positions = initialData.positions;
-export const randomness = initialData.randomness;
-export const colors = initialData.colors;
-export const scales = initialData.scales;
-const radii = initialData.radii;
+}
 
 export function syncGalaxyColor() {
   const { insideColor, outsideColor } = getGalaxyColors();

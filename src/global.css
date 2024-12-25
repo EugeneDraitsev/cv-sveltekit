@@ -53,3 +53,7 @@ body {
 [data-grayscale='true'] .theme-grayscale {
   @apply grayscale;
 }
+
+.app:has(+ .overlapped) .galaxy-controls {
+  @apply bottom-24 lg:bottom-0;
+}

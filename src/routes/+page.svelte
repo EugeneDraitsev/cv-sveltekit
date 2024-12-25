@@ -6,7 +6,7 @@
   import Contacts from '$lib/components/Contacts.svelte';
 </script>
 
-<main>
+<main class="overlapped">
   <div class="relative mt-[-100px] flex flex-col items-center px-4 pb-5 max-w-[900px] mx-auto">
     <div class="card">
       <AboutMe />

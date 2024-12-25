@@ -38,7 +38,7 @@
   </Canvas>
 
   <div
-    class="absolute bottom-24 lg:bottom-0 left-4 lg:left-0 w-full h-[100px] from-base-100 to-transparent"
+    class="galaxy-controls absolute bottom-0 left-4 lg:left-0 w-full h-[100px] from-base-100 to-transparent"
     class:bg-gradient-to-t={!expanded}
   >
     <div class="flex items-end gap-2 py-6 h-full mx-auto max-w-[1200px] w-full">
