@@ -13,7 +13,7 @@
 
   $effect(() => {
     // Wait until the main thread is idle, then import and render 3D
-    requestIdleCallback(async () => {
+    requestAnimationFrame(async () => {
       // wait 500ms to show the 3D in case of interactive animation
       if (data.interactiveAnimation) {
         await new Promise((resolve) => setTimeout(resolve, 500));
