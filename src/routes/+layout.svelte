@@ -18,7 +18,7 @@
       if (data.interactiveAnimation) {
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
-      const { default: App } = await import('$lib/components/three/ThrelteApp.svelte');
+      const { default: App } = await import('$lib/components/three/WebGLApp.svelte');
       // once imported, show the 3D
       ThrelteApp = App;
     });
