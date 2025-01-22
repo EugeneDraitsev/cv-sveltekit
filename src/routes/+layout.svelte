@@ -1,11 +1,14 @@
 <script lang="ts">
   import type { Component, ComponentProps } from 'svelte';
   import { page } from '$app/state';
+  import { injectAnalytics } from '@vercel/analytics/sveltekit';
 
   import { SITE_DATA } from '$lib/constants';
   import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
   import type ThrelteAppType from '$lib/components/three/ThrelteApp.svelte';
   import '../global.css';
+
+  injectAnalytics();
 
   const headerLinks = SITE_DATA.headerLinks;
   const { children, data } = $props();
