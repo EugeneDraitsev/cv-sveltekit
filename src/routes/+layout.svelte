@@ -8,7 +8,7 @@
   import type ThrelteAppType from '$lib/components/three/ThrelteApp.svelte';
   import '../global.css';
 
-  injectAnalytics();
+  injectAnalytics({ debug: false });
 
   const headerLinks = SITE_DATA.headerLinks;
   const { children, data } = $props();
