@@ -24,8 +24,9 @@
         document.documentElement.setAttribute(THEME_ATTRIBUTE, preferredScheme);
       }
 
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
       const savedGrayscale = localStorage.getItem(GRAYSCALE_LOCAL_STORAGE_KEY);
-      const grayscale = savedGrayscale ? savedGrayscale === 'true' : true;
+      const grayscale = savedGrayscale ? savedGrayscale === 'true' : isMobile;
       localStorage.setItem(GRAYSCALE_LOCAL_STORAGE_KEY, String(grayscale));
       document.documentElement.setAttribute(GRAYSCALE_ATTRIBUTE, String(grayscale));
     </script>
