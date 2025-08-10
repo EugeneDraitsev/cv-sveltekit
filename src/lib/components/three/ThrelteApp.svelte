@@ -2,7 +2,6 @@
   import { Canvas } from '@threlte/core';
   import Icon from '@iconify/svelte';
   import { Pane, Folder, Button, Slider } from 'svelte-tweakpane-ui';
-  import { writable } from 'svelte/store';
 
   import Scene from './Scene.svelte';
   import { parameters, regenerateGalaxy } from './galaxy.utils';
@@ -13,8 +12,8 @@
   let container = $state<HTMLDivElement>();
   let showControls = $state(false);
 
-  // Create a store for the parameters so we can modify them
-  const galaxyParams = writable({
+  // Parameters managed via $state (no Svelte stores)
+  let galaxyParams = $state({
     particleSize: parameters.particleSize,
     count: parameters.count,
     radius: parameters.radius,
@@ -31,13 +30,16 @@
   });
 
   // Camera parameters
-  const cameraParams = writable({
+  let cameraParams = $state({
     fov: 20,
     distance: 30,
     positionX: -20,
     positionY: 16,
     positionZ: 20,
   });
+
+  // Version counter to trigger geometry regeneration in Scene
+  let regenVersion = $state(0);
 
   // Track previous values of structural parameters to detect changes
   let prevCount = $state(parameters.count);
@@ -52,9 +54,9 @@
   let prevNebulaParticleSize = $state(parameters.nebulaParticleSize);
   let prevNebulaParticleRatio = $state(parameters.nebulaParticleRatio);
 
-  // Update the actual parameters when the store changes
+  // Update the actual parameters when the state changes
   $effect(() => {
-    const params = $galaxyParams;
+    const params = galaxyParams;
 
     // Update all parameters
     parameters.particleSize = params.particleSize;
@@ -88,6 +90,7 @@
     // Regenerate galaxy if structural parameters changed
     if (structuralParamChanged) {
       regenerateGalaxy();
+      regenVersion += 1;
 
       // Update previous values
       prevCount = params.count;
@@ -131,11 +134,12 @@
   <Canvas>
     <Scene
       {animationActive}
-      cameraFov={$cameraParams.fov}
-      cameraPosition={[$cameraParams.positionX, $cameraParams.positionY, $cameraParams.positionZ]}
-      cameraDistance={$cameraParams.distance}
-      particleSize={$galaxyParams.particleSize}
-      nebulaIntensity={$galaxyParams.nebulaIntensity}
+      cameraFov={cameraParams.fov}
+      cameraPosition={[cameraParams.positionX, cameraParams.positionY, cameraParams.positionZ]}
+      cameraDistance={cameraParams.distance}
+      particleSize={galaxyParams.particleSize}
+      nebulaIntensity={galaxyParams.nebulaIntensity}
+      regenVersion={regenVersion}
     />
   </Canvas>
 
@@ -151,6 +155,7 @@
               on:click={() => {
                 // Directly call regenerateGalaxy to create a new galaxy with current parameters
                 regenerateGalaxy();
+                regenVersion += 1;
               }}
             />
             <Slider
@@ -158,24 +163,24 @@
               min={10000}
               max={500000}
               step={10000}
-              bind:value={$galaxyParams.count}
+              bind:value={galaxyParams.count}
             />
             <Slider
               label="Particle Size"
               min={0.5}
               max={10}
               step={0.1}
-              bind:value={$galaxyParams.particleSize}
+              bind:value={galaxyParams.particleSize}
             />
-            <Slider label="Radius" min={5} max={50} step={1} bind:value={$galaxyParams.radius} />
+            <Slider label="Radius" min={5} max={50} step={1} bind:value={galaxyParams.radius} />
             <Slider
               label="Branches"
               min={2}
               max={10}
               step={1}
-              bind:value={$galaxyParams.branches}
+              bind:value={galaxyParams.branches}
             />
-            <Slider label="Spin" min={0.1} max={5} step={0.1} bind:value={$galaxyParams.spin} />
+            <Slider label="Spin" min={0.1} max={5} step={0.1} bind:value={galaxyParams.spin} />
           </Folder>
           <Folder title="Distribution">
             <Slider
@@ -183,28 +188,28 @@
               min={0}
               max={2}
               step={0.01}
-              bind:value={$galaxyParams.randomness}
+              bind:value={galaxyParams.randomness}
             />
             <Slider
               label="Randomness Power"
               min={1}
               max={10}
               step={0.1}
-              bind:value={$galaxyParams.randomnessPower}
+              bind:value={galaxyParams.randomnessPower}
             />
             <Slider
               label="Arm Width"
               min={0.1}
               max={1}
               step={0.01}
-              bind:value={$galaxyParams.armWidth}
+              bind:value={galaxyParams.armWidth}
             />
             <Slider
               label="Disk Thickness"
               min={0.01}
               max={0.5}
               step={0.01}
-              bind:value={$galaxyParams.diskThickness}
+              bind:value={galaxyParams.diskThickness}
             />
           </Folder>
         </Folder>
@@ -215,38 +220,38 @@
             min={0}
             max={2}
             step={0.01}
-            bind:value={$galaxyParams.nebulaIntensity}
+            bind:value={galaxyParams.nebulaIntensity}
           />
-          <Slider label="Size" min={0.1} max={3} step={0.1} bind:value={$galaxyParams.nebulaSize} />
+          <Slider label="Size" min={0.1} max={3} step={0.1} bind:value={galaxyParams.nebulaSize} />
           <Slider
             label="Particle Size"
             min={0.1}
             max={3}
             step={0.1}
-            bind:value={$galaxyParams.nebulaParticleSize}
+            bind:value={galaxyParams.nebulaParticleSize}
           />
           <Slider
             label="Particle Ratio"
             min={0.1}
             max={0.9}
             step={0.05}
-            bind:value={$galaxyParams.nebulaParticleRatio}
+            bind:value={galaxyParams.nebulaParticleRatio}
           />
         </Folder>
 
         <Folder title="Camera">
-          <Slider label="FOV" min={10} max={75} step={1} bind:value={$cameraParams.fov} />
+          <Slider label="FOV" min={10} max={75} step={1} bind:value={cameraParams.fov} />
           <Slider
             label="Distance"
             min={10}
             max={100}
             step={1}
-            bind:value={$cameraParams.distance}
+            bind:value={cameraParams.distance}
           />
           <Folder title="Position">
-            <Slider label="X" min={-50} max={50} step={1} bind:value={$cameraParams.positionX} />
-            <Slider label="Y" min={-50} max={50} step={1} bind:value={$cameraParams.positionY} />
-            <Slider label="Z" min={-50} max={50} step={1} bind:value={$cameraParams.positionZ} />
+            <Slider label="X" min={-50} max={50} step={1} bind:value={cameraParams.positionX} />
+            <Slider label="Y" min={-50} max={50} step={1} bind:value={cameraParams.positionY} />
+            <Slider label="Z" min={-50} max={50} step={1} bind:value={cameraParams.positionZ} />
           </Folder>
         </Folder>
       </Pane>

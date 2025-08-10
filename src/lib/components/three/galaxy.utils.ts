@@ -1,5 +1,4 @@
 import { Color } from 'three';
-import { writable } from 'svelte/store';
 
 import themeStore from '$lib/stores/theme.svelte';
 
@@ -31,8 +30,6 @@ export let scales = initialData.scales;
 export let isNebula = initialData.isNebula;
 let radii = initialData.radii;
 
-// Create a store to track when the galaxy is regenerated
-export const galaxyRegenerated = writable(0);
 
 function getGalaxyColors() {
   return {
@@ -200,9 +197,6 @@ export function regenerateGalaxy() {
   scales = newData.scales;
   isNebula = newData.isNebula;
   radii = newData.radii;
-
-  // Increment the galaxyRegenerated store to notify subscribers
-  galaxyRegenerated.update(count => count + 1);
 
   return newData;
 }

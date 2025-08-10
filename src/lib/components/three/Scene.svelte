@@ -20,7 +20,6 @@
     scales,
     isNebula,
     syncGalaxyColor,
-    galaxyRegenerated,
   } from '$lib/components/three/galaxy.utils';
 
   const { renderer } = useThrelte();
@@ -31,23 +30,17 @@
     cameraDistance = 30,
     particleSize = parameters.particleSize as number,
     nebulaIntensity = parameters.nebulaIntensity,
+    regenVersion = 0,
   } = $props();
   const pixelRatio = Math.min(window.devicePixelRatio, 2);
 
   // we have not to use $state here, because we don't need to re-create the material on every change
   let time = 0;
 
-  // Subscribe to the galaxyRegenerated store to know when to update the geometry
-  let galaxyRegeneratedCount = $state(0);
-
-  $effect(() => {
-    // Update our local counter whenever the store changes
-    galaxyRegeneratedCount = $galaxyRegenerated;
-  });
 
   const geometry = $derived.by(() => {
-    // This will be re-evaluated whenever galaxyRegeneratedCount changes
-    void galaxyRegeneratedCount;
+    // Rebuild geometry whenever the parent increments regenVersion
+    void regenVersion;
 
     syncGalaxyColor();
 
