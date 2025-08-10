@@ -4,6 +4,6 @@ import tailwindcss from '@tailwindcss/vite';
 import glsl from 'vite-plugin-glsl';
 
 export default defineConfig({
-  plugins: [tailwindcss(), sveltekit(), glsl({ compress: true })],
+  plugins: [tailwindcss(), sveltekit(), glsl({ minify: true })],
   ssr: { noExternal: ['postprocessing'] },
 });
