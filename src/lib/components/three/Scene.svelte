@@ -47,8 +47,7 @@
 
   const geometry = $derived.by(() => {
     // This will be re-evaluated whenever galaxyRegeneratedCount changes
-    // eslint-disable-next-line no-unused-vars
-    const _ = galaxyRegeneratedCount;
+    void galaxyRegeneratedCount;
 
     syncGalaxyColor();
 
