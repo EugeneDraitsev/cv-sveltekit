@@ -64,7 +64,7 @@
   </div>
 
   <p class="mt-4 mb-6 text-center text-xs">
-    *Tested in Chrome Version 131.0.6778.205 in
+    *Tested in Chrome Version 139.0.7258.66 in
     <span class="text-keyword">incognito mode</span>
   </p>
 </div>
