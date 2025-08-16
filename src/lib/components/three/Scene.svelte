@@ -37,26 +37,13 @@
   // we have not to use $state here, because we don't need to re-create the material on every change
   let time = 0;
 
-
-  const geometry = $derived.by(() => {
-    // Rebuild geometry whenever the parent increments regenVersion
-    void regenVersion;
-
-    syncGalaxyColor();
-
-    const newGeometry = new BufferGeometry();
-    newGeometry.setAttribute('position', new BufferAttribute(positions, 3));
-    newGeometry.setAttribute('color', new BufferAttribute(colors, 3));
-    newGeometry.setAttribute('aScale', new BufferAttribute(scales, 1));
-    newGeometry.setAttribute('aRandomness', new BufferAttribute(randomness, 3));
-    newGeometry.setAttribute('aIsNebula', new BufferAttribute(isNebula, 1));
-    return newGeometry;
-  });
+  const geometry = $state(new BufferGeometry());
 
   const material = $derived.by(() => {
     return new ShaderMaterial({
       depthWrite: false,
       transparent: true,
+      premultipliedAlpha: themeStore.theme !== 'dark',
       blending: themeStore.theme === 'dark' ? AdditiveBlending : MultiplyBlending,
       vertexColors: true,
       vertexShader,
@@ -70,6 +57,15 @@
   });
 
   $effect(() => {
+    void regenVersion;
+    syncGalaxyColor();
+
+    geometry.setAttribute('position', new BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new BufferAttribute(colors, 3));
+    geometry.setAttribute('aScale', new BufferAttribute(scales, 1));
+    geometry.setAttribute('aRandomness', new BufferAttribute(randomness, 3));
+    geometry.setAttribute('aIsNebula', new BufferAttribute(isNebula, 1));
+
     renderer.setClearColor(themeStore.theme === 'dark' ? 0x121212 : 0xffffff, 1.0);
     renderer.setPixelRatio(pixelRatio);
   });
@@ -79,14 +75,6 @@
       start();
     } else {
       stop();
-    }
-  });
-
-  // Update material uniforms when relevant props change
-  $effect(() => {
-    if (material) {
-      material.uniforms.uSize.value = particleSize * pixelRatio;
-      material.uniforms.uNebulaIntensity.value = nebulaIntensity;
     }
   });
 
