@@ -2,6 +2,14 @@ import { Color } from 'three';
 
 import themeStore from '$lib/stores/theme.svelte';
 
+function toColor(input?: string | Color): Color | undefined {
+  if (!input) return undefined;
+  return input instanceof Color ? input : new Color(input);
+}
+// Optional color overrides for external control
+export const customGalaxyColors: { inside?: Color; outside?: Color } = $state({});
+export const customNebulaColors: { inside?: Color; outside?: Color } = $state({});
+
 export const parameters = {
   particleSize: 3.5, // Reduced particle size for more realism
   count: 150_000, // Increased count for more detail
@@ -30,11 +38,29 @@ export let scales = initialData.scales;
 export let isNebula = initialData.isNebula;
 let radii = initialData.radii;
 
-
 function getGalaxyColors() {
+  const isDark = themeStore.theme === 'dark';
+
+  // Theme defaults
+  const defaultGalaxyInside = new Color(isDark ? '#0b1d95' : '#bdc2f1');
+  const defaultGalaxyOutside = new Color(isDark ? '#aa837e' : '#aa5a09');
+  const defaultNebulaInside = isDark ? defaultGalaxyInside.clone() : new Color('#1a3698');
+  const defaultNebulaOutside = isDark ? defaultGalaxyOutside.clone() : new Color('#af6853');
+
+  // Apply overrides independen tly if provided
+  const galaxyInside = customGalaxyColors?.inside ?? defaultGalaxyInside;
+  const galaxyOutside = customGalaxyColors?.outside ?? defaultGalaxyOutside;
+  const nebulaInside = customNebulaColors?.inside ?? defaultNebulaInside;
+  const nebulaOutside = customNebulaColors?.outside ?? defaultNebulaOutside;
+
   return {
-    insideColor: new Color(themeStore.theme === 'dark' ? '#0b1d95' : '#bdc2f1'),
-    outsideColor: new Color(themeStore.theme === 'dark' ? '#aa837e' : '#aa5a09'),
+    galaxyInsideColor: galaxyInside,
+    galaxyOutsideColor: galaxyOutside,
+    nebulaInsideColor: nebulaInside,
+    nebulaOutsideColor: nebulaOutside,
+    // Backward-compat fields used by older code paths (mirror galaxy colors)
+    insideColor: galaxyInside,
+    outsideColor: galaxyOutside,
   };
 }
 
@@ -118,17 +144,17 @@ function generateGalaxy(newParameters = parameters) {
     // Use diskThickness parameter to control the vertical spread
     const diskThicknessFactor = newParameters.diskThickness || 0.1;
     const randomY = isNebulaParticle
-      // For nebula particles - more vertical randomness for spherical shape
-      ? Math.pow(Math.random(), randomPower * 0.8) * // Lower power for less concentration
+      ? // For nebula particles - more vertical randomness for spherical shape
+        Math.pow(Math.random(), randomPower * 0.8) * // Lower power for less concentration
         (Math.random() < 0.5 ? 1 : -1) *
         randomnessFactor *
-        radius * 
+        radius *
         0.6 // Much higher vertical spread for more spherical nebula (increased from 0.5)
-      // For sleeve particles - highly constrained to create disk shape
-      : Math.pow(Math.random(), randomPower * 1.5) * // Higher power for more concentration
+      : // For sleeve particles - highly constrained to create disk shape
+        Math.pow(Math.random(), randomPower * 1.5) * // Higher power for more concentration
         (Math.random() < 0.5 ? 1 : -1) *
         randomnessFactor *
-        radius * 
+        radius *
         diskThicknessFactor; // Apply disk thickness constraint
 
     const randomZ =
@@ -141,13 +167,19 @@ function generateGalaxy(newParameters = parameters) {
     randomness[i3 + 1] = randomY;
     randomness[i3 + 2] = randomZ;
 
-    // Color - special handling for nebula particles
-    const mixedColor = newParameters.insideColor.clone();
+    // Color - special handling for nebula particles with separate palettes
+    const baseInside = isNebulaParticle
+      ? newParameters.nebulaInsideColor
+      : newParameters.galaxyInsideColor;
+    const baseOutside = isNebulaParticle
+      ? newParameters.nebulaOutsideColor
+      : newParameters.galaxyOutsideColor;
+    const mixedColor = baseInside.clone();
 
     if (isNebulaParticle) {
       // Nebula particles have more of the inside color with a slight variation
       const nebulaColorMix = radius / (newParameters.radius * 0.5); // Normalized radius within nebula
-      mixedColor.lerp(newParameters.outsideColor, nebulaColorMix * 0.3); // Less outside color influence
+      mixedColor.lerp(baseOutside, nebulaColorMix * 0.3); // Less outside color influence
 
       // Slightly brighten the nebula center (reduced brightness)
       if (radius < newParameters.radius * 0.1) {
@@ -155,7 +187,7 @@ function generateGalaxy(newParameters = parameters) {
       }
     } else {
       // Regular galaxy particles use the standard color lerp
-      mixedColor.lerp(newParameters.outsideColor, radius / newParameters.radius);
+      mixedColor.lerp(baseOutside, radius / newParameters.radius);
     }
 
     colors[i3] = mixedColor.r;
@@ -201,34 +233,66 @@ export function regenerateGalaxy() {
   return newData;
 }
 
+export function setGalaxyColors(inside: string | Color, outside: string | Color) {
+  customGalaxyColors.inside = toColor(inside);
+  customGalaxyColors.outside = toColor(outside);
+}
+
+export function setNebulaColors(inside: string | Color, outside: string | Color) {
+  customNebulaColors.inside = toColor(inside);
+  customNebulaColors.outside = toColor(outside);
+}
+
+export function clearColorOverrides() {
+  customGalaxyColors.inside = undefined;
+  customGalaxyColors.outside = undefined;
+  customNebulaColors.inside = undefined;
+  customNebulaColors.outside = undefined;
+}
+
 export function syncGalaxyColor() {
-  const { insideColor, outsideColor } = getGalaxyColors();
+  const {
+    galaxyInsideColor,
+    galaxyOutsideColor,
+    nebulaInsideColor,
+    nebulaOutsideColor,
+    insideColor,
+    outsideColor,
+  } = getGalaxyColors();
 
-  if (insideColor.equals(parameters.insideColor) && outsideColor.equals(parameters.outsideColor)) {
-    return;
-  }
+  // if (insideColor.equals(parameters.insideColor) && outsideColor.equals(parameters.outsideColor)) {
+  //   return;
+  // }
 
+  parameters.galaxyInsideColor = galaxyInsideColor;
+  parameters.galaxyOutsideColor = galaxyOutsideColor;
+  parameters.nebulaInsideColor = nebulaInsideColor;
+  parameters.nebulaOutsideColor = nebulaOutsideColor;
+  // Keep backward-compat mirrors
   parameters.insideColor = insideColor;
   parameters.outsideColor = outsideColor;
 
   for (let i = 0; i < parameters.count; i++) {
     const i3 = i * 3;
     const radius = radii[i];
-    const isNebulaParticle = isNebula[i] > 0.5;
-    const mixedColor = insideColor.clone();
+    const nebula = isNebula[i] > 0.5;
+    const baseInside = nebula ? nebulaInsideColor : galaxyInsideColor;
+    const baseOutside = nebula ? nebulaOutsideColor : galaxyOutsideColor;
 
-    if (isNebulaParticle) {
+    const mixedColor = baseInside.clone();
+
+    if (nebula) {
       // Nebula particles have more of the inside color with a slight variation
       const nebulaColorMix = radius / (parameters.radius * 0.5); // Normalized radius within nebula
-      mixedColor.lerp(outsideColor, nebulaColorMix * 0.3); // Less outside color influence
+      mixedColor.lerp(baseOutside, nebulaColorMix * 0.3); // Less outside color influence
 
       // Slightly brighten the nebula center (reduced brightness)
       if (radius < parameters.radius * 0.1) {
-        mixedColor.multiplyScalar(1.3); // Less bright center (reduced from 1.5)
+        mixedColor.multiplyScalar(1.3);
       }
     } else {
       // Regular galaxy particles use the standard color lerp
-      mixedColor.lerp(outsideColor, radius / parameters.radius);
+      mixedColor.lerp(baseOutside, radius / parameters.radius);
     }
 
     colors[i3] = mixedColor.r;

@@ -20,7 +20,7 @@
     scales,
     isNebula,
     syncGalaxyColor,
-  } from '$lib/components/three/galaxy.utils';
+  } from '$lib/components/three/galaxy.utils.svelte';
 
   const { renderer } = useThrelte();
   const {

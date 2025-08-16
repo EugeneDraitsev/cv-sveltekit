@@ -1,16 +1,46 @@
 <script lang="ts">
   import { Canvas } from '@threlte/core';
   import Icon from '@iconify/svelte';
-  import { Pane, Folder, Button, Slider } from 'svelte-tweakpane-ui';
+  import { Pane, Folder, Button, Slider, Color as TPColor } from 'svelte-tweakpane-ui';
 
   import Scene from './Scene.svelte';
-  import { parameters, regenerateGalaxy } from './galaxy.utils';
+  import {
+    parameters,
+    regenerateGalaxy,
+    setGalaxyColors,
+    setNebulaColors,
+    clearColorOverrides,
+  } from './galaxy.utils.svelte';
 
   const { interactiveAnimation = false } = $props();
   let animationActive = $state(!interactiveAnimation);
   let expanded = $state(false);
   let container = $state<HTMLDivElement>();
   let showControls = $state(false);
+
+  // Color override UI state
+  function colorToHex(c: any): string {
+    try {
+      return '#' + c?.getHexString?.();
+    } catch {
+      return '#ffffff';
+    }
+  }
+  let galaxyInsideHex = $state(colorToHex(parameters.galaxyInsideColor ?? parameters.insideColor));
+  let galaxyOutsideHex = $state(
+    colorToHex(parameters.galaxyOutsideColor ?? parameters.outsideColor),
+  );
+  let nebulaInsideHex = $state(
+    colorToHex(
+      parameters.nebulaInsideColor ?? parameters.galaxyInsideColor ?? parameters.insideColor,
+    ),
+  );
+  let nebulaOutsideHex = $state(
+    colorToHex(
+      parameters.nebulaOutsideColor ?? parameters.galaxyOutsideColor ?? parameters.outsideColor,
+    ),
+  );
+  let colorsVersion = $state(0);
 
   // Parameters managed via $state (no Svelte stores)
   let galaxyParams = $state({
@@ -42,17 +72,17 @@
   let regenVersion = $state(0);
 
   // Track previous values of structural parameters to detect changes
-  let prevCount = $state(parameters.count);
-  let prevRadius = $state(parameters.radius);
-  let prevBranches = $state(parameters.branches);
-  let prevSpin = $state(parameters.spin);
-  let prevRandomness = $state(parameters.randomness);
-  let prevRandomnessPower = $state(parameters.randomnessPower);
-  let prevArmWidth = $state(parameters.armWidth);
-  let prevDiskThickness = $state(parameters.diskThickness);
-  let prevNebulaSize = $state(parameters.nebulaSize);
-  let prevNebulaParticleSize = $state(parameters.nebulaParticleSize);
-  let prevNebulaParticleRatio = $state(parameters.nebulaParticleRatio);
+  let prevCount = parameters.count;
+  let prevRadius = parameters.radius;
+  let prevBranches = parameters.branches;
+  let prevSpin = parameters.spin;
+  let prevRandomness = parameters.randomness;
+  let prevRandomnessPower = parameters.randomnessPower;
+  let prevArmWidth = parameters.armWidth;
+  let prevDiskThickness = parameters.diskThickness;
+  let prevNebulaSize = parameters.nebulaSize;
+  let prevNebulaParticleSize = parameters.nebulaParticleSize;
+  let prevNebulaParticleRatio = parameters.nebulaParticleRatio;
 
   // Update the actual parameters when the state changes
   $effect(() => {
@@ -107,6 +137,15 @@
     }
   });
 
+  function setColors() {
+    const gi = galaxyInsideHex;
+    const go = galaxyOutsideHex;
+    const ni = nebulaInsideHex;
+    const no = nebulaOutsideHex;
+    setGalaxyColors(gi, go);
+    setNebulaColors(ni, no);
+  }
+
   $effect(() => {
     if (container && interactiveAnimation) {
       const handleInteraction = () => {
@@ -139,7 +178,7 @@
       cameraDistance={cameraParams.distance}
       particleSize={galaxyParams.particleSize}
       nebulaIntensity={galaxyParams.nebulaIntensity}
-      regenVersion={regenVersion}
+      {regenVersion}
     />
   </Canvas>
 
@@ -173,13 +212,7 @@
               bind:value={galaxyParams.particleSize}
             />
             <Slider label="Radius" min={5} max={50} step={1} bind:value={galaxyParams.radius} />
-            <Slider
-              label="Branches"
-              min={2}
-              max={10}
-              step={1}
-              bind:value={galaxyParams.branches}
-            />
+            <Slider label="Branches" min={2} max={10} step={1} bind:value={galaxyParams.branches} />
             <Slider label="Spin" min={0.1} max={5} step={0.1} bind:value={galaxyParams.spin} />
           </Folder>
           <Folder title="Distribution">
@@ -239,15 +272,36 @@
           />
         </Folder>
 
+        <Folder title="Colors">
+          <TPColor label="Galaxy Inside" bind:value={galaxyInsideHex} on:change={setColors} />
+          <TPColor label="Galaxy Outside" bind:value={galaxyOutsideHex} on:change={setColors} />
+          <TPColor label="Nebula Inside" bind:value={nebulaInsideHex} on:change={setColors} />
+          <TPColor label="Nebula Outside" bind:value={nebulaOutsideHex} on:change={setColors} />
+          <Button
+            label="Reset Colors"
+            on:click={() => {
+              clearColorOverrides();
+              galaxyInsideHex = colorToHex(parameters.galaxyInsideColor ?? parameters.insideColor);
+              galaxyOutsideHex = colorToHex(
+                parameters.galaxyOutsideColor ?? parameters.outsideColor,
+              );
+              nebulaInsideHex = colorToHex(
+                parameters.nebulaInsideColor ??
+                  parameters.galaxyInsideColor ??
+                  parameters.insideColor,
+              );
+              nebulaOutsideHex = colorToHex(
+                parameters.nebulaOutsideColor ??
+                  parameters.galaxyOutsideColor ??
+                  parameters.outsideColor,
+              );
+              colorsVersion += 1;
+            }}
+          />
+        </Folder>
         <Folder title="Camera">
           <Slider label="FOV" min={10} max={75} step={1} bind:value={cameraParams.fov} />
-          <Slider
-            label="Distance"
-            min={10}
-            max={100}
-            step={1}
-            bind:value={cameraParams.distance}
-          />
+          <Slider label="Distance" min={10} max={100} step={1} bind:value={cameraParams.distance} />
           <Folder title="Position">
             <Slider label="X" min={-50} max={50} step={1} bind:value={cameraParams.positionX} />
             <Slider label="Y" min={-50} max={50} step={1} bind:value={cameraParams.positionY} />
