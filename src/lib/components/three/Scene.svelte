@@ -78,6 +78,15 @@
     }
   });
 
+  function blackOut() {
+    renderer.setAnimationLoop(null);
+  }
+
+  $effect(() => {
+    addEventListener('pagehide', blackOut, { once: true });
+    addEventListener('beforeunload', blackOut, { once: true });
+  });
+
   const { start, stop } = useTask(
     (delta) => {
       if (material) {

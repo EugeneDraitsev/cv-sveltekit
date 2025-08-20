@@ -42,10 +42,10 @@ function getGalaxyColors() {
   const isDark = themeStore.theme === 'dark';
 
   // Theme defaults
-  const defaultGalaxyInside = new Color(isDark ? '#0b1d95' : '#bdc2f1');
-  const defaultGalaxyOutside = new Color(isDark ? '#aa837e' : '#aa5a09');
-  const defaultNebulaInside = isDark ? defaultGalaxyInside.clone() : new Color('#1a3698');
-  const defaultNebulaOutside = isDark ? defaultGalaxyOutside.clone() : new Color('#af6853');
+  const defaultGalaxyInside = new Color(isDark ? '#0b1d95' : '#0b1d95');
+  const defaultGalaxyOutside = new Color(isDark ? '#c3c5d8' : '#aa5a09');
+  const defaultNebulaInside = isDark ? defaultGalaxyInside.clone() : new Color('rgb(45,52,92)');
+  const defaultNebulaOutside = isDark ? defaultGalaxyOutside.clone() : new Color('#000000');
 
   // Apply overrides independen tly if provided
   const galaxyInside = customGalaxyColors?.inside ?? defaultGalaxyInside;
@@ -259,10 +259,6 @@ export function syncGalaxyColor() {
     insideColor,
     outsideColor,
   } = getGalaxyColors();
-
-  // if (insideColor.equals(parameters.insideColor) && outsideColor.equals(parameters.outsideColor)) {
-  //   return;
-  // }
 
   parameters.galaxyInsideColor = galaxyInsideColor;
   parameters.galaxyOutsideColor = galaxyOutsideColor;
