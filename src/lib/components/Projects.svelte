@@ -12,8 +12,8 @@
   <h2 class="mb-5 text-3xl font-normal text-declaration">Latest repositories on Github</h2>
 
   {#await loadRepositories()}
-    <div class="flex h-[380px] w-full items-center justify-center">
-      <span class="loading loading-ring h-[75px] w-[75px]"></span>
+    <div class="flex h-95 w-full items-center justify-center">
+      <span class="loading loading-ring h-18.75 w-18.75"></span>
     </div>
   {:then repositories}
     {#if repositories.length > 0}
@@ -28,7 +28,7 @@
               Updated: {new Date(repository.updated_at).toUTCString()}
             </p>
           </div>
-          <div class="ml-1.5 flex min-w-[30px] items-center space-x-2 text-white">
+          <div class="ml-1.5 flex min-w-7.5 items-center space-x-2 text-white">
             <p class="mb-0.75 text-lg">★</p>
             <div>{repository.stargazers_count}</div>
           </div>

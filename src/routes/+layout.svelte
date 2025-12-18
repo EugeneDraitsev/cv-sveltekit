@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Component, ComponentProps } from 'svelte';
   import { page } from '$app/state';
+  import { resolve } from '$app/paths';
   import { injectAnalytics } from '@vercel/analytics/sveltekit';
 
   import { SITE_DATA } from '$lib/constants';
@@ -35,13 +36,13 @@
 </svelte:head>
 
 <nav
-  class="fixed theme-grayscale top-0 w-full z-10 bg-gradient-to-br from-background/30 to-indigo-900/20 backdrop-blur-[1px]"
+  class="fixed theme-grayscale top-0 w-full z-10 bg-linear-to-br from-background/30 to-indigo-900/20 backdrop-blur-[1px]"
 >
-  <div class="text-identifier max-w-[1300px] mx-auto px-6 flex items-center justify-between py-1">
+  <div class="text-identifier max-w-325 mx-auto px-6 flex items-center justify-between py-1">
     <div class="flex gap-4">
       {#each headerLinks as { label, href } (href)}
         <a
-          {href}
+          href={resolve(href)}
           class="text-identifier hover:text-identifier/90 transition-colors duration-200"
           class:border-b={page?.url?.pathname === href}
         >
@@ -57,18 +58,7 @@
 {#if ThrelteApp}
   <ThrelteApp interactiveAnimation={data.interactiveAnimation} />
 {:else}
-  <div class="min-h-[540px] w-full"></div>
+  <div class="min-h-135 w-full"></div>
 {/if}
-
-<!-- Some static fallback while 3D is not loaded yet -->
-<!--{#await import('$lib/components/three/ThrelteApp.svelte')}-->
-<!--  <div class="min-h-[540px] w-full"></div>-->
-<!--{:then { default: ThrelteApp }}-->
-<!--  <ThrelteApp interactiveAnimation={data.interactiveAnimation} />-->
-<!--{:catch error}-->
-<!--  <div class="min-h-[540px] w-full flex items-center justify-center">-->
-<!--    <div class="mt-[-100px]">Can't load 3d scene</div>-->
-<!--  </div>-->
-<!--{/await}-->
 
 {@render children?.()}
