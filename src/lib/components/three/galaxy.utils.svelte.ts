@@ -11,9 +11,23 @@ function toColor(input?: string | Color): Color | undefined {
 export const customGalaxyColors: { inside?: Color; outside?: Color } = $state({});
 export const customNebulaColors: { inside?: Color; outside?: Color } = $state({});
 
+/**
+ * Particle count scaled to the device. The galaxy is generated synchronously, so a
+ * lower count on phones / low-core machines avoids a long main-thread task (jank)
+ * when the scene loads, while capable desktops keep the full, dense visual.
+ */
+function getInitialParticleCount(): number {
+  if (typeof window === 'undefined') return 150_000;
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  const cores = navigator.hardwareConcurrency ?? 8;
+  if (isMobile) return 50_000;
+  if (cores <= 4) return 90_000;
+  return 150_000;
+}
+
 export const parameters = {
   particleSize: 3.5, // Reduced particle size for more realism
-  count: 150_000, // Increased count for more detail
+  count: getInitialParticleCount(), // Detail scaled to device capability
   radius: 20,
   branches: 3, // Reduced number of spiral arms for fewer, more prominent sleeves
   spin: 1.0, // Moderate spin for clear spiral pattern

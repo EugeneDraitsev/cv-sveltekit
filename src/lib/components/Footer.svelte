@@ -1,10 +1,20 @@
 <script lang="ts">
   import Icon from '@iconify/svelte';
+  import type { Component, ComponentProps } from 'svelte';
 
   import { SITE_DATA } from '$lib/constants';
-  import FooterShader from '$lib/components/FooterShader.svelte';
+  import type FooterShaderType from '$lib/components/FooterShader.svelte';
 
   let shaderActive = $state(false);
+
+  // Lazy-load the WebGL footer shader (and its three.js / galaxy.utils deps) only
+  // once the footer scrolls into view — keeps it out of the initial page bundle.
+  let FooterShader = $state<Component<ComponentProps<typeof FooterShaderType>>>();
+  $effect(() => {
+    if (shaderActive && !FooterShader) {
+      import('$lib/components/FooterShader.svelte').then((m) => (FooterShader = m.default));
+    }
+  });
 
   const currentYear = new Date().getFullYear();
   const links = [
@@ -115,7 +125,9 @@
   class="footer-galaxy theme-grayscale relative overflow-hidden border-t border-base-300"
 >
   <div class="absolute inset-0 z-0">
-    <FooterShader active={shaderActive} />
+    {#if FooterShader}
+      <FooterShader active={shaderActive} />
+    {/if}
   </div>
   <div class="footer-galaxy-overlay pointer-events-none absolute inset-0 z-[1]"></div>
 

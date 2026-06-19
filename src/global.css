@@ -167,6 +167,12 @@ body {
   }
 }
 
+/* Plain hero backdrop matching the live renderer's clear colour, shown until the
+   3D galaxy loads on interaction (or after a short idle fallback). */
+.galaxy-placeholder {
+  background: var(--color-base-100);
+}
+
 .threlte-app {
   opacity: 0;
 }

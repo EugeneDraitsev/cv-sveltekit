@@ -3,6 +3,7 @@
   import type { Component, ComponentProps } from 'svelte';
   import { page } from '$app/state';
   import { resolve } from '$app/paths';
+  import { browser } from '$app/environment';
   import { injectAnalytics } from '@vercel/analytics/sveltekit';
 
   import { SITE_DATA } from '$lib/constants';
@@ -11,11 +12,16 @@
   import type ThrelteAppType from '$lib/components/three/ThrelteApp.svelte';
   import '../global.css';
 
-  injectAnalytics({ debug: false });
+  // Vercel analytics scripts only exist on real deployments — skip them locally so
+  // a preview build doesn't log 404s to the console (which lowers Best Practices).
+  if (browser && !['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(location.hostname)) {
+    injectAnalytics({ debug: false });
+  }
 
   const headerLinks = SITE_DATA.headerLinks;
-  const { children, data } = $props();
+  const { children } = $props();
   let ThrelteApp = $state<Component<ComponentProps<typeof ThrelteAppType>>>();
+  let galaxyLoadStarted = false;
   let tabsElement = $state<HTMLElement>();
   let linkElements = $state<(HTMLAnchorElement | undefined)[]>([]);
   let activeIndicator = $state({ left: 0, width: 0, visible: false });
@@ -68,16 +74,45 @@
   }
 
   $effect(() => {
-    // Wait until the main thread is idle, then import and render 3D
-    requestAnimationFrame(async () => {
-      // wait 500ms to show the 3D in case of interactive animation
-      if (data.interactiveAnimation) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
+    // The 3D galaxy is a heavy, decorative enhancement (Three.js parse + particle
+    // generation). Loading it eagerly blocks the main thread during initial load.
+    // Instead, defer it until the visitor shows engagement (any interaction) — or,
+    // for passive visitors, until the page has fully settled. This keeps first paint
+    // and interactivity instant while still delivering the live galaxy.
+    let cancelled = false;
+    let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const events = ['pointerdown', 'mousemove', 'touchstart', 'wheel', 'keydown', 'scroll'] as const;
+
+    async function loadGalaxy() {
+      if (galaxyLoadStarted || cancelled) return;
+      galaxyLoadStarted = true;
+      teardown();
       const { default: App } = await import('$lib/components/three/ThrelteApp.svelte');
-      // once imported, show the 3D
-      ThrelteApp = App;
-    });
+      if (!cancelled) ThrelteApp = App;
+    }
+
+    function teardown() {
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      events.forEach((event) => window.removeEventListener(event, loadGalaxy));
+    }
+
+    events.forEach((event) =>
+      window.addEventListener(event, loadGalaxy, { passive: true }),
+    );
+
+    function scheduleFallback() {
+      // Visitors who never interact still get the galaxy after a short delay.
+      fallbackTimer = setTimeout(loadGalaxy, 3500);
+    }
+    if (document.readyState === 'complete') scheduleFallback();
+    else window.addEventListener('load', scheduleFallback, { once: true });
+
+    return () => {
+      cancelled = true;
+      teardown();
+      window.removeEventListener('load', scheduleFallback);
+    };
   });
 
   $effect(() => {
@@ -130,9 +165,9 @@
 </nav>
 
 {#if ThrelteApp}
-  <ThrelteApp interactiveAnimation={data.interactiveAnimation} />
+  <ThrelteApp />
 {:else}
-  <div class="min-h-135 w-full"></div>
+  <div class="galaxy-placeholder theme-grayscale min-h-135 w-full" aria-hidden="true"></div>
 {/if}
 
 {@render children?.()}
