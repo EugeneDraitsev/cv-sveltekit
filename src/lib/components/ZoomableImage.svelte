@@ -56,7 +56,7 @@
 
   const modalImageClass = $derived(
     {
-      flow: 'h-auto w-auto max-h-[calc(100svh-24px)] max-w-[calc(100vw-24px)] sm:w-[1100px] sm:max-h-[calc(100svh-48px)] sm:max-w-[calc(100vw-48px)]',
+      flow: 'h-auto w-[calc(100vw-24px)] max-h-[calc(100svh-24px)] max-w-[calc(100vw-24px)] sm:w-[1100px] sm:max-h-[calc(100svh-48px)] sm:max-w-[calc(100vw-48px)]',
       process:
         'h-auto w-auto max-h-[calc(100svh-24px)] max-w-[calc(100vw-24px)] sm:w-[960px] sm:max-h-[calc(100svh-48px)] sm:max-w-[calc(100vw-48px)]',
       video:

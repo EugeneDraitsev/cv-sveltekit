@@ -156,6 +156,7 @@
           src="/blog/telegram-bot/architecture-light.svg"
           darkSrc="/blog/telegram-bot/architecture-dark.svg"
           alt="Telegram bot architecture diagram"
+          aspect="flow"
           figureClass="overflow-hidden rounded border border-base-300 bg-base-100 p-3"
           imageClass="w-full rounded bg-base-100"
           caption="Current async worker architecture, including the sharp-renderer lambda for Telegram PNG images."
