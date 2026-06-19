@@ -2,7 +2,9 @@
   import type { Component, ComponentProps } from 'svelte';
   import { page } from '$app/state';
   import { resolve } from '$app/paths';
+  import { goto } from '$app/navigation';
   import { injectAnalytics } from '@vercel/analytics/sveltekit';
+  import Icon from '@iconify/svelte';
 
   import { SITE_DATA } from '$lib/constants';
   import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
@@ -14,6 +16,17 @@
   const headerLinks = SITE_DATA.headerLinks;
   const { children, data } = $props();
   let ThrelteApp = $state<Component<ComponentProps<typeof ThrelteAppType>>>();
+
+  // URL State Sync
+  let activeScene = $derived(
+    (page.url.searchParams.get('scene') as 'galaxy' | 'geometric') || 'galaxy',
+  );
+
+  function setScene(scene: 'galaxy' | 'geometric') {
+    const newUrl = new URL(page.url);
+    newUrl.searchParams.set('scene', scene);
+    goto(newUrl, { replaceState: true, keepFocus: true, noScroll: true });
+  }
 
   $effect(() => {
     // Wait until the main thread is idle, then import and render 3D
@@ -51,12 +64,42 @@
       {/each}
     </div>
 
-    <ThemeSwitcher />
+    <div class="flex items-center gap-4">
+      <!-- Scene Switcher -->
+      <div
+        class="flex items-center rounded-lg border border-identifier/20 bg-background/50 p-1 backdrop-blur-md"
+      >
+        <button
+          class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md transition-all duration-200 {activeScene ===
+          'galaxy'
+            ? 'bg-identifier/20 text-identifier shadow-sm'
+            : 'text-muted-foreground hover:text-identifier/70'}"
+          onclick={() => setScene('galaxy')}
+          aria-label="Galaxy Scene"
+          title="Galaxy Scene"
+        >
+          <Icon icon="ph:sparkle" class="h-4 w-4" />
+        </button>
+        <button
+          class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md transition-all duration-200 {activeScene ===
+          'geometric'
+            ? 'bg-identifier/20 text-identifier shadow-sm'
+            : 'text-muted-foreground hover:text-identifier/70'}"
+          onclick={() => setScene('geometric')}
+          aria-label="Geometric Scene"
+          title="Geometric Scene"
+        >
+          <Icon icon="ph:cube" class="h-4 w-4" />
+        </button>
+      </div>
+
+      <ThemeSwitcher />
+    </div>
   </div>
 </nav>
 
 {#if ThrelteApp}
-  <ThrelteApp interactiveAnimation={data.interactiveAnimation} />
+  <ThrelteApp interactiveAnimation={data.interactiveAnimation} scene={activeScene} />
 {:else}
   <div class="min-h-135 w-full"></div>
 {/if}

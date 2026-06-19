@@ -4,6 +4,7 @@
   interface Props {
     expanded: boolean;
     animationActive: boolean;
+    showDebugButton?: boolean;
     onToggleExpanded: () => void;
     onToggleAnimation: () => void;
     onToggleControls: () => void;
@@ -12,6 +13,7 @@
   const {
     expanded,
     animationActive,
+    showDebugButton = true,
     onToggleExpanded,
     onToggleAnimation,
     onToggleControls,
@@ -27,7 +29,7 @@
 </script>
 
 <div
-  class="absolute bottom-0 left-4 h-25 w-full from-base-100 to-transparent lg:left-0"
+  class="absolute bottom-0 left-4 h-25 w-full from-base-100 to-transparent lg:left-0 z-50"
   class:bg-gradient-to-t={!expanded}
 >
   <div class="mx-auto flex h-full w-full max-w-300 items-end gap-2 py-6">
@@ -50,11 +52,13 @@
     </button>
 
     <!-- Settings -->
-    <button class="h-6 cursor-pointer" onclick={onToggleControls} aria-label="Toggle controls">
-      <Icon
-        class="h-8 w-8 cursor-pointer text-identifier/90 transition-transform duration-200"
-        icon={ICONS.settings}
-      />
-    </button>
+    {#if showDebugButton}
+      <button class="h-6 cursor-pointer" onclick={onToggleControls} aria-label="Toggle controls">
+        <Icon
+          class="h-8 w-8 cursor-pointer text-identifier/90 transition-transform duration-200"
+          icon={ICONS.settings}
+        />
+      </button>
+    {/if}
   </div>
 </div>

@@ -42,3 +42,18 @@ export interface GalaxyDebugPanelProps {
   onSetColors: () => void;
   onResetColors: () => void;
 }
+
+/**
+ * Geometric scene parameters
+ */
+export interface GeometricParams {
+  speed: number;
+  elevationScale: number;
+  noiseScale: number;
+  biomeThreshold: number;
+  wireframe: boolean;
+  biome: number; // -1 for Auto, 0..3 for override
+  fogDist: number;
+  freeLook: boolean;
+}
+
