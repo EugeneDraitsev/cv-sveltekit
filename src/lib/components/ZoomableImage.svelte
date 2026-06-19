@@ -22,6 +22,7 @@
 
   const MAX_ZOOM = 4;
   const MIN_ZOOM = 1;
+  const TAP_MOVE_TOLERANCE = 6;
   const ZOOM_BUTTON_STEP = 0.35;
   const ZOOM_WHEEL_STEP = 1.16;
 
@@ -50,6 +51,10 @@
   let panStartY = 0;
   let pinchStartDistance = 0;
   let pinchStartZoom = MIN_ZOOM;
+  let tapMoved = false;
+  let tapPointerId: number | null = null;
+  let tapStartX = 0;
+  let tapStartY = 0;
   let zoom = $state(MIN_ZOOM);
 
   const activePointers = new Map<number, Point>();
@@ -105,6 +110,8 @@
     isPanning = false;
     panPointerId = null;
     pinchStartDistance = 0;
+    tapMoved = false;
+    tapPointerId = null;
     activePointers.clear();
   }
 
@@ -177,8 +184,13 @@
     const target = event.currentTarget as HTMLElement;
     target.setPointerCapture(event.pointerId);
     activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    tapMoved = false;
+    tapPointerId = event.pointerId;
+    tapStartX = event.clientX;
+    tapStartY = event.clientY;
 
     if (activePointers.size >= 2) {
+      tapPointerId = null;
       startPinch();
       return;
     }
@@ -198,6 +210,13 @@
 
     event.preventDefault();
     activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    if (
+      event.pointerId === tapPointerId &&
+      Math.hypot(event.clientX - tapStartX, event.clientY - tapStartY) > TAP_MOVE_TOLERANCE
+    ) {
+      tapMoved = true;
+    }
 
     if (activePointers.size >= 2 && pinchStartDistance > 0) {
       const points = Array.from(activePointers.values());
@@ -222,6 +241,14 @@
   }
 
   function handlePointerUp(event: PointerEvent) {
+    const shouldZoomFromTap =
+      event.type === 'pointerup' &&
+      zoom <= MIN_ZOOM &&
+      event.pointerId === tapPointerId &&
+      !tapMoved &&
+      activePointers.size === 1 &&
+      pinchStartDistance === 0;
+
     activePointers.delete(event.pointerId);
 
     if (event.pointerId === panPointerId) {
@@ -231,6 +258,15 @@
 
     if (activePointers.size < 2) {
       pinchStartDistance = 0;
+    }
+
+    if (event.pointerId === tapPointerId) {
+      tapPointerId = null;
+      tapMoved = false;
+    }
+
+    if (shouldZoomFromTap) {
+      applyZoom(2, { clientX: event.clientX, clientY: event.clientY });
     }
   }
 
