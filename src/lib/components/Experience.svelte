@@ -5,6 +5,26 @@
 </script>
 
 <div class="overflow-hidden sm:rounded-lg">
+  <h2 class="subtitle">Recent delivery</h2>
+  <div class="mb-8 space-y-3">
+    {#each SITE_DATA.deliveryHighlights as highlight}
+      <p>
+        {highlight.text}
+        {#if 'href' in highlight}
+          {' '}
+          <a
+            class="text-declaration cursor-pointer underline"
+            href={highlight.href}
+            target="_blank"
+            rel="noreferrer"
+          >
+            ({highlight.linkLabel})
+          </a>
+        {/if}
+      </p>
+    {/each}
+  </div>
+
   <h2 class="subtitle">Careers</h2>
   <span>[</span>
   <div class="ml-2">
