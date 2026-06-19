@@ -1,13 +1,60 @@
 export const SITE_DATA = {
   siteTitle: 'Eugene Draitsev',
-  siteDescription: 'Eugene Draitsev CV',
+  siteDescription: 'Eugene Draitsev CV - Senior Fullstack Engineer in Stockholm',
   githubUsername: 'EugeneDraitsev',
-  keyWords: ['Eugene Draitsev', 'software-engineer', 'frontend-developer', 'fullstack-engineer'],
-  authorDescription: `Hi, my name is Eugene and I'm a software engineer. I like math, science, cats, algorithms, good UX
+  keyWords: [
+    'Eugene Draitsev',
+    'software-engineer',
+    'fullstack-engineer',
+    'security',
+    'kubernetes',
+    'ai-agents',
+    'webgl',
+  ],
+  authorDescription: `Hi, my name is Eugene and I'm a software engineer. I like math, science, algorithms, good UX
   and other boring things. I started working as a developer in 2011 and received my system engineer diploma
-  from BSUIR in 2013. Almost all my experience has been as a fullstack developer (Node/Java + Frontend). 
-  I really like functional programming, serverless approach and cloud platforms. 
-  Currently, I'm working as a fullstack developer, mainly with Svelte, React, TypeScript, k8s, and AWS/GCP`,
+  from BSUIR in 2013. Most of my experience has been as a fullstack developer (Node/Java + Frontend).
+  I'm especially into functional programming, security engineering, k8s, cloud platforms and graphics work
+  with Three.js/WebGL. Currently, I'm working as a fullstack developer, mainly with Svelte, React,
+  TypeScript, k8s, and AWS/GCP. I enjoy taking messy product and platform problems, building the first
+  useful version, then hardening it into production software that teams can operate and improve.`,
+  profileHighlights: [
+    'Hands-on with product delivery: scoping, trade-offs, technical communication and production rollout.',
+    'Strong current focus on security, auth/passkeys, k8s, AI agents, Three.js/WebGL, tool execution and observability.',
+  ],
+  deliveryHighlights: [
+    {
+      title: 'Yubico x OpenAI partner launch',
+      text: 'Supported Yubico-side delivery for the public OpenAI Advanced Account Security / YubiKey bundle in spring 2026.',
+      result:
+        'Shipped partner API integration, a custom product page, custom checkout flow and customer authorization handoff across Yubico ecommerce and account systems.',
+      href: 'https://openai.com/index/advanced-account-security/',
+      linkLabel: 'public launch',
+      tags: ['Partner launch', 'Checkout', 'Auth handoff'],
+    },
+    {
+      title: 'Customer Accounts / FIDO2 authorization',
+      text: 'Work directly with Yubico auth and security teams on an organization-wide authorization flow for future products.',
+      result:
+        'Help scope service details and integrate the flow across product surfaces, ecommerce, account systems and multiple internal teams.',
+      tags: ['FIDO2', 'Security', 'Multi-team'],
+    },
+    {
+      title: 'Commerce launches and operational readiness',
+      text: 'Delivered customer-facing third-party commerce work across Yubico and Daniel Wellington.',
+      result:
+        'Supported local payment methods, regional store launches, campaign delivery and Black Friday readiness under production launch constraints.',
+      tags: ['Payments', 'Regional rollout', 'Launch support'],
+    },
+    {
+      title: 'Agentic product systems',
+      text: 'Kept a long-running Telegram bot evolving from local chat utilities into a production-like AI system.',
+      result:
+        'Built async workers, reply gating, model fallback, tool execution, memory, metrics and feedback loops around real group-chat behavior.',
+      tags: ['AI agents', 'Tools', 'Observability'],
+    },
+  ],
+  experienceStartDate: '2011-12-01',
   details: {
     name: 'Eugene Draitsev',
     birthDate: '1990-10-02',
@@ -36,6 +83,10 @@ export const SITE_DATA = {
         { name: 'AWS', value: 4 },
         { name: 'K8s', value: 4 },
         { name: 'Node', value: 4.5 },
+        { name: 'AI Agents', value: 4 },
+        { name: 'Three.js / WebGL', value: 4.5 },
+        { name: 'Security/Auth', value: 4 },
+        { name: 'Observability', value: 4 },
         { name: 'D3', value: 4.5 },
         { name: 'GraphQL', value: 4.5 },
         { name: 'Angular', value: 3.5 },
@@ -57,8 +108,13 @@ export const SITE_DATA = {
       period: 'Oct 2022 –  Now',
       location: 'Stockholm, Sweden',
       position: 'Senior Frontend Engineer',
-      description: `Redesign an e-commerce frontend solution from React to Sveltekit. Developing k8s infrastructure
-       for frontend, CMS and e2e tests. Integrations with payment platforms, scalability and performance improvements.`,
+      description: `Building Customer Accounts and ecommerce flows for Yubico, including passkeys/WebAuthn,
+       custom authentication and recovery flows, cross-service authorization and payment integrations. Supported
+       the Yubico-side launch of the public OpenAI Advanced Account Security / YubiKey bundle in spring 2026,
+       including partner integration, a custom product page, custom checkout flow and customer authorization handoff.
+       Working directly with auth and security teams on an organization-wide FIDO2 authorization flow for future
+       products, while also migrating React surfaces to SvelteKit and developing k8s infrastructure for frontend,
+       CMS and e2e testing.`,
     },
     {
       company: 'Daniel Wellington',
@@ -66,8 +122,9 @@ export const SITE_DATA = {
       period: 'June 2020 – Oct 2022',
       location: 'Stockholm, Sweden',
       position: 'Senior Fullstack Engineer',
-      description: `Design and develop e-commerce frontend and serverless backend for the main store site.
-      Integration of third-party services, scalability and performance improvements.`,
+      description: `Designed and developed the e-commerce frontend and backend services for the main store site.
+      Delivered third-party integrations and customer-facing workflows across local payment methods, regional store
+      launches, campaign support, Black Friday readiness, scalability and performance improvements.`,
     },
     {
       company: 'eBuilder',
@@ -75,8 +132,8 @@ export const SITE_DATA = {
       period: 'Aug 2016 –  June 2020',
       location: 'Stockholm, Sweden / Minsk, Belarus',
       position: 'Senior Software Engineer',
-      description: `Architect and develop frontend applications, React Native app, 
-      GraphQl services and AWS infrastructure for it (TypeScript/Node/React)`,
+      description: `Architected and delivered frontend applications, a React Native app,
+      GraphQL services and AWS infrastructure for customer-facing products (TypeScript/Node/React).`,
     },
     {
       company: 'ISSoft Solutions',
@@ -84,8 +141,8 @@ export const SITE_DATA = {
       period: 'Sep 2013  –  Aug 2016',
       location: 'Minsk, Belarus',
       position: '(Senior) Software Engineer',
-      description: `Develop and architect web applications (Java backend + Angular/React Fronted) for customers
-       from USA and Norway. AWS and docker-based infrastructure`,
+      description: `Developed and architected web applications for customers from the USA and Norway
+       with Java backends, Angular/React frontends, AWS and Docker-based infrastructure.`,
     },
     {
       company: 'Qulix Systems',
@@ -127,6 +184,10 @@ export const SITE_DATA = {
     {
       label: 'Home',
       href: '/',
+    },
+    {
+      label: 'Blog',
+      href: '/blog',
     },
     {
       label: 'About',

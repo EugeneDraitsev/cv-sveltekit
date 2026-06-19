@@ -5,6 +5,38 @@
 </script>
 
 <div class="overflow-hidden sm:rounded-lg">
+  <h2 class="subtitle">Recent delivery</h2>
+  <div class="mb-8 grid gap-4">
+    {#each SITE_DATA.deliveryHighlights as highlight}
+      <section class="border-l-2 border-keyword pl-4">
+        <h3 class="text-constant">{highlight.title}</h3>
+        <p class="mt-1">
+          {highlight.text}
+          {#if 'href' in highlight}
+            {' '}
+            <a
+              class="text-declaration cursor-pointer underline"
+              href={highlight.href}
+              target="_blank"
+              rel="noreferrer"
+            >
+              ({highlight.linkLabel})
+            </a>
+          {/if}
+        </p>
+        <p class="mt-2">
+          <span class="text-keyword">Result:</span>
+          {highlight.result}
+        </p>
+        <div class="mt-3 flex flex-wrap gap-2 text-xs">
+          {#each highlight.tags as tag}
+            <span class="rounded border border-base-300 px-2 py-1">{tag}</span>
+          {/each}
+        </div>
+      </section>
+    {/each}
+  </div>
+
   <h2 class="subtitle">Careers</h2>
   <span>[</span>
   <div class="ml-2">

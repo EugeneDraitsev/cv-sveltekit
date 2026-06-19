@@ -1,8 +1,9 @@
 <script lang="ts">
   import { Canvas } from '@threlte/core';
+  import type { Component, ComponentProps } from 'svelte';
 
   import GalaxyControls from './GalaxyControls.svelte';
-  import GalaxyDebugPanel from './GalaxyDebugPanel.svelte';
+  import type GalaxyDebugPanelType from './GalaxyDebugPanel.svelte';
   import Scene from './Scene.svelte';
   import {
     parameters,
@@ -16,14 +17,19 @@
 
   import { untrack } from 'svelte';
 
-  // Props
-  const { interactiveAnimation = false } = $props();
-
-  // UI State
-  let isPlaying = $derived(!interactiveAnimation);
+  // UI State — the scene only mounts after the visitor interacts, so play immediately.
+  let isPlaying = $state(true);
   let isExpanded = $state(false);
   let isDebugOpen = $state(false);
-  let containerRef = $state<HTMLDivElement>();
+
+  // The debug panel pulls in svelte-tweakpane-ui (~heavy). Load it on demand only
+  // when the visitor actually opens the controls, keeping it out of the main 3D chunk.
+  let DebugPanel = $state<Component<ComponentProps<typeof GalaxyDebugPanelType>>>();
+  $effect(() => {
+    if (isDebugOpen && !DebugPanel) {
+      import('./GalaxyDebugPanel.svelte').then((m) => (DebugPanel = m.default));
+    }
+  });
 
   // Galaxy & Camera State
   let galaxy = $state<GalaxyParams>({ ...parameters });
@@ -52,20 +58,6 @@
     }
   });
 
-  // Effect: Start animation on first user interaction
-  $effect(() => {
-    if (!containerRef || !interactiveAnimation) return;
-
-    const events = ['scroll', 'mousemove', 'touchstart', 'click'] as const;
-    const startAnimation = () => {
-      isPlaying = true;
-      events.forEach((e) => window.removeEventListener(e, startAnimation));
-    };
-
-    events.forEach((e) => window.addEventListener(e, startAnimation));
-    return () => events.forEach((e) => window.removeEventListener(e, startAnimation));
-  });
-
   // Handlers
   function regenerate() {
     regenerateGalaxy();
@@ -89,7 +81,6 @@
 </script>
 
 <div
-  bind:this={containerRef}
   class="threlte-app theme-grayscale relative overflow-hidden transition-all duration-200"
   style:height={isExpanded ? '100dvh' : '540px'}
 >
@@ -105,8 +96,8 @@
     />
   </Canvas>
 
-  {#if isDebugOpen}
-    <GalaxyDebugPanel
+  {#if isDebugOpen && DebugPanel}
+    <DebugPanel
       bind:galaxyParams={galaxy}
       bind:cameraParams={camera}
       bind:galaxyInsideHex={colors.galaxyInner}

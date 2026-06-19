@@ -34,6 +34,14 @@
   --color-secondary: #d694f9;
 }
 
+html {
+  scrollbar-gutter: auto;
+}
+
+html.has-scrollbar {
+  scrollbar-gutter: stable;
+}
+
 body {
   @apply bg-base-100 text-identifier leading-[1.4];
 }
@@ -50,8 +58,84 @@ body {
   @apply text-declaration mb-5 text-3xl;
 }
 
+.blog-page {
+  @apply text-[15px] sm:text-base;
+}
+
+.blog-page .card {
+  @apply p-4 sm:p-6;
+}
+
+.blog-page p,
+.blog-page li {
+  @apply leading-relaxed;
+}
+
+.blog-title {
+  @apply text-declaration text-[1.8rem] leading-[1.18] sm:text-4xl sm:leading-tight;
+}
+
+.blog-lead {
+  @apply mt-4 max-w-3xl text-base leading-relaxed sm:mt-5 sm:text-lg;
+}
+
+.blog-page .subtitle {
+  @apply text-2xl sm:text-3xl;
+}
+
+.blog-post-title {
+  @apply text-xl leading-snug sm:text-2xl sm:leading-tight;
+}
+
 [data-grayscale='true'] .theme-grayscale {
   @apply grayscale;
+}
+
+.nav-active-indicator {
+  @apply bg-identifier pointer-events-none absolute bottom-0 left-0 h-px;
+  transition:
+    transform 220ms ease,
+    width 220ms ease,
+    opacity 120ms ease;
+}
+
+.footer-galaxy {
+  background:
+    linear-gradient(
+      to bottom right,
+      color-mix(in srgb, var(--color-background) 30%, transparent),
+      rgb(49 46 129 / 0.2)
+    ),
+    var(--color-base-100);
+}
+
+.footer-galaxy-overlay {
+  background: color-mix(in srgb, var(--color-base-100) 28%, transparent);
+}
+
+[data-theme='light'] .footer-galaxy-overlay {
+  background: color-mix(in srgb, var(--color-base-100) 42%, transparent);
+}
+
+.footer-link {
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.footer-link:hover,
+.footer-link:focus-visible {
+  background: color-mix(in srgb, currentColor 10%, var(--color-base-100) 72%);
+  box-shadow: 0 0 18px color-mix(in srgb, currentColor 32%, transparent);
+  transform: translateY(-1px);
+}
+
+.footer-link:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 3px;
 }
 
 /* Ensure the bottom overlay doesn't block OrbitControls interactions */
@@ -62,12 +146,35 @@ body {
   pointer-events: auto;
 }
 
-.threlte-app {
-  opacity: 0;
+@media (max-width: 1199px) {
+  .galaxy-controls {
+    @apply left-4 w-[calc(100%-2rem)];
+  }
+
+  .threlte-app:has(+ .overlapped) .galaxy-controls {
+    @apply bottom-18 h-10;
+    background-image: none;
+  }
+
+  .threlte-app:has(+ .overlapped) .galaxy-controls .flex {
+    @apply items-start py-1.5;
+  }
 }
 
-.threlte-app:has(+ .overlapped) .galaxy-controls {
-  @apply bottom-24 lg:bottom-0;
+@media (min-width: 1200px) and (max-width: 1279px) {
+  .galaxy-controls .flex {
+    @apply px-4;
+  }
+}
+
+/* Plain hero backdrop matching the live renderer's clear colour, shown until the
+   3D galaxy loads on interaction (or after a short idle fallback). */
+.galaxy-placeholder {
+  background: var(--color-base-100);
+}
+
+.threlte-app {
+  opacity: 0;
 }
 
 @keyframes threlte-fade-in {

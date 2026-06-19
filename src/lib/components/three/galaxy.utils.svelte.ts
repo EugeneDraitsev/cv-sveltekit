@@ -1,6 +1,7 @@
 import { Color } from 'three';
 
 import themeStore from '$lib/stores/theme.svelte';
+import type { Theme } from '$lib/stores/theme.svelte';
 
 function toColor(input?: string | Color): Color | undefined {
   if (!input) return undefined;
@@ -10,9 +11,23 @@ function toColor(input?: string | Color): Color | undefined {
 export const customGalaxyColors: { inside?: Color; outside?: Color } = $state({});
 export const customNebulaColors: { inside?: Color; outside?: Color } = $state({});
 
+/**
+ * Particle count scaled to the device. The galaxy is generated synchronously, so a
+ * lower count on phones / low-core machines avoids a long main-thread task (jank)
+ * when the scene loads, while capable desktops keep the full, dense visual.
+ */
+function getInitialParticleCount(): number {
+  if (typeof window === 'undefined') return 150_000;
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  const cores = navigator.hardwareConcurrency ?? 8;
+  if (isMobile) return 50_000;
+  if (cores <= 4) return 90_000;
+  return 150_000;
+}
+
 export const parameters = {
   particleSize: 3.5, // Reduced particle size for more realism
-  count: 150_000, // Increased count for more detail
+  count: getInitialParticleCount(), // Detail scaled to device capability
   radius: 20,
   branches: 3, // Reduced number of spiral arms for fewer, more prominent sleeves
   spin: 1.0, // Moderate spin for clear spiral pattern
@@ -38,8 +53,8 @@ export let scales = initialData.scales;
 export let isNebula = initialData.isNebula;
 let radii = initialData.radii;
 
-function getGalaxyColors() {
-  const isDark = themeStore.theme === 'dark';
+function getGalaxyColors(theme: Theme = themeStore.theme === 'dark' ? 'dark' : 'light') {
+  const isDark = theme === 'dark';
 
   // Theme defaults
   const defaultGalaxyInside = new Color(isDark ? '#0b1d95' : '#0b1d95');
@@ -62,6 +77,10 @@ function getGalaxyColors() {
     insideColor: galaxyInside,
     outsideColor: galaxyOutside,
   };
+}
+
+export function getGalaxyColorPalette(theme?: Theme) {
+  return getGalaxyColors(theme);
 }
 
 function generateGalaxy(newParameters = parameters) {
