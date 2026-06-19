@@ -24,15 +24,34 @@ export const SITE_DATA = {
   ],
   deliveryHighlights: [
     {
-      text: 'Supported the Yubico-side launch of the public OpenAI Advanced Account Security / YubiKey bundle in spring 2026: partner integration, custom product page, checkout flow and authorization handoff.',
+      title: 'Yubico x OpenAI partner launch',
+      text: 'Supported Yubico-side delivery for the public OpenAI Advanced Account Security / YubiKey bundle in spring 2026.',
+      result:
+        'Shipped partner API integration, a custom product page, custom checkout flow and customer authorization handoff across Yubico ecommerce and account systems.',
       href: 'https://openai.com/index/advanced-account-security/',
       linkLabel: 'public launch',
+      tags: ['Partner launch', 'Checkout', 'Auth handoff'],
     },
     {
-      text: 'Work directly with Yubico auth and security teams on an organization-wide FIDO2 authorization flow for future products, from planning and service details to integration across multiple teams.',
+      title: 'Customer Accounts / FIDO2 authorization',
+      text: 'Work directly with Yubico auth and security teams on an organization-wide authorization flow for future products.',
+      result:
+        'Help scope service details and integrate the flow across product surfaces, ecommerce, account systems and multiple internal teams.',
+      tags: ['FIDO2', 'Security', 'Multi-team'],
     },
     {
-      text: 'Delivered third-party commerce work across Yubico and Daniel Wellington: local payment methods, regional store launches, campaign support and Black Friday readiness.',
+      title: 'Commerce launches and operational readiness',
+      text: 'Delivered customer-facing third-party commerce work across Yubico and Daniel Wellington.',
+      result:
+        'Supported local payment methods, regional store launches, campaign delivery and Black Friday readiness under production launch constraints.',
+      tags: ['Payments', 'Regional rollout', 'Launch support'],
+    },
+    {
+      title: 'Agentic product systems',
+      text: 'Kept a long-running Telegram bot evolving from local chat utilities into a production-like AI system.',
+      result:
+        'Built async workers, reply gating, model fallback, tool execution, memory, metrics and feedback loops around real group-chat behavior.',
+      tags: ['AI agents', 'Tools', 'Observability'],
     },
   ],
   experienceStartDate: '2011-12-01',
