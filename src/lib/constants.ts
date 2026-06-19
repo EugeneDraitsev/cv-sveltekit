@@ -22,6 +22,19 @@ export const SITE_DATA = {
     'Hands-on with product delivery: scoping, trade-offs, technical communication and production rollout.',
     'Strong current focus on security, auth/passkeys, k8s, AI agents, Three.js/WebGL, tool execution and observability.',
   ],
+  deliveryHighlights: [
+    {
+      text: 'Supported the Yubico-side launch of the public OpenAI Advanced Account Security / YubiKey bundle in spring 2026: partner integration, custom product page, checkout flow and authorization handoff.',
+      href: 'https://openai.com/index/advanced-account-security/',
+      linkLabel: 'public launch',
+    },
+    {
+      text: 'Work directly with Yubico auth and security teams on an organization-wide FIDO2 authorization flow for future products, from planning and service details to integration across multiple teams.',
+    },
+    {
+      text: 'Delivered third-party commerce work across Yubico and Daniel Wellington: local payment methods, regional store launches, campaign support and Black Friday readiness.',
+    },
+  ],
   experienceStartDate: '2011-12-01',
   details: {
     name: 'Eugene Draitsev',
@@ -76,9 +89,13 @@ export const SITE_DATA = {
       period: 'Oct 2022 –  Now',
       location: 'Stockholm, Sweden',
       position: 'Senior Frontend Engineer',
-      description: `Working with passkeys/WebAuthn, unified authorization across services and departments,
-       custom auth flows, payment integrations, scalability and performance improvements. Redesigning an e-commerce
-       frontend from React to SvelteKit and developing k8s infrastructure for frontend, CMS and e2e testing.`,
+      description: `Building Customer Accounts and ecommerce flows for Yubico, including passkeys/WebAuthn,
+       custom authentication and recovery flows, cross-service authorization and payment integrations. Supported
+       the Yubico-side launch of the public OpenAI Advanced Account Security / YubiKey bundle in spring 2026,
+       including partner integration, a custom product page, custom checkout flow and customer authorization handoff.
+       Working directly with auth and security teams on an organization-wide FIDO2 authorization flow for future
+       products, while also migrating React surfaces to SvelteKit and developing k8s infrastructure for frontend,
+       CMS and e2e testing.`,
     },
     {
       company: 'Daniel Wellington',
@@ -87,7 +104,8 @@ export const SITE_DATA = {
       location: 'Stockholm, Sweden',
       position: 'Senior Fullstack Engineer',
       description: `Designed and developed the e-commerce frontend and backend services for the main store site.
-      Delivered third-party integrations, customer-facing workflows, scalability and performance improvements.`,
+      Delivered third-party integrations and customer-facing workflows across local payment methods, regional store
+      launches, campaign support, Black Friday readiness, scalability and performance improvements.`,
     },
     {
       company: 'eBuilder',

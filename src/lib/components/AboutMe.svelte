@@ -77,6 +77,28 @@
           {/each}
         </div>
       </div>
+
+      <div class="mt-8">
+        <h2 class="subtitle">Recent delivery</h2>
+        <div class="space-y-3">
+          {#each SITE_DATA.deliveryHighlights as highlight}
+            <p>
+              {highlight.text}
+              {#if 'href' in highlight}
+                {' '}
+                <a
+                  class="text-declaration cursor-pointer underline"
+                  href={highlight.href}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  ({highlight.linkLabel})
+                </a>
+              {/if}
+            </p>
+          {/each}
+        </div>
+      </div>
     </div>
   </div>
 </div>
