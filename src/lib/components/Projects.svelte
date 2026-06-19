@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
+
   export const loadRepositories = async () => {
     const response = await fetch(`/api/github.json`);
     if (response.ok) {
@@ -9,6 +11,23 @@
 </script>
 
 <div>
+  <h2 class="mb-5 text-3xl font-normal text-declaration">Featured project</h2>
+  <div class="mb-8 border-b border-gray-500 pb-5">
+    <a
+      href={resolve('/blog/telegram-bot-app')}
+      class="cursor-pointer font-bold text-constant underline"
+    >
+      Telegram bot: from chat utility to agentic system
+    </a>
+    <p class="py-2 text-sm">
+      A long-running Telegram bot that grew from simple chat commands into an async AWS Lambda
+      system with a reply gate, agent loop, tool execution, memory, metrics and live stats.
+    </p>
+    <p class="text-xs">
+      Architecture notes on model behavior, tool boundaries, feedback loops and operational patterns.
+    </p>
+  </div>
+
   <h2 class="mb-5 text-3xl font-normal text-declaration">Latest repositories on Github</h2>
 
   {#await loadRepositories()}

@@ -1,6 +1,7 @@
 import { Color } from 'three';
 
 import themeStore from '$lib/stores/theme.svelte';
+import type { Theme } from '$lib/stores/theme.svelte';
 
 function toColor(input?: string | Color): Color | undefined {
   if (!input) return undefined;
@@ -38,8 +39,8 @@ export let scales = initialData.scales;
 export let isNebula = initialData.isNebula;
 let radii = initialData.radii;
 
-function getGalaxyColors() {
-  const isDark = themeStore.theme === 'dark';
+function getGalaxyColors(theme: Theme = themeStore.theme === 'dark' ? 'dark' : 'light') {
+  const isDark = theme === 'dark';
 
   // Theme defaults
   const defaultGalaxyInside = new Color(isDark ? '#0b1d95' : '#0b1d95');
@@ -62,6 +63,10 @@ function getGalaxyColors() {
     insideColor: galaxyInside,
     outsideColor: galaxyOutside,
   };
+}
+
+export function getGalaxyColorPalette(theme?: Theme) {
+  return getGalaxyColors(theme);
 }
 
 function generateGalaxy(newParameters = parameters) {

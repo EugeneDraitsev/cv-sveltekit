@@ -27,8 +27,9 @@
 </script>
 
 <div
-  class="absolute bottom-0 left-4 h-25 w-full from-base-100 to-transparent lg:left-0"
-  class:bg-gradient-to-t={!expanded}
+  class="galaxy-controls absolute bottom-0 left-0 h-25 w-full from-base-100 to-transparent {!expanded
+    ? 'bg-gradient-to-t'
+    : ''}"
 >
   <div class="mx-auto flex h-full w-full max-w-300 items-end gap-2 py-6">
     <!-- Expand/Collapse -->
