@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     %sveltekit.head%
     <script>
+      if (typeof window.__chromium_devtools_metrics_reporter !== 'function') {
+        window.__chromium_devtools_metrics_reporter = function () {};
+      }
+
       const THEME_LOCAL_STORAGE_KEY = 'cv-theme';
       const THEME_ATTRIBUTE = 'data-theme';
       const GRAYSCALE_LOCAL_STORAGE_KEY = 'cv-grayscale';
