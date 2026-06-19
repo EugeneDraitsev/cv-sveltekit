@@ -103,9 +103,7 @@
 
       <div class="mt-6 mb-8">
         <p class="mb-3 text-xs uppercase text-keyword sm:text-sm">Long-running side project</p>
-        <h1 class="blog-title">
-          Telegram bot: from local chat utility to agentic system
-        </h1>
+        <h1 class="blog-title">Telegram bot: from local chat utility to agentic system</h1>
         <p class="blog-lead">
           The first commit in this repository was on July 16, 2015. It started as a collection of
           practical features for local chats and turned into an agentic production system: async AWS

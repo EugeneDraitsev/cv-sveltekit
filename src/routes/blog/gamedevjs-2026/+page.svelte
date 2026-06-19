@@ -58,9 +58,7 @@
 
       <div class="mt-6 mb-8">
         <p class="mb-3 text-xs uppercase text-keyword sm:text-sm">Game jam experiment</p>
-        <h1 class="blog-title">
-          Orb Knight: how far can AI agents take a first-time game jam?
-        </h1>
+        <h1 class="blog-title">Orb Knight: how far can AI agents take a first-time game jam?</h1>
         <p class="blog-lead">
           This is an experiment log: how far can I get in a large game jam, with almost no game
           development background, if I treat Codex and Claude Code as implementation agents and keep

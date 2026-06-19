@@ -24,7 +24,8 @@
       system with a reply gate, agent loop, tool execution, memory, metrics and live stats.
     </p>
     <p class="text-xs">
-      Architecture notes on model behavior, tool boundaries, feedback loops and operational patterns.
+      Architecture notes on model behavior, tool boundaries, feedback loops and operational
+      patterns.
     </p>
   </div>
 

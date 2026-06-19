@@ -72,7 +72,7 @@ body {
 }
 
 .blog-title {
-  @apply text-[1.8rem] leading-[1.18] text-declaration sm:text-4xl sm:leading-tight;
+  @apply text-declaration text-[1.8rem] leading-[1.18] sm:text-4xl sm:leading-tight;
 }
 
 .blog-lead {
@@ -92,7 +92,7 @@ body {
 }
 
 .nav-active-indicator {
-  @apply bg-identifier absolute bottom-0 left-0 h-px pointer-events-none;
+  @apply bg-identifier pointer-events-none absolute bottom-0 left-0 h-px;
   transition:
     transform 220ms ease,
     width 220ms ease,
