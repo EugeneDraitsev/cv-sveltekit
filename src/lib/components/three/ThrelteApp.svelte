@@ -21,6 +21,9 @@
   let isPlaying = $state(true);
   let isExpanded = $state(false);
   let isDebugOpen = $state(false);
+  let rootElement = $state<HTMLElement>();
+  let isSceneVisible = $state(true);
+  const sceneActive = $derived(isPlaying && isSceneVisible);
 
   // The debug panel pulls in svelte-tweakpane-ui (~heavy). Load it on demand only
   // when the visitor actually opens the controls, keeping it out of the main 3D chunk.
@@ -29,6 +32,21 @@
     if (isDebugOpen && !DebugPanel) {
       import('./GalaxyDebugPanel.svelte').then((m) => (DebugPanel = m.default));
     }
+  });
+
+  $effect(() => {
+    if (!rootElement || !('IntersectionObserver' in window)) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isSceneVisible = entry?.isIntersecting ?? true;
+      },
+      { threshold: 0.01 },
+    );
+
+    observer.observe(rootElement);
+
+    return () => observer.disconnect();
   });
 
   // Galaxy & Camera State
@@ -81,12 +99,13 @@
 </script>
 
 <div
+  bind:this={rootElement}
   class="threlte-app theme-grayscale relative overflow-hidden transition-all duration-200"
   style:height={isExpanded ? '100dvh' : '540px'}
 >
   <Canvas>
     <Scene
-      animationActive={isPlaying}
+      animationActive={sceneActive}
       cameraFov={camera.fov}
       cameraPosition={[camera.positionX, camera.positionY, camera.positionZ]}
       cameraDistance={camera.distance}

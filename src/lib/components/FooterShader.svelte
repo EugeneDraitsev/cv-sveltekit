@@ -8,20 +8,31 @@
     customNebulaColors,
   } from '$lib/components/three/galaxy.utils.svelte';
 
+  type ColorTuple = [number, number, number];
+  type FooterShaderColors = {
+    galaxyInside: ColorTuple;
+    galaxyOutside: ColorTuple;
+    nebulaInside: ColorTuple;
+    nebulaOutside: ColorTuple;
+    base: ColorTuple;
+    isLight: number;
+  };
+
   let { active = false } = $props<{ active?: boolean }>();
   let canvas = $state<HTMLCanvasElement>();
-  let hover = $state(0);
+  let hover = 0;
   let pointer = { x: 0.5, y: 0.5 };
+  let touchReleaseTimer: ReturnType<typeof setTimeout> | undefined;
   const trailLength = 16;
   const trail = Array.from({ length: trailLength }, () => ({ x: 0.5, y: 0.5 }));
-  let colors = $state({
-    galaxyInside: [0.04, 0.11, 0.58] as [number, number, number],
-    galaxyOutside: [0.76, 0.77, 0.85] as [number, number, number],
-    nebulaInside: [0.04, 0.11, 0.58] as [number, number, number],
-    nebulaOutside: [0.76, 0.77, 0.85] as [number, number, number],
-    base: [0.07, 0.07, 0.07] as [number, number, number],
+  let colors: FooterShaderColors = {
+    galaxyInside: [0.04, 0.11, 0.58],
+    galaxyOutside: [0.76, 0.77, 0.85],
+    nebulaInside: [0.04, 0.11, 0.58],
+    nebulaOutside: [0.76, 0.77, 0.85],
+    base: [0.07, 0.07, 0.07],
     isLight: 0,
-  });
+  };
 
   const vertexShaderSource = `
     attribute vec2 aPosition;
@@ -264,7 +275,7 @@
     }
   `;
 
-  function handlePointerMove(event: PointerEvent) {
+  function updatePointerFromEvent(event: PointerEvent) {
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     pointer = {
@@ -273,31 +284,73 @@
     };
   }
 
+  function resetTrailToPointer() {
+    for (const point of trail) {
+      point.x = pointer.x;
+      point.y = pointer.y;
+    }
+  }
+
+  function clearTouchReleaseTimer() {
+    if (!touchReleaseTimer) return;
+    clearTimeout(touchReleaseTimer);
+    touchReleaseTimer = undefined;
+  }
+
+  function releaseTouchHover(delay = 120) {
+    clearTouchReleaseTimer();
+    touchReleaseTimer = setTimeout(() => {
+      hover = 0;
+      touchReleaseTimer = undefined;
+    }, delay);
+  }
+
+  function handlePointerMove(event: PointerEvent) {
+    updatePointerFromEvent(event);
+  }
+
   function handlePointerEnter(event: PointerEvent) {
-    handlePointerMove(event);
+    if (event.pointerType === 'touch') return;
+
+    updatePointerFromEvent(event);
     if (hover === 0) {
-      for (const point of trail) {
-        point.x = pointer.x;
-        point.y = pointer.y;
-      }
+      resetTrailToPointer();
     }
     hover = 1;
   }
 
-  function handlePointerLeave() {
+  function handlePointerDown(event: PointerEvent) {
+    if (event.pointerType !== 'touch') return;
+
+    updatePointerFromEvent(event);
+    resetTrailToPointer();
+    hover = 1;
+    releaseTouchHover(220);
+  }
+
+  function handlePointerUp(event: PointerEvent) {
+    if (event.pointerType !== 'touch') return;
+
+    updatePointerFromEvent(event);
+    releaseTouchHover();
+  }
+
+  function handlePointerLeave(event: PointerEvent) {
+    if (event.pointerType === 'touch') {
+      releaseTouchHover();
+      return;
+    }
+
+    clearTouchReleaseTimer();
     hover = 0;
   }
 
   function colorToTuple(
     color: { r: number; g: number; b: number } | undefined,
-    fallback: [number, number, number],
+    fallback: ColorTuple,
   ) {
     if (!color) return fallback;
-    return [color.r, color.g, color.b] as [number, number, number];
-  }
-
-  function getDocumentTheme(): Theme {
-    return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    return [color.r, color.g, color.b] as ColorTuple;
   }
 
   function updateColorsFromDocument() {
@@ -396,7 +449,8 @@
     const isLightLocation = gl.getUniformLocation(program, 'uIsLight');
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    let animationFrame = 0;
+    let animationFrame: number | undefined;
+    let isVisible = true;
     let start = performance.now();
     let trailIntensity = 0;
     const trailUniform = new Float32Array(trailLength * 3);
@@ -435,10 +489,8 @@
       }
     }
 
-    function render(now: number) {
+    function draw(now: number) {
       updateTrail();
-      updateColorsFromDocument();
-      resize();
       gl.useProgram(program);
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
       gl.enableVertexAttribArray(positionLocation);
@@ -455,10 +507,20 @@
       gl.uniform1f(isLightLocation, colors.isLight);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
 
-      if (!reducedMotion) {
+    function render(now: number) {
+      draw(now);
+      animationFrame = undefined;
+
+      if (!reducedMotion && isVisible) {
         animationFrame = requestAnimationFrame(render);
       }
+    }
+
+    function requestRender() {
+      if (animationFrame !== undefined) return;
+      animationFrame = requestAnimationFrame(render);
     }
 
     $effect(() => {
@@ -471,36 +533,40 @@
       untrack(() => {
         if (targetCanvas) {
           updateColorsFromDocument();
-          gl.useProgram(program);
-          gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-          gl.enableVertexAttribArray(positionLocation);
-          gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-
-          gl.uniform2f(resolutionLocation, targetCanvas.width, targetCanvas.height);
-          gl.uniform1f(timeLocation, (performance.now() - start) / 1000);
-          gl.uniform3fv(trailLocation, trailUniform);
-          gl.uniform3fv(galaxyInsideLocation, colors.galaxyInside);
-          gl.uniform3fv(galaxyOutsideLocation, colors.galaxyOutside);
-          gl.uniform3fv(nebulaInsideLocation, colors.nebulaInside);
-          gl.uniform3fv(nebulaOutsideLocation, colors.nebulaOutside);
-          gl.uniform3fv(baseLocation, colors.base);
-          gl.uniform1f(isLightLocation, colors.isLight);
-
-          gl.drawArrays(gl.TRIANGLES, 0, 6);
+          draw(performance.now());
         }
       });
     });
 
+    updateColorsFromDocument();
     resize();
+    draw(performance.now());
 
-    const resizeObserver = new ResizeObserver(resize);
+    const resizeObserver = new ResizeObserver(() => {
+      resize();
+      draw(performance.now());
+    });
     resizeObserver.observe(targetCanvas);
 
-    animationFrame = requestAnimationFrame(render);
+    const visibilityObserver =
+      'IntersectionObserver' in window
+        ? new IntersectionObserver(
+            ([entry]) => {
+              isVisible = entry?.isIntersecting ?? true;
+              if (isVisible) requestRender();
+            },
+            { threshold: 0 },
+          )
+        : undefined;
+
+    visibilityObserver?.observe(targetCanvas);
+    requestRender();
 
     return () => {
-      cancelAnimationFrame(animationFrame);
+      if (animationFrame !== undefined) cancelAnimationFrame(animationFrame);
+      clearTouchReleaseTimer();
       resizeObserver.disconnect();
+      visibilityObserver?.disconnect();
       gl.deleteBuffer(buffer);
       gl.deleteProgram(program);
     };
@@ -517,5 +583,8 @@
   aria-hidden="true"
   onpointerenter={handlePointerEnter}
   onpointermove={handlePointerMove}
+  onpointerdown={handlePointerDown}
+  onpointerup={handlePointerUp}
+  onpointercancel={handlePointerUp}
   onpointerleave={handlePointerLeave}
 ></canvas>
