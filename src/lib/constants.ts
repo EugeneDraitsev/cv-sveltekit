@@ -25,9 +25,9 @@ export const SITE_DATA = {
   deliveryHighlights: [
     {
       title: 'Yubico x OpenAI partner launch',
-      text: 'Supported Yubico-side delivery for the public OpenAI Advanced Account Security / YubiKey bundle in spring 2026.',
+      text: 'Helped deliver the Yubico side of the public OpenAI Advanced Account Security / YubiKey bundle in spring 2026.',
       result:
-        'Shipped partner API integration, a custom product page, custom checkout flow and customer authorization handoff across Yubico ecommerce and account systems.',
+        'Shipped partner API integration, a custom product page, checkout flow and authorization handoff across Yubico ecommerce and account systems.',
       href: 'https://openai.com/index/advanced-account-security/',
       linkLabel: 'public launch',
       tags: ['Partner launch', 'Checkout', 'Auth handoff'],
@@ -36,8 +36,15 @@ export const SITE_DATA = {
       title: 'Customer Accounts / FIDO2 authorization',
       text: 'Work directly with Yubico auth and security teams on an organization-wide authorization flow for future products.',
       result:
-        'Help scope service details and integrate the flow across product surfaces, ecommerce, account systems and multiple internal teams.',
+        'Helped scope service details and integrate the flow across product surfaces, ecommerce, account systems and multiple internal teams.',
       tags: ['FIDO2', 'Security', 'Multi-team'],
+    },
+    {
+      title: 'LLM-powered agentic system',
+      text: 'Evolved a long-running Telegram bot from local chat utilities into a production-like LLM-powered agent system.',
+      result:
+        'Built async workers, reply gating, model routing and fallbacks, tool execution, memory, metrics and feedback loops around real group-chat behavior.',
+      tags: ['AI agents', 'Tools', 'Observability'],
     },
     {
       title: 'Commerce launches and operational readiness',
@@ -45,13 +52,6 @@ export const SITE_DATA = {
       result:
         'Supported local payment methods, regional store launches, campaign delivery and Black Friday readiness under production launch constraints.',
       tags: ['Payments', 'Regional rollout', 'Launch support'],
-    },
-    {
-      title: 'Agentic product systems',
-      text: 'Kept a long-running Telegram bot evolving from local chat utilities into a production-like AI system.',
-      result:
-        'Built async workers, reply gating, model fallback, tool execution, memory, metrics and feedback loops around real group-chat behavior.',
-      tags: ['AI agents', 'Tools', 'Observability'],
     },
   ],
   experienceStartDate: '2011-12-01',
@@ -108,13 +108,11 @@ export const SITE_DATA = {
       period: 'Oct 2022 –  Now',
       location: 'Stockholm, Sweden',
       position: 'Senior Frontend Engineer',
-      description: `Building Customer Accounts and ecommerce flows for Yubico, including passkeys/WebAuthn,
-       custom authentication and recovery flows, cross-service authorization and payment integrations. Supported
-       the Yubico-side launch of the public OpenAI Advanced Account Security / YubiKey bundle in spring 2026,
-       including partner integration, a custom product page, custom checkout flow and customer authorization handoff.
-       Working directly with auth and security teams on an organization-wide FIDO2 authorization flow for future
-       products, while also migrating React surfaces to SvelteKit and developing k8s infrastructure for frontend,
-       CMS and e2e testing.`,
+      description: `Building Customer Accounts and ecommerce flows for Yubico: passkeys/WebAuthn,
+       custom auth and recovery, cross-service authorization and payment integrations. Supported the public
+       OpenAI Advanced Account Security / YubiKey launch from the Yubico side, including partner integration,
+       product page, checkout and authorization handoff. Also working on organization-wide FIDO2 authorization,
+       React-to-SvelteKit migration and k8s infrastructure for frontend, CMS and e2e testing.`,
     },
     {
       company: 'Daniel Wellington',
