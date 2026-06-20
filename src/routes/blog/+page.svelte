@@ -22,6 +22,16 @@
         'A browser 3D game built with Codex and Claude Code under hackathon constraints, finishing 12th overall and 6th in Gameplay at Gamedev.js Jam 2026.',
       tags: ['Codex', 'Claude Code', 'SvelteKit', 'Three.js', 'Rapier'],
     },
+    {
+      title: 'MowFleet Control Center: dashboard for autonomous mower fleets',
+      href: '/blog/mowfleet-dashboard',
+      label: 'Hobby-freelance project',
+      image: '/blog/mowfleet-dashboard/architecture-light.svg',
+      imageMode: 'contain',
+      description:
+        'A from-scratch Next.js dashboard and Serverless AWS backend for MowFleet: Husqvarna Fleet Services data, utilization, zone coverage, reports and long-running operational support.',
+      tags: ['Next.js', 'Serverless', 'AWS Lambda', 'DynamoDB', 'Fleet data'],
+    },
   ] as const;
 </script>
 
