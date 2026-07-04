@@ -656,6 +656,7 @@
 
   // ─── Hover + click (planets) ───────────────────────────────────────────
   let hoveredIndex = $state<number | null>(null);
+  let touchPreviewIndex = $state<number | null>(null);
   let downX = 0;
   let downY = 0;
   let downCandidate: number | null = null;
@@ -689,13 +690,16 @@
   }
 
   function onPointerMove(e: PointerEvent) {
+    if (e.pointerType === 'touch') return;
     if (!interactive || entryTweenActive) {
       hoveredIndex = null;
+      touchPreviewIndex = null;
       canvasEl.style.cursor = '';
       return;
     }
     const { x, y } = ndcFromEvent(e, canvasEl.getBoundingClientRect());
     hoveredIndex = findHoveredPlanet(x, y);
+    touchPreviewIndex = null;
     canvasEl.style.cursor = hoveredIndex != null ? 'pointer' : '';
     updateHudPosition();
   }
@@ -714,13 +718,29 @@
   function onWindowPointerUp(e: PointerEvent) {
     const candidate = downCandidate;
     downCandidate = null;
-    if (candidate == null || !interactive) return;
     if (Math.hypot(e.clientX - downX, e.clientY - downY) > 6) return;
+    if (e.pointerType === 'touch') {
+      if (candidate == null) {
+        hoveredIndex = null;
+        touchPreviewIndex = null;
+        hideHud();
+        return;
+      }
+      if (touchPreviewIndex !== candidate) {
+        hoveredIndex = candidate;
+        touchPreviewIndex = candidate;
+        updateHudPosition();
+        return;
+      }
+    }
+    if (candidate == null || !interactive) return;
     onSelectPlanet?.(candidate);
   }
 
-  function onPointerLeave() {
+  function onPointerLeave(e: PointerEvent) {
+    if (e.pointerType === 'touch') return;
     hoveredIndex = null;
+    touchPreviewIndex = null;
     canvasEl.style.cursor = '';
   }
 
@@ -750,7 +770,7 @@
     showHud({
       title: planet.name,
       subtitle: `${planet.archetypeLabel} · ${moonsLabel}`,
-      hint: 'Click to land',
+      hint: touchPreviewIndex === hoveredIndex ? 'Tap again to land' : 'Click to land',
       onDark: true,
     });
   });

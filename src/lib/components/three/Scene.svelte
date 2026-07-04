@@ -233,6 +233,7 @@
 
   // ─── Hover + click interaction ─────────────────────────────────────────
   let hoveredIndex = $state<number | null>(null);
+  let touchPreviewIndex = $state<number | null>(null);
   let downX = 0;
   let downY = 0;
   const tmpVec = new Vector3();
@@ -250,8 +251,10 @@
     const c = canvasEl;
     const cam = cameraCtx.current as PerspectiveCamera | undefined;
     if (!c || !cam) return;
+    if (e.pointerType === 'touch') return;
     if (!interactive || returnActive) {
       hoveredIndex = null;
+      touchPreviewIndex = null;
       c.style.cursor = '';
       return;
     }
@@ -260,6 +263,7 @@
     // of ~120 systems spread across the galaxy view without pixel-perfect aim.
     const idx = findHoveredSystem(cam, systemIndices, time, ndcX, ndcY, 0.12);
     hoveredIndex = idx;
+    touchPreviewIndex = null;
     c.style.cursor = idx != null ? 'pointer' : '';
     updateHudPosition();
   }
@@ -290,14 +294,30 @@
   function onWindowPointerUp(e: PointerEvent) {
     const candidate = downCandidate;
     downCandidate = null;
-    if (candidate == null || !interactive) return;
     const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
     if (moved > 6) return; // drag, not a click — let OrbitControls keep it
+    if (e.pointerType === 'touch') {
+      if (candidate == null) {
+        hoveredIndex = null;
+        touchPreviewIndex = null;
+        hideHud();
+        return;
+      }
+      if (touchPreviewIndex !== candidate) {
+        hoveredIndex = candidate;
+        touchPreviewIndex = candidate;
+        updateHudPosition();
+        return;
+      }
+    }
+    if (candidate == null || !interactive) return;
     onSelectSystem?.(candidate);
   }
 
-  function onPointerLeave() {
+  function onPointerLeave(e: PointerEvent) {
+    if (e.pointerType === 'touch') return;
     hoveredIndex = null;
+    touchPreviewIndex = null;
     if (canvasEl) canvasEl.style.cursor = '';
   }
 
@@ -332,7 +352,7 @@
     showHud({
       title: system.name,
       subtitle: system.subtitle,
-      hint: 'Click to travel',
+      hint: touchPreviewIndex === hoveredIndex ? 'Tap again to travel' : 'Click to travel',
       onDark: themeStore.theme === 'dark',
     });
   });
