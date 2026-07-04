@@ -77,6 +77,7 @@
   } = $props();
 
   const pixelRatio = Math.min(window.devicePixelRatio, 2);
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
   let time = 0;
 
   // These props are immutable for the lifetime of a mount — the scene is
@@ -90,9 +91,13 @@
 
   // ─── Camera framing derived from the system's size ─────────────────────
   const outermost = sys.planets[sys.planets.length - 1].orbitRadius;
-  const restDistance = Math.min(Math.max(outermost * 1.5, 12), 44);
+  const systemFov = isMobile ? 56 : 40;
+  const restDistance = Math.min(
+    Math.max(outermost * (isMobile ? 3.35 : 1.5), isMobile ? 24 : 12),
+    isMobile ? 92 : 44,
+  );
   const restPosition = (() => {
-    const elevation = 0.42; // ~24° above the orbital plane
+    const elevation = isMobile ? 0.58 : 0.42; // mobile needs a wider, more readable overview
     const azimuth = -0.6;
     return new Vector3(
       restDistance * Math.cos(elevation) * Math.sin(azimuth),
@@ -745,6 +750,8 @@
   }
 
   $effect(() => {
+    const previousTouchAction = canvasEl.style.touchAction;
+    canvasEl.style.touchAction = 'none';
     canvasEl.addEventListener('pointermove', onPointerMove);
     canvasEl.addEventListener('pointerdown', onPointerDown);
     canvasEl.addEventListener('pointerleave', onPointerLeave);
@@ -754,6 +761,7 @@
       canvasEl.removeEventListener('pointerdown', onPointerDown);
       canvasEl.removeEventListener('pointerleave', onPointerLeave);
       window.removeEventListener('pointerup', onWindowPointerUp);
+      canvasEl.style.touchAction = previousTouchAction;
       canvasEl.style.cursor = '';
     };
   });
@@ -763,15 +771,17 @@
       hideHud();
       return;
     }
-    const planet = sys.planets[hoveredIndex];
+    const index = hoveredIndex;
+    const planet = sys.planets[index];
     const moonCount = planet.moons.length;
     const moonsLabel =
       moonCount === 0 ? 'no moons' : moonCount === 1 ? '1 moon' : `${moonCount} moons`;
     showHud({
       title: planet.name,
       subtitle: `${planet.archetypeLabel} · ${moonsLabel}`,
-      hint: touchPreviewIndex === hoveredIndex ? 'Tap again to land' : 'Click to land',
+      hint: 'Land',
       onDark: true,
+      onActivate: () => onSelectPlanet?.(index),
     });
   });
 
@@ -788,13 +798,17 @@
   }
 </script>
 
-<T.PerspectiveCamera makeDefault position={restPosition.toArray()} fov={40} near={0.05}>
+<T.PerspectiveCamera makeDefault position={restPosition.toArray()} fov={systemFov} near={0.05}>
   <OrbitControls
     bind:ref={controls}
     enableDamping
     enablePan={false}
-    minDistance={sys.starRadius * 2.4}
-    maxDistance={restDistance * 2.4}
+    rotateSpeed={isMobile ? 0.45 : 0.65}
+    zoomSpeed={0.7}
+    minDistance={isMobile ? sys.starRadius * 3.2 : sys.starRadius * 2.4}
+    maxDistance={restDistance * (isMobile ? 1.45 : 2.4)}
+    minPolarAngle={0.22}
+    maxPolarAngle={Math.PI * 0.68}
   />
 </T.PerspectiveCamera>
 

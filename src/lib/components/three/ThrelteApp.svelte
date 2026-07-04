@@ -476,9 +476,6 @@
         <span class="hero-journey-dim">· {currentPlanet.archetypeLabel}</span>
       </span>
     </div>
-    <div class="hero-flight-hint" aria-hidden="true">
-      W / S — speed&ensp;·&ensp;A / D — strafe&ensp;·&ensp;drag to glide
-    </div>
   {/if}
 
   <!-- Warp flash: tinted by the destination, hides the scene swap. -->
@@ -561,35 +558,6 @@
   .hero-journey-dim {
     color: rgb(223 226 238 / 0.62);
     letter-spacing: 0.02em;
-  }
-
-  .hero-flight-hint {
-    position: absolute;
-    bottom: 6.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 5;
-    padding: 0.35rem 0.85rem;
-    border-radius: 999px;
-    background: rgb(12 14 22 / 0.55);
-    border: 1px solid rgb(223 226 238 / 0.18);
-    color: rgb(223 226 238 / 0.78);
-    font-size: 0.72rem;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
-    pointer-events: none;
-    backdrop-filter: blur(6px);
-    animation: flight-hint-fade 7s ease forwards;
-  }
-
-  @keyframes flight-hint-fade {
-    0%,
-    70% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
-    }
   }
 
   .warp-overlay {

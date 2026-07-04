@@ -187,9 +187,10 @@
   // Declared before the flora pools — initial spawning reads these offsets.
   let scrollX = 0;
   let scrollY = 0;
-  let speed = 1.5;
-  let speedTarget = 1.5;
-  let strafe = 0;
+  let cruiseSpeed = 1.45;
+  let speed = cruiseSpeed;
+  let steer = 0;
+  let throttle = 0;
 
   // ─── Flora (instanced, CPU-placed on the shared heightfield) ───────────
   interface FloraItem {
@@ -378,20 +379,23 @@
   const keysHeld = new Set<string>();
   let pointerInside = false;
   let dragging = false;
-  let lastDragX = 0;
-  let lastDragY = 0;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let dragSteerTarget = 0;
+  let dragThrottleTarget = 0;
 
   const canvasEl = renderer.domElement;
+  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
   function onKeyDown(e: KeyboardEvent) {
     const target = e.target as HTMLElement | null;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
     const key = e.key.toLowerCase();
     if (['w', 'a', 's', 'd'].includes(key)) {
+      if (!pointerInside) return;
+      e.preventDefault();
       keysHeld.add(key);
     } else if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
-      // Arrows double as flight controls, but only while the pointer is over
-      // the scene — never steal page scrolling.
       if (!pointerInside) return;
       e.preventDefault();
       keysHeld.add(key);
@@ -404,34 +408,54 @@
 
   function onPointerEnter() {
     pointerInside = true;
+    canvasEl.style.cursor = dragging ? 'grabbing' : 'grab';
   }
 
   function onPointerLeave() {
     pointerInside = false;
-    dragging = false;
+    if (!dragging) canvasEl.style.cursor = '';
   }
 
   function onPointerDown(e: PointerEvent) {
+    pointerInside = true;
     dragging = true;
-    lastDragX = e.clientX;
-    lastDragY = e.clientY;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    dragSteerTarget = 0;
+    dragThrottleTarget = 0;
+    canvasEl.setPointerCapture?.(e.pointerId);
+    canvasEl.style.cursor = 'grabbing';
+    e.preventDefault();
   }
 
   function onPointerMove(e: PointerEvent) {
     if (!dragging) return;
-    const dx = e.clientX - lastDragX;
-    const dy = e.clientY - lastDragY;
-    lastDragX = e.clientX;
-    lastDragY = e.clientY;
-    scrollX += dx * 0.045;
-    speedTarget = Math.min(Math.max(speedTarget - dy * 0.012, 0.15), 3.6);
+    const rect = canvasEl.getBoundingClientRect();
+    dragSteerTarget = clamp((e.clientX - dragStartX) / (rect.width * 0.28), -1, 1);
+    dragThrottleTarget = clamp((dragStartY - e.clientY) / (rect.height * 0.24), -1, 1);
+    e.preventDefault();
   }
 
-  function onPointerUp() {
+  function onPointerUp(e: PointerEvent) {
+    if (!dragging) return;
     dragging = false;
+    dragSteerTarget = 0;
+    dragThrottleTarget = 0;
+    if (canvasEl.hasPointerCapture?.(e.pointerId)) {
+      canvasEl.releasePointerCapture(e.pointerId);
+    }
+    canvasEl.style.cursor = pointerInside ? 'grab' : '';
+  }
+
+  function onWheel(e: WheelEvent) {
+    if (!pointerInside) return;
+    cruiseSpeed = clamp(cruiseSpeed - e.deltaY * 0.002, 0.65, 2.75);
+    e.preventDefault();
   }
 
   $effect(() => {
+    const previousTouchAction = canvasEl.style.touchAction;
+    canvasEl.style.touchAction = 'none';
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
     canvasEl.addEventListener('pointerenter', onPointerEnter);
@@ -439,6 +463,7 @@
     canvasEl.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
+    canvasEl.addEventListener('wheel', onWheel, { passive: false });
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
@@ -447,6 +472,9 @@
       canvasEl.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
+      canvasEl.removeEventListener('wheel', onWheel);
+      canvasEl.style.touchAction = previousTouchAction;
+      canvasEl.style.cursor = '';
       keysHeld.clear();
     };
   });
@@ -528,21 +556,23 @@
     (delta) => {
       time += delta;
 
-      // Ease speed/strafe toward their targets for a floaty flight feel.
-      const strafeTarget =
-        (keysHeld.has('d') || keysHeld.has('arrowright') ? 7 : 0) -
-        (keysHeld.has('a') || keysHeld.has('arrowleft') ? 7 : 0);
-      if (keysHeld.has('w') || keysHeld.has('arrowup')) {
-        speedTarget = Math.min(speedTarget + delta * 2.4, 3.6);
-      }
-      if (keysHeld.has('s') || keysHeld.has('arrowdown')) {
-        speedTarget = Math.max(speedTarget - delta * 2.4, 0.15);
-      }
-      speed += (speedTarget - speed) * Math.min(1, delta * 3);
-      strafe += (strafeTarget - strafe) * Math.min(1, delta * 4.5);
+      const keySteer =
+        (keysHeld.has('d') || keysHeld.has('arrowright') ? 1 : 0) -
+        (keysHeld.has('a') || keysHeld.has('arrowleft') ? 1 : 0);
+      const keyThrottle =
+        (keysHeld.has('w') || keysHeld.has('arrowup') ? 1 : 0) -
+        (keysHeld.has('s') || keysHeld.has('arrowdown') ? 0.85 : 0);
+
+      const steerTarget = clamp(keySteer + dragSteerTarget, -1, 1);
+      const throttleTarget = clamp(keyThrottle + dragThrottleTarget, -1, 1);
+      steer += (steerTarget - steer) * Math.min(1, delta * 5.5);
+      throttle += (throttleTarget - throttle) * Math.min(1, delta * 4.5);
+
+      const targetSpeed = clamp(cruiseSpeed + throttle * 1.15, 0.22, 3.7);
+      speed += (targetSpeed - speed) * Math.min(1, delta * 3.8);
 
       scrollY += speed * delta;
-      scrollX += strafe * delta;
+      scrollX += steer * delta * 8.4;
 
       terrainMaterial.uniforms.uTime.value = time;
       // Snap the noise-sampling offset to whole grid cells and slide the mesh
@@ -589,14 +619,15 @@
         scene.fog.far = fogFarNow;
       }
 
-      // Gentle bob + banking into strafes.
+      // Gentle bob + banking into steering.
       const cam = cameraCtx.current;
       if (cam) {
         const altitude = baseY + (1 - de) * ENTRY_ALTITUDE + dp * DEPART_CLIMB;
-        cam.position.set(0, altitude + Math.sin(time * 0.8) * 0.16, 30);
-        lookTarget.set(strafe * 0.55, baseY * 0.32 - (1 - de) * 26 + dp * 46, -26);
+        const speedFeel = Math.max(0, speed - 1) * 0.35;
+        cam.position.set(steer * 1.6, altitude + Math.sin(time * 0.8) * 0.16, 30 - speedFeel);
+        lookTarget.set(steer * 4.8, baseY * 0.32 - (1 - de) * 26 + dp * 46, -28 - throttle * 7);
         cam.lookAt(lookTarget);
-        cam.rotateZ(-strafe * 0.03);
+        cam.rotateZ(-steer * 0.16);
       }
     },
     { autoStart: false },

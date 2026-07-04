@@ -349,11 +349,13 @@
       return;
     }
     const system = getStarSystem(hoveredIndex);
+    const index = hoveredIndex;
     showHud({
       title: system.name,
       subtitle: system.subtitle,
-      hint: touchPreviewIndex === hoveredIndex ? 'Tap again to travel' : 'Click to travel',
+      hint: 'Travel',
       onDark: themeStore.theme === 'dark',
+      onActivate: () => onSelectSystem?.(index),
     });
   });
 

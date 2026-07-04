@@ -1,7 +1,16 @@
 <script lang="ts">
-  import { hudState, bindHudElement } from './hud.svelte';
+  import { hudState, bindHudElement, activateHud } from './hud.svelte';
 
   let anchor = $state<HTMLDivElement>();
+
+  function stopHudPointer(event: PointerEvent) {
+    event.stopPropagation();
+  }
+
+  function onHudClick(event: MouseEvent) {
+    event.stopPropagation();
+    activateHud();
+  }
 
   $effect(() => {
     bindHudElement(anchor ?? null);
@@ -9,12 +18,13 @@
   });
 </script>
 
-<!-- Decorative pointer layer — screen readers get the journey buttons instead. -->
-<div class="hud-layer" aria-hidden="true">
+<div class="hud-layer">
   <div
     bind:this={anchor}
     class="hud-anchor"
     class:visible={hudState.visible}
+    class:side-left={hudState.side === 'left'}
+    class:below={hudState.vertical === 'below'}
     data-on-dark={hudState.onDark}
   >
     <div class="hud-reticle">
@@ -24,7 +34,15 @@
       <span class="hud-tick" style:--angle="270deg"></span>
     </div>
     <div class="hud-leader"></div>
-    <div class="hud-card">
+    <button
+      class="hud-card"
+      type="button"
+      disabled={!hudState.onActivate}
+      aria-label={hudState.hint ? `${hudState.title}: ${hudState.hint}` : hudState.title}
+      onpointerdown={stopHudPointer}
+      onpointerup={stopHudPointer}
+      onclick={onHudClick}
+    >
       <div class="hud-title">{hudState.title}</div>
       {#if hudState.subtitle}
         <div class="hud-subtitle">{hudState.subtitle}</div>
@@ -32,7 +50,7 @@
       {#if hudState.hint}
         <div class="hud-hint">{hudState.hint}</div>
       {/if}
-    </div>
+    </button>
   </div>
 </div>
 
@@ -54,6 +72,7 @@
     left: 0;
     will-change: transform;
     opacity: 0;
+    pointer-events: none;
     transition: opacity 140ms ease;
   }
 
@@ -114,17 +133,77 @@
     transform-origin: left center;
   }
 
+  .hud-anchor.side-left .hud-leader {
+    left: auto;
+    right: 14px;
+    transform: rotate(45deg);
+    background: linear-gradient(
+      270deg,
+      color-mix(in srgb, var(--hud-line) 70%, transparent),
+      color-mix(in srgb, var(--hud-line) 25%, transparent)
+    );
+  }
+
+  .hud-anchor.below .hud-leader {
+    top: 14px;
+    transform: rotate(45deg);
+  }
+
+  .hud-anchor.side-left.below .hud-leader {
+    transform: rotate(-45deg);
+  }
+
   .hud-card {
     position: absolute;
     left: 33px;
     bottom: 27px;
     padding: 0.4rem 0.75rem 0.45rem;
+    box-sizing: border-box;
     border-radius: 0.55rem;
     border: 1px solid color-mix(in srgb, var(--hud-line) 28%, transparent);
     background: color-mix(in srgb, var(--hud-bg) 76%, transparent);
     backdrop-filter: blur(8px);
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
     white-space: nowrap;
     box-shadow: 0 4px 18px rgb(0 0 0 / 0.18);
+    pointer-events: none;
+    transition:
+      transform 140ms ease,
+      border-color 140ms ease,
+      background-color 140ms ease;
+  }
+
+  .hud-card:disabled {
+    cursor: default;
+  }
+
+  .hud-anchor.visible .hud-card:not(:disabled) {
+    pointer-events: auto;
+  }
+
+  .hud-card:not(:disabled):hover,
+  .hud-card:not(:disabled):focus-visible {
+    border-color: color-mix(in srgb, var(--hud-strong) 45%, transparent);
+    background: color-mix(in srgb, var(--hud-bg) 86%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .hud-card:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--hud-strong) 70%, transparent);
+    outline-offset: 3px;
+  }
+
+  .hud-anchor.side-left .hud-card {
+    right: 33px;
+    left: auto;
+    text-align: right;
+  }
+
+  .hud-anchor.below .hud-card {
+    top: 27px;
+    bottom: auto;
   }
 
   .hud-title {
@@ -175,6 +254,41 @@
     .hud-reticle,
     .hud-anchor.visible .hud-reticle {
       animation: none;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .hud-card {
+      left: 50%;
+      right: auto;
+      width: min(72vw, 18rem);
+      max-width: calc(100vw - 2rem);
+      transform: translateX(-50%);
+      white-space: normal;
+    }
+
+    .hud-anchor.side-left .hud-card {
+      left: 50%;
+      right: auto;
+      text-align: left;
+    }
+
+    .hud-card:not(:disabled):hover,
+    .hud-card:not(:disabled):focus-visible {
+      transform: translateX(-50%) translateY(-1px);
+    }
+
+    .hud-leader {
+      display: none;
+    }
+
+    .hud-title {
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+    }
+
+    .hud-subtitle {
+      font-size: 0.68rem;
     }
   }
 </style>
