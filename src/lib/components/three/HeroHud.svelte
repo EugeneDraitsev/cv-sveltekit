@@ -76,8 +76,7 @@
     transition: opacity 140ms ease;
   }
 
-  /* System/planet scenes always render on a dark backdrop, regardless of the
-     site theme — force the light HUD palette there. */
+  /* Dark 3D backdrops force the light HUD palette. */
   .hud-anchor[data-on-dark='true'] {
     --hud-line: #dfe2ee;
     --hud-strong: #ffd9a0;

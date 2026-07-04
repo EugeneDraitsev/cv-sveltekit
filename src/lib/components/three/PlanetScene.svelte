@@ -14,6 +14,7 @@
     BackSide,
     DynamicDrawUsage,
   } from 'three';
+  import type { PerspectiveCamera } from 'three';
   import { onDestroy, untrack } from 'svelte';
   import { T, useTask, useThrelte } from '@threlte/core';
 
@@ -191,6 +192,10 @@
   let speed = cruiseSpeed;
   let steer = 0;
   let throttle = 0;
+  let boost = 0;
+  let heading = 0;
+  let bank = 0;
+  let pitch = 0;
 
   // ─── Flora (instanced, CPU-placed on the shared heightfield) ───────────
   interface FloraItem {
@@ -387,15 +392,28 @@
   const canvasEl = renderer.domElement;
   const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
+  function keyId(e: KeyboardEvent) {
+    return e.code === 'Space' ? 'space' : e.key.toLowerCase();
+  }
+
   function onKeyDown(e: KeyboardEvent) {
     const target = e.target as HTMLElement | null;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
-    const key = e.key.toLowerCase();
-    if (['w', 'a', 's', 'd'].includes(key)) {
-      if (!pointerInside) return;
-      e.preventDefault();
-      keysHeld.add(key);
-    } else if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+    const key = keyId(e);
+    const isFlightKey = [
+      'w',
+      'a',
+      's',
+      'd',
+      'arrowup',
+      'arrowdown',
+      'arrowleft',
+      'arrowright',
+      'shift',
+      'space',
+    ].includes(key);
+
+    if (isFlightKey) {
       if (!pointerInside) return;
       e.preventDefault();
       keysHeld.add(key);
@@ -403,7 +421,7 @@
   }
 
   function onKeyUp(e: KeyboardEvent) {
-    keysHeld.delete(e.key.toLowerCase());
+    keysHeld.delete(keyId(e));
   }
 
   function onPointerEnter() {
@@ -481,6 +499,7 @@
 
   // ─── Camera ────────────────────────────────────────────────────────────
   const baseY = Math.max(surface.heightScale + 5, 11);
+  const baseFov = isMobile ? 68 : 64;
   const lookTarget = new Vector3();
 
   // Atmospheric entry / departure. Entry starts high with the fog pulled in
@@ -562,17 +581,23 @@
       const keyThrottle =
         (keysHeld.has('w') || keysHeld.has('arrowup') ? 1 : 0) -
         (keysHeld.has('s') || keysHeld.has('arrowdown') ? 0.85 : 0);
+      const boostTarget =
+        keysHeld.has('shift') || keysHeld.has('space') || dragThrottleTarget > 0.78 ? 1 : 0;
 
       const steerTarget = clamp(keySteer + dragSteerTarget, -1, 1);
       const throttleTarget = clamp(keyThrottle + dragThrottleTarget, -1, 1);
       steer += (steerTarget - steer) * Math.min(1, delta * 5.5);
       throttle += (throttleTarget - throttle) * Math.min(1, delta * 4.5);
+      boost += (boostTarget - boost) * Math.min(1, delta * 5);
 
-      const targetSpeed = clamp(cruiseSpeed + throttle * 1.15, 0.22, 3.7);
-      speed += (targetSpeed - speed) * Math.min(1, delta * 3.8);
+      const targetSpeed = clamp(cruiseSpeed + throttle * 1.25 + boost * 1.9, 0.32, 5.4);
+      speed += (targetSpeed - speed) * Math.min(1, delta * (boostTarget ? 5.6 : 3.8));
 
-      scrollY += speed * delta;
-      scrollX += steer * delta * 8.4;
+      const turnRate = (0.52 + speed * 0.11 + boost * 0.22) * (throttle < -0.35 ? 0.45 : 1);
+      heading += steer * turnRate * delta;
+      const travel = speed * delta * (4.9 + boost * 1.45);
+      scrollX += Math.sin(heading) * travel;
+      scrollY += Math.cos(heading) * travel;
 
       terrainMaterial.uniforms.uTime.value = time;
       // Snap the noise-sampling offset to whole grid cells and slide the mesh
@@ -619,15 +644,34 @@
         scene.fog.far = fogFarNow;
       }
 
-      // Gentle bob + banking into steering.
-      const cam = cameraCtx.current;
+      // Terrain-following flight camera with speed FOV and turn banking.
+      const cam = cameraCtx.current as PerspectiveCamera | undefined;
       if (cam) {
-        const altitude = baseY + (1 - de) * ENTRY_ALTITUDE + dp * DEPART_CLIMB;
-        const speedFeel = Math.max(0, speed - 1) * 0.35;
-        cam.position.set(steer * 1.6, altitude + Math.sin(time * 0.8) * 0.16, 30 - speedFeel);
-        lookTarget.set(steer * 4.8, baseY * 0.32 - (1 - de) * 26 + dp * 46, -28 - throttle * 7);
+        const terrainAhead = heightAt(
+          scrollX + Math.sin(heading) * 12,
+          scrollY + Math.cos(heading) * 12,
+        );
+        const terrainLift = clamp(terrainAhead * 0.34, -2.2, surface.heightScale * 0.55 + 2);
+        const altitude = baseY + terrainLift + (1 - de) * ENTRY_ALTITUDE + dp * DEPART_CLIMB;
+        const speedFeel = Math.max(0, speed - 1) * 0.72 + boost * 1.3;
+        const bankTarget = -steer * (0.22 + speed * 0.05 + boost * 0.1);
+        const pitchTarget = throttle * 0.08 + boost * 0.13;
+        bank += (bankTarget - bank) * Math.min(1, delta * 5.2);
+        pitch += (pitchTarget - pitch) * Math.min(1, delta * 4.2);
+
+        const bob = Math.sin(time * (1.1 + speed * 0.12)) * (0.1 + speed * 0.018);
+        cam.position.set(steer * 2.15, altitude + bob, 30 - speedFeel);
+        lookTarget.set(
+          steer * 6.6 + Math.sin(heading) * 2.1,
+          baseY * 0.32 + terrainLift * 0.18 - (1 - de) * 26 + dp * 46 + pitch * 7,
+          -34 - throttle * 8 - boost * 10,
+        );
         cam.lookAt(lookTarget);
-        cam.rotateZ(-steer * 0.16);
+        cam.rotateZ(bank);
+
+        const targetFov = baseFov + Math.max(0, speed - cruiseSpeed) * 1.9 + boost * 7;
+        cam.fov += (targetFov - cam.fov) * Math.min(1, delta * 4);
+        cam.updateProjectionMatrix();
       }
     },
     { autoStart: false },
@@ -642,7 +686,7 @@
   });
 </script>
 
-<T.PerspectiveCamera makeDefault position={[0, baseY, 30]} fov={62} />
+<T.PerspectiveCamera makeDefault position={[0, baseY, 30]} fov={baseFov} />
 
 <T.DirectionalLight
   color={lightColor}

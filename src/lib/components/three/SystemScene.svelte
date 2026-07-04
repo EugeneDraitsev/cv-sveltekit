@@ -16,6 +16,7 @@
     Vector3,
     Quaternion,
     Matrix4,
+    NormalBlending,
   } from 'three';
   import type { PerspectiveCamera } from 'three';
   import type { OrbitControls as ThreeOrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -45,6 +46,7 @@
     smoothstepJs,
   } from './cameraTween';
   import { lightenHex } from './starSystem';
+  import themeStore from '$lib/stores/theme.svelte';
 
   const { renderer } = useThrelte();
   const cameraCtx = useThrelte().camera;
@@ -296,6 +298,11 @@
     };
   });
 
+  function getPlanetWorldPosition(record: PlanetRecord, target: Vector3): Vector3 {
+    record.mesh.updateWorldMatrix(true, false);
+    return target.setFromMatrixPosition(record.mesh.matrixWorld);
+  }
+
   // ─── Background starfield ──────────────────────────────────────────────
   const starfieldGeometry = track(new BufferGeometry());
   {
@@ -330,6 +337,9 @@
       uniforms: {
         uTime: { value: 0 },
         uPixelRatio: { value: pixelRatio },
+        uWarm: { value: new Color(0xffead1) },
+        uCool: { value: new Color(0xd2e5ff) },
+        uAlpha: { value: 0.85 },
       },
     }),
   );
@@ -340,8 +350,18 @@
 
   // ─── Renderer state ────────────────────────────────────────────────────
   $effect(() => {
-    renderer.setClearColor(0x05060e, 1);
+    const isDark = themeStore.theme === 'dark';
+    renderer.setClearColor(isDark ? 0x05060e : 0xf7f8fc, 1);
     renderer.setPixelRatio(pixelRatio);
+
+    orbitLineMaterial.color.set(isDark ? 0xaab4cc : 0x465064);
+    orbitLineMaterial.opacity = isDark ? 0.14 : 0.2;
+
+    (starfieldMaterial.uniforms.uWarm.value as Color).set(isDark ? 0xffead1 : 0x39445a);
+    (starfieldMaterial.uniforms.uCool.value as Color).set(isDark ? 0xd2e5ff : 0x60708c);
+    starfieldMaterial.uniforms.uAlpha.value = isDark ? 0.85 : 0.34;
+    starfieldMaterial.blending = isDark ? AdditiveBlending : NormalBlending;
+    starfieldMaterial.needsUpdate = true;
   });
 
   function blackOut() {
@@ -410,7 +430,7 @@
         // Start right off the planet we just left, LOOKING AT IT — it fills
         // the frame exactly like the climb-out did — then pull back to the
         // rest framing while the view pans from the planet to the star.
-        record.group.getWorldPosition(tmpVec);
+        getPlanetWorldPosition(record, tmpVec);
         const away = restPosition.clone().sub(tmpVec).normalize();
         cam.position
           .copy(tmpVec)
@@ -457,6 +477,7 @@
     if (!cam || reduceMotion) return;
 
     hoveredIndex = null;
+    focusIndex = null;
     hideHud();
 
     const DEPART_MS = 950;
@@ -516,6 +537,7 @@
     if (!record || !cam) return;
 
     hoveredIndex = null;
+    focusIndex = null;
     hideHud();
 
     // Silence OrbitControls for the glide: Threlte calls update() every frame
@@ -533,7 +555,7 @@
       };
     }
 
-    record.group.getWorldPosition(tmpVec);
+    getPlanetWorldPosition(record, tmpVec);
     const side = new Vector3()
       .subVectors(tmpVec, cam.position)
       .cross(new Vector3(0, 1, 0))
@@ -561,6 +583,22 @@
   const approachLookMatrix = new Matrix4();
   const approachLookQuat = new Quaternion();
 
+  function updateCameraFocus(delta: number) {
+    const ctrl = controls;
+    if (!ctrl || !ctrl.enabled || approach || entryTweenActive || departing) return;
+
+    const record = focusIndex != null ? planetRecords[focusIndex] : undefined;
+    if (record && interactive) {
+      getPlanetWorldPosition(record, focusTarget);
+    } else {
+      focusTarget.set(0, 0, 0);
+    }
+
+    const followSpeed = record ? 5.2 : 2.8;
+    ctrl.target.lerp(focusTarget, Math.min(1, delta * followSpeed));
+    ctrl.update();
+  }
+
   function updateApproach() {
     if (!approach) return;
     const cam = cameraCtx.current as PerspectiveCamera | undefined;
@@ -570,7 +608,7 @@
     const t = Math.min((time - startTime) / duration, 1);
     const e = easeInOutCubic(t);
 
-    record.group.getWorldPosition(approachTarget);
+    getPlanetWorldPosition(record, approachTarget);
     // Fly in until the planet fills the frame, then keep plunging until we
     // skim the surface. The last stretch drives the transition veil toward
     // the planet's surface fog color — the same color the flyover scene's
@@ -610,7 +648,7 @@
       record.material.uniforms.uTime.value = time;
 
       // Star sits at the origin — light direction is simply -position.
-      record.group.getWorldPosition(tmpVec);
+      getPlanetWorldPosition(record, tmpVec);
       (record.material.uniforms.uLightDir.value as Vector3).copy(tmpVec).negate().normalize();
 
       for (const moon of record.moons) {
@@ -645,6 +683,7 @@
       if (cam) coronaMesh.quaternion.copy(cam.quaternion);
 
       updateOrbits(delta);
+      updateCameraFocus(delta);
       updateApproach();
       updateHudPosition();
     },
@@ -662,9 +701,11 @@
   // ─── Hover + click (planets) ───────────────────────────────────────────
   let hoveredIndex = $state<number | null>(null);
   let touchPreviewIndex = $state<number | null>(null);
+  let focusIndex = $state<number | null>(null);
   let downX = 0;
   let downY = 0;
   let downCandidate: number | null = null;
+  const focusTarget = new Vector3();
 
   const interactive = $derived(approachPlanetIndex == null && !departing);
   const canvasEl = renderer.domElement;
@@ -682,7 +723,7 @@
     let best: number | null = null;
     let bestDist = 0.11;
     for (const record of planetRecords) {
-      record.group.getWorldPosition(tmpVec);
+      getPlanetWorldPosition(record, tmpVec);
       tmpVec.project(cam);
       if (tmpVec.z < -1 || tmpVec.z > 1) continue;
       const d = Math.hypot(tmpVec.x - ndcX, tmpVec.y - ndcY);
@@ -699,12 +740,14 @@
     if (!interactive || entryTweenActive) {
       hoveredIndex = null;
       touchPreviewIndex = null;
+      focusIndex = null;
       canvasEl.style.cursor = '';
       return;
     }
     const { x, y } = ndcFromEvent(e, canvasEl.getBoundingClientRect());
     hoveredIndex = findHoveredPlanet(x, y);
     touchPreviewIndex = null;
+    focusIndex = null;
     canvasEl.style.cursor = hoveredIndex != null ? 'pointer' : '';
     updateHudPosition();
   }
@@ -728,12 +771,15 @@
       if (candidate == null) {
         hoveredIndex = null;
         touchPreviewIndex = null;
+        focusIndex = null;
         hideHud();
         return;
       }
       if (touchPreviewIndex !== candidate) {
         hoveredIndex = candidate;
         touchPreviewIndex = candidate;
+        focusIndex = candidate;
+        updateCameraFocus(1 / 30);
         updateHudPosition();
         return;
       }
@@ -746,6 +792,7 @@
     if (e.pointerType === 'touch') return;
     hoveredIndex = null;
     touchPreviewIndex = null;
+    focusIndex = null;
     canvasEl.style.cursor = '';
   }
 
@@ -767,6 +814,14 @@
   });
 
   $effect(() => {
+    const ctrl = controls;
+    if (!ctrl) return;
+    const onChange = () => updateHudPosition();
+    ctrl.addEventListener('change', onChange);
+    return () => ctrl.removeEventListener('change', onChange);
+  });
+
+  $effect(() => {
     if (hoveredIndex == null || !interactive) {
       hideHud();
       return;
@@ -780,7 +835,7 @@
       title: planet.name,
       subtitle: `${planet.archetypeLabel} · ${moonsLabel}`,
       hint: 'Land',
-      onDark: true,
+      onDark: themeStore.theme === 'dark',
       onActivate: () => onSelectPlanet?.(index),
     });
   });
@@ -790,7 +845,7 @@
     const cam = cameraCtx.current as PerspectiveCamera | undefined;
     const record = planetRecords[hoveredIndex];
     if (!cam || !record) return;
-    record.group.getWorldPosition(tmpVec);
+    getPlanetWorldPosition(record, tmpVec);
     tmpVec.project(cam);
     const x = (tmpVec.x * 0.5 + 0.5) * canvasEl.clientWidth;
     const y = (-tmpVec.y * 0.5 + 0.5) * canvasEl.clientHeight;
