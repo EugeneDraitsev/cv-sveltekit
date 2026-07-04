@@ -18,6 +18,14 @@ export interface GalaxyParams {
 }
 
 /**
+ * Hero journey state.
+ * - `overview` — full galaxy, hover/click star systems.
+ * - `system`   — inside a selected planetary system (star + planets).
+ * - `planet`   — procedural surface flyover of a selected planet.
+ */
+export type HeroMode = 'overview' | 'system' | 'planet';
+
+/**
  * Camera position and settings
  */
 export interface CameraParams {

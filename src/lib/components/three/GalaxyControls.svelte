@@ -4,6 +4,7 @@
   interface Props {
     expanded: boolean;
     animationActive: boolean;
+    showSettings: boolean;
     onToggleExpanded: () => void;
     onToggleAnimation: () => void;
     onToggleControls: () => void;
@@ -12,6 +13,7 @@
   const {
     expanded,
     animationActive,
+    showSettings,
     onToggleExpanded,
     onToggleAnimation,
     onToggleControls,
@@ -50,12 +52,14 @@
       />
     </button>
 
-    <!-- Settings -->
-    <button class="h-6 cursor-pointer" onclick={onToggleControls} aria-label="Toggle controls">
-      <Icon
-        class="h-8 w-8 cursor-pointer text-identifier/90 transition-transform duration-200"
-        icon={ICONS.settings}
-      />
-    </button>
+    <!-- Settings (galaxy debug panel only for now) -->
+    {#if showSettings}
+      <button class="h-6 cursor-pointer" onclick={onToggleControls} aria-label="Toggle controls">
+        <Icon
+          class="h-8 w-8 cursor-pointer text-identifier/90 transition-transform duration-200"
+          icon={ICONS.settings}
+        />
+      </button>
+    {/if}
   </div>
 </div>
