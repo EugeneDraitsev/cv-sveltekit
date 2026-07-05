@@ -481,15 +481,19 @@
           · {currentPlanet.archetypeLabel} · {currentPlanet.surface.biomes.length} biomes
         </span>
       </span>
+      {#if isDesktop}
+        <button
+          class="hero-flight-help"
+          type="button"
+          aria-label="Flight controls: WASD fly, Space up, Shift boost, drag look"
+        >
+          <span class="hero-flight-badge" aria-hidden="true">?</span>
+          <span class="hero-flight-tip" role="tooltip">
+            WASD — fly&ensp;·&ensp;Space — up&ensp;·&ensp;Shift — boost&ensp;·&ensp;drag — look
+          </span>
+        </button>
+      {/if}
     </div>
-    {#if isDesktop}
-      <div class="hero-flight-help">
-        <span class="hero-flight-badge" aria-hidden="true">?</span>
-        <span class="hero-flight-tip">
-          WASD — fly&ensp;·&ensp;Space — up&ensp;·&ensp;Shift — boost&ensp;·&ensp;drag — look
-        </span>
-      </div>
-    {/if}
   {/if}
 
   <!-- Warp flash: tinted by the destination, hides the scene swap. -->
@@ -558,6 +562,7 @@
   }
 
   .hero-journey-chip {
+    min-width: 0;
     padding: 0.4rem 0.9rem;
     border-radius: 0.5rem;
     border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
@@ -576,19 +581,10 @@
     letter-spacing: 0.02em;
   }
 
-  /* Controls hint tucked into a small badge (desktop only). Expands to the
-     full key list on hover so it never crowds the scene. */
+  /* Desktop-only flight hint. Keep the scene clean until the visitor asks. */
   .hero-flight-help {
-    position: absolute;
-    bottom: 1.4rem;
-    right: 1.4rem;
-    z-index: 5;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .hero-flight-badge {
+    position: relative;
+    flex: 0 0 auto;
     display: grid;
     place-items: center;
     width: 1.7rem;
@@ -597,16 +593,35 @@
     border: 1px solid color-mix(in srgb, var(--color-identifier) 22%, transparent);
     background: color-mix(in srgb, var(--color-base-100) 60%, transparent);
     color: color-mix(in srgb, var(--color-identifier) 70%, transparent);
+    padding: 0;
+    font: inherit;
     font-size: 0.85rem;
     line-height: 1;
+    pointer-events: auto;
     cursor: help;
     backdrop-filter: blur(6px);
     transition:
       color 160ms ease,
-      border-color 160ms ease;
+      border-color 160ms ease,
+      background-color 160ms ease;
+  }
+
+  .hero-flight-help:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary) 70%, transparent);
+    outline-offset: 3px;
+  }
+
+  .hero-flight-badge {
+    pointer-events: none;
   }
 
   .hero-flight-tip {
+    position: absolute;
+    top: calc(100% + 0.45rem);
+    right: 0;
+    z-index: 1;
+    width: max-content;
+    max-width: min(30rem, calc(100vw - 2rem));
     padding: 0.35rem 0.75rem;
     border-radius: 999px;
     border: 1px solid color-mix(in srgb, var(--color-identifier) 18%, transparent);
@@ -616,32 +631,28 @@
     letter-spacing: 0.06em;
     white-space: nowrap;
     backdrop-filter: blur(6px);
-    /* Briefly show on arrival, then collapse to just the badge. */
-    animation: flight-tip-fade 6s ease forwards;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-0.25rem);
+    transition:
+      opacity 140ms ease,
+      transform 140ms ease,
+      visibility 140ms ease;
   }
 
-  .hero-flight-help:hover .hero-flight-tip {
-    animation: none;
+  .hero-flight-help:hover .hero-flight-tip,
+  .hero-flight-help:focus-visible .hero-flight-tip {
     opacity: 1;
-    transform: none;
+    visibility: visible;
+    transform: translateY(0);
   }
 
-  .hero-flight-help:hover .hero-flight-badge {
+  .hero-flight-help:hover,
+  .hero-flight-help:focus-visible {
+    background: color-mix(in srgb, var(--color-base-100) 78%, transparent);
     color: color-mix(in srgb, var(--color-primary) 85%, transparent);
     border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
-  }
-
-  @keyframes flight-tip-fade {
-    0%,
-    55% {
-      opacity: 1;
-      transform: translateX(0);
-    }
-    100% {
-      opacity: 0;
-      transform: translateX(0.5rem);
-      pointer-events: none;
-    }
   }
 
   .warp-overlay {
