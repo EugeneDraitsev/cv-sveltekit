@@ -8,13 +8,14 @@
     Mesh,
     Object3D,
     Color,
+    Euler,
     Vector2,
     Vector3,
+    Vector4,
     Fog,
     BackSide,
     DynamicDrawUsage,
   } from 'three';
-  import type { PerspectiveCamera } from 'three';
   import { onDestroy, untrack } from 'svelte';
   import { T, useTask, useThrelte } from '@threlte/core';
 
@@ -24,8 +25,10 @@
   import skyFragmentShader from './skyFragmentShader.glsl';
   import planetVertexShader from './planetVertexShader.glsl';
   import planetFragmentShader from './planetFragmentShader.glsl';
+  import speedLinesVertexShader from './speedLinesVertexShader.glsl';
+  import speedLinesFragmentShader from './speedLinesFragmentShader.glsl';
   import { createFloraGeometry } from './flora';
-  import { fbm5 } from './noise';
+  import { fbm5, snoise2, biomeWeights, type ClimateParams } from './noise';
   import { mulberry32 } from './rng';
   import { easeInCubic, easeOutCubic, prefersReducedMotion, smoothstepJs } from './cameraTween';
   import { lightenHex } from './starSystem';
@@ -53,13 +56,14 @@
   const entryMode = untrack(() => entry);
 
   const surface = pl.surface;
+  const biomes = surface.biomes;
   const pixelRatio = Math.min(window.devicePixelRatio, 2);
   const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  const reduceMotion = prefersReducedMotion();
 
   // ─── World constants ───────────────────────────────────────────────────
   const PLANE_SIZE = 220;
-  const HALF = PLANE_SIZE / 2;
-  const EXIT_Z = 36; // flora past this world-z respawns at the horizon
+  const FLORA_RADIUS = 105; // flora lives in this square around the player
 
   const segments = (() => {
     const cores = navigator.hardwareConcurrency ?? 8;
@@ -76,8 +80,9 @@
   const lightColor = new Color(sys.starLightColor);
 
   const waterKindCode = { none: 0, water: 1, lava: 2, ice: 3 }[surface.waterKind];
+  const waterWorldH = (surface.waterLevel - 0.5) * 1.6 * surface.heightScale;
 
-  // Per-planet wind: liquids travel along it, independent of the flight scroll.
+  // Per-planet wind: liquids travel along it, independent of player movement.
   const windRng = mulberry32(pl.seed ^ 0x77aa11);
   const windAngle = windRng() * Math.PI * 2;
   const windDir = new Vector2(Math.cos(windAngle), Math.sin(windAngle));
@@ -85,7 +90,55 @@
 
   let time = 0;
 
-  // ─── Terrain ───────────────────────────────────────────────────────────
+  // ─── CPU heightfield (must mirror the terrain shaders exactly) ─────────
+  const climate: ClimateParams = {
+    climateScale: surface.climateScale,
+    climOffTX: surface.climOffTX,
+    climOffTY: surface.climOffTY,
+    climOffMX: surface.climOffMX,
+    climOffMY: surface.climOffMY,
+    centers: biomes.map((b) => b.climate),
+  };
+
+  interface GroundInfo {
+    /** Raw terrain height (pre-flood). */
+    h: number;
+    /** Walkable support height (terrain or liquid surface). */
+    ground: number;
+    biomeIndex: number;
+  }
+
+  function groundInfo(wx: number, wz: number): GroundInfo {
+    const nx = wx + surface.offsetX;
+    const ny = surface.offsetY - wz;
+    const weights = biomeWeights(nx, ny, climate);
+    let mul = 0;
+    let biomeIndex = 0;
+    for (let i = 0; i < weights.length; i++) {
+      mul += weights[i] * biomes[i].heightMul;
+      if (weights[i] > weights[biomeIndex]) biomeIndex = i;
+    }
+    let h = fbm5(nx * surface.terrainScale, ny * surface.terrainScale);
+    if (surface.cloudMode) {
+      h = h * 0.5 + 0.3 * snoise2(nx * surface.terrainScale * 0.5, ny * surface.terrainScale * 0.5);
+    }
+    h *= surface.heightScale * mul;
+    const ground = surface.waterLevel >= 0 ? Math.max(h, waterWorldH) : h;
+    return { h, ground, biomeIndex };
+  }
+
+  const normalizedHeight = (h: number) =>
+    Math.min(Math.max(h / (surface.heightScale * 1.6) + 0.5, 0), 1);
+
+  /** Land band (0 at waterline → 1 at peaks), matching the fragment shader. */
+  function landBand(nh: number): number {
+    const wl = Math.max(surface.waterLevel, 0.12);
+    return Math.min(Math.max((nh - wl) / Math.max(1 - wl, 0.001), 0), 1);
+  }
+
+  // ─── Terrain (floating grid parked under the player) ───────────────────
+  const paddedBiomes = [0, 1, 2, 3].map((i) => biomes[Math.min(i, biomes.length - 1)]);
+
   let terrainMesh = $state<Mesh>();
   const terrainGeometry = new PlaneGeometry(PLANE_SIZE, PLANE_SIZE, segments, segments);
   const terrainMaterial = new ShaderMaterial({
@@ -100,27 +153,31 @@
       uWaterLevel: { value: surface.waterLevel },
       uWaterKind: { value: waterKindCode },
       uCloudMode: { value: surface.cloudMode ? 1 : 0 },
-      uBiomeVariation: { value: surface.biomeVariation },
-      uPalWater: { value: new Color(surface.palette.water) },
-      uPalLow: { value: new Color(surface.palette.low) },
-      uPalMid: { value: new Color(surface.palette.mid) },
-      uPalHigh: { value: new Color(surface.palette.high) },
-      uPalPeak: { value: new Color(surface.palette.peak) },
-      uPalCliff: { value: new Color(surface.palette.cliff) },
-      uAltLow: { value: new Color(surface.altPalette.low) },
-      uAltMid: { value: new Color(surface.altPalette.mid) },
-      uAltHigh: { value: new Color(surface.altPalette.high) },
+      uWindDir: { value: windDir.clone() },
+      uFlowSpeed: { value: flowSpeed },
+      // Biome climate blending
+      uBiomeCount: { value: biomes.length },
+      uBioClimate: { value: paddedBiomes.map((b) => new Vector2(b.climate[0], b.climate[1])) },
+      uClimateScale: { value: surface.climateScale },
+      uClimOffT: { value: new Vector2(surface.climOffTX, surface.climOffTY) },
+      uClimOffM: { value: new Vector2(surface.climOffMX, surface.climOffMY) },
+      uBioHeightMul: { value: new Vector4(...paddedBiomes.map((b) => b.heightMul)) },
+      uBioLow: { value: paddedBiomes.map((b) => new Color(b.low)) },
+      uBioMid: { value: paddedBiomes.map((b) => new Color(b.mid)) },
+      uBioHigh: { value: paddedBiomes.map((b) => new Color(b.high)) },
+      uBioPeak: { value: paddedBiomes.map((b) => new Color(b.peak)) },
+      uWaterColor: { value: new Color(surface.waterColor) },
+      uCliffColor: { value: new Color(surface.cliffColor) },
       uLightDir: { value: sunDir.clone() },
       uLightColor: { value: lightColor.clone() },
       uFogColor: { value: fogColor.clone() },
       uFogNear: { value: fogNear },
       uFogFar: { value: fogFar },
-      uWindDir: { value: windDir.clone() },
-      uFlowSpeed: { value: flowSpeed },
     },
   });
 
-  // ─── Sky dome ──────────────────────────────────────────────────────────
+  // ─── Sky dome (follows the player) ─────────────────────────────────────
+  let skyMesh = $state<Mesh>();
   const skyGeometry = new SphereGeometry(500, 32, 16);
   const skyMaterial = new ShaderMaterial({
     vertexShader: skyVertexShader,
@@ -172,344 +229,61 @@
     };
   });
 
-  function placeMoons() {
+  function placeMoons(cx: number, cy: number, cz: number) {
     for (const record of moonRecords) {
       const { azimuth: az, elevation: el } = record;
       record.mesh.position.set(
-        Math.sin(az) * Math.cos(el) * 430,
-        Math.sin(el) * 430,
-        -Math.cos(az) * Math.cos(el) * 430,
+        cx + Math.sin(az) * Math.cos(el) * 430,
+        cy + Math.sin(el) * 430,
+        cz - Math.cos(az) * Math.cos(el) * 430,
       );
     }
   }
-  placeMoons();
 
-  // ─── Flight state ──────────────────────────────────────────────────────
-  // Declared before the flora pools — initial spawning reads these offsets.
-  let scrollX = 0;
-  let scrollY = 0;
-  let cruiseSpeed = 1.45;
-  let speed = cruiseSpeed;
-  let steer = 0;
-  let throttle = 0;
-  let boost = 0;
-  let heading = 0;
-  let bank = 0;
-  let pitch = 0;
+  // ─── Player state (free flight) ────────────────────────────────────────
+  const FLY_SPEED = 15;
+  const FLY_VERT = 9;
+  const BOOST_MULT = 2.1; // Shift / long-press: speed ×(1 + BOOST_MULT)
+  const EYE = 1.7;
+  const HOVER_MIN = 1.0; // never clip into the ground while skimming
 
-  // ─── Flora (instanced, CPU-placed on the shared heightfield) ───────────
-  interface FloraItem {
-    a: number; // noise-space X
-    b: number; // noise-space Y (forward)
-    y: number;
-    scale: number;
-    rotY: number;
-    visible: boolean;
-  }
+  let camX = 0;
+  let camZ = 0;
+  let feetY = 0;
+  let vy = 0;
+  let yaw = 0;
+  let pitch = -0.45;
+  let boostFactor = 0;
+  let userLooked = false;
 
-  interface FloraPool {
-    mesh: InstancedMesh;
-    material: MeshStandardMaterial;
-    items: FloraItem[];
-  }
-
-  const floraRng = mulberry32(pl.seed ^ 0x9e3779b9);
-  const dummy = new Object3D();
-  const pools: FloraPool[] = [];
-
-  const heightAt = (a: number, b: number) =>
-    fbm5(
-      (a + surface.offsetX) * surface.terrainScale,
-      (b + surface.offsetY) * surface.terrainScale,
-    ) * surface.heightScale;
-
-  const normalizedHeight = (h: number) =>
-    Math.min(Math.max(h / (surface.heightScale * 1.6) + 0.5, 0), 1);
-
-  /** Land band (0 at waterline → 1 at peaks), matching the fragment shader. */
-  function landBand(nh: number): number {
-    const wl = Math.max(surface.waterLevel, 0.12);
-    return Math.min(Math.max((nh - wl) / Math.max(1 - wl, 0.001), 0), 1);
-  }
-
-  const BAND_RANGES: Record<Exclude<FloraKind, 'none'>, [number, number]> = {
-    trees: [0.04, 0.58],
-    palms: [0.01, 0.16],
-    cacti: [0.03, 0.62],
-    shards: [0.04, 0.8],
-    rocks: [0.02, 0.85],
-  };
-
-  function trySpawn(item: FloraItem, kind: Exclude<FloraKind, 'none'>, initial: boolean) {
-    const [bandMin, bandMax] = BAND_RANGES[kind];
-    for (let attempt = 0; attempt < 8; attempt++) {
-      const a = scrollX + (floraRng() * 2 - 1) * (HALF * 0.94);
-      const b = initial
-        ? scrollY - EXIT_Z + floraRng() * (HALF + EXIT_Z) * 0.96
-        : scrollY + HALF * (0.88 + floraRng() * 0.08);
-
-      const h = heightAt(a, b);
-      const nh = normalizedHeight(h);
-      if (surface.waterLevel >= 0 && nh < surface.waterLevel + 0.015) continue;
-      const band = landBand(nh);
-      if (band < bandMin || band > bandMax) continue;
-      // Skip steep slopes so nothing floats off a cliff face.
-      const grade = Math.abs(heightAt(a + 1.4, b) - h) + Math.abs(heightAt(a, b + 1.4) - h);
-      if (grade > 1.6) continue;
-
-      item.a = a;
-      item.b = b;
-      item.y = h;
-      item.scale = 0.75 + floraRng() * 0.85;
-      item.rotY = floraRng() * Math.PI * 2;
-      item.visible = true;
-      return;
-    }
-    item.visible = false;
-    // Park far ahead so it retries once that stretch scrolls past.
-    item.b = scrollY + HALF;
-  }
-
-  function createPool(
-    kind: Exclude<FloraKind, 'none'>,
-    count: number,
-    colorA: number,
-    colorB: number,
-  ): FloraPool {
-    const geometry = createFloraGeometry(kind);
-    const material = new MeshStandardMaterial({
-      vertexColors: true,
-      flatShading: true,
-      roughness: 0.95,
-      metalness: 0,
-    });
-    const mesh = new InstancedMesh(geometry, material, count);
-    mesh.frustumCulled = false;
-    mesh.instanceMatrix.setUsage(DynamicDrawUsage);
-
-    const tintA = new Color(colorA);
-    const tintB = new Color(colorB);
-    const tint = new Color();
-    const items: FloraItem[] = [];
-    for (let i = 0; i < count; i++) {
-      const item: FloraItem = { a: 0, b: 0, y: 0, scale: 1, rotY: 0, visible: false };
-      trySpawn(item, kind, true);
-      items.push(item);
-      tint.copy(tintA).lerp(tintB, floraRng());
-      const shade = 0.85 + floraRng() * 0.3;
-      mesh.setColorAt(i, tint.multiplyScalar(shade));
-    }
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-
-    const pool: FloraPool = { mesh, material, items };
-    pools.push(pool);
-    return pool;
-  }
-
-  const densityScale = isMobile ? 0.55 : 1;
-  const primaryKind = surface.flora;
-  const primaryPool =
-    primaryKind !== 'none'
-      ? createPool(
-          primaryKind,
-          Math.round(170 * surface.floraDensity * densityScale),
-          surface.floraColors[0],
-          surface.floraColors[1],
-        )
-      : null;
-  // Scatter rocks alongside vegetation for texture (unless rocks already are
-  // the vegetation, or there is nothing at all).
-  const rockPool =
-    primaryKind !== 'none' && primaryKind !== 'rocks'
-      ? createPool(
-          'rocks',
-          Math.round(55 * densityScale),
-          surface.palette.cliff,
-          lightenHex(surface.palette.cliff, 0.25),
-        )
-      : null;
-  function updatePool(pool: FloraPool, kind: Exclude<FloraKind, 'none'>) {
-    const { mesh, items } = pool;
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const worldZ = scrollY - item.b;
-      if (worldZ > EXIT_Z) {
-        trySpawn(item, kind, false);
-      }
-      let worldX = item.a - scrollX;
-      if (worldX > HALF) {
-        item.a -= PLANE_SIZE * 0.94;
-        trySpawnInPlace(item, kind);
-        worldX = item.a - scrollX;
-      } else if (worldX < -HALF) {
-        item.a += PLANE_SIZE * 0.94;
-        trySpawnInPlace(item, kind);
-        worldX = item.a - scrollX;
-      }
-
-      if (item.visible) {
-        dummy.position.set(worldX, item.y - 0.14 * item.scale, scrollY - item.b);
-        dummy.rotation.set(0, item.rotY, 0);
-        dummy.scale.setScalar(item.scale);
-      } else {
-        dummy.position.set(0, -1000, 0);
-        dummy.rotation.set(0, 0, 0);
-        dummy.scale.setScalar(0.001);
-      }
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
-    }
-    mesh.instanceMatrix.needsUpdate = true;
-  }
-
-  /** Re-validate an item after a lateral wrap (its terrain sample changed). */
-  function trySpawnInPlace(item: FloraItem, kind: Exclude<FloraKind, 'none'>) {
-    const h = heightAt(item.a, item.b);
-    const nh = normalizedHeight(h);
-    const [bandMin, bandMax] = BAND_RANGES[kind];
-    if (surface.waterLevel >= 0 && nh < surface.waterLevel + 0.015) {
-      item.visible = false;
-      return;
-    }
-    const band = landBand(nh);
-    if (band < bandMin || band > bandMax) {
-      item.visible = false;
-      return;
-    }
-    item.y = h;
-    item.visible = true;
-  }
-
-  // ─── Flight controls ───────────────────────────────────────────────────
-  const keysHeld = new Set<string>();
-  let pointerInside = false;
+  const keys = new Set<string>();
+  // Starts true: the player reached this scene by clicking the canvas, so the
+  // keyboard is theirs immediately (Space must not scroll the page).
+  let pointerInside = true;
+  // Sticky game focus: engaged from arrival / any canvas press, released only
+  // by interacting with the page OUTSIDE the hero. Keeps Space/arrows working
+  // when a look-drag ends past the canvas edge.
+  let engaged = true;
   let dragging = false;
-  let dragStartX = 0;
-  let dragStartY = 0;
-  let dragSteerTarget = 0;
-  let dragThrottleTarget = 0;
+  let lastDragX = 0;
+  let lastDragY = 0;
+  // Long-press (no drag) = boost, mirroring Shift on touch devices.
+  let pressStart = 0;
+  let pressMoved = false;
 
   const canvasEl = renderer.domElement;
-  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+  const cameraEuler = new Euler(0, 0, 0, 'YXZ');
 
-  function keyId(e: KeyboardEvent) {
-    return e.code === 'Space' ? 'space' : e.key.toLowerCase();
-  }
-
-  function onKeyDown(e: KeyboardEvent) {
-    const target = e.target as HTMLElement | null;
-    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
-    const key = keyId(e);
-    const isFlightKey = [
-      'w',
-      'a',
-      's',
-      'd',
-      'arrowup',
-      'arrowdown',
-      'arrowleft',
-      'arrowright',
-      'shift',
-      'space',
-    ].includes(key);
-
-    if (isFlightKey) {
-      if (!pointerInside) return;
-      e.preventDefault();
-      keysHeld.add(key);
-    }
-  }
-
-  function onKeyUp(e: KeyboardEvent) {
-    keysHeld.delete(keyId(e));
-  }
-
-  function onPointerEnter() {
-    pointerInside = true;
-    canvasEl.style.cursor = dragging ? 'grabbing' : 'grab';
-  }
-
-  function onPointerLeave() {
-    pointerInside = false;
-    if (!dragging) canvasEl.style.cursor = '';
-  }
-
-  function onPointerDown(e: PointerEvent) {
-    pointerInside = true;
-    dragging = true;
-    dragStartX = e.clientX;
-    dragStartY = e.clientY;
-    dragSteerTarget = 0;
-    dragThrottleTarget = 0;
-    canvasEl.setPointerCapture?.(e.pointerId);
-    canvasEl.style.cursor = 'grabbing';
-    e.preventDefault();
-  }
-
-  function onPointerMove(e: PointerEvent) {
-    if (!dragging) return;
-    const rect = canvasEl.getBoundingClientRect();
-    dragSteerTarget = clamp((e.clientX - dragStartX) / (rect.width * 0.28), -1, 1);
-    dragThrottleTarget = clamp((dragStartY - e.clientY) / (rect.height * 0.24), -1, 1);
-    e.preventDefault();
-  }
-
-  function onPointerUp(e: PointerEvent) {
-    if (!dragging) return;
-    dragging = false;
-    dragSteerTarget = 0;
-    dragThrottleTarget = 0;
-    if (canvasEl.hasPointerCapture?.(e.pointerId)) {
-      canvasEl.releasePointerCapture(e.pointerId);
-    }
-    canvasEl.style.cursor = pointerInside ? 'grab' : '';
-  }
-
-  function onWheel(e: WheelEvent) {
-    if (!pointerInside) return;
-    cruiseSpeed = clamp(cruiseSpeed - e.deltaY * 0.002, 0.65, 2.75);
-    e.preventDefault();
-  }
-
-  $effect(() => {
-    const previousTouchAction = canvasEl.style.touchAction;
-    canvasEl.style.touchAction = 'none';
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    canvasEl.addEventListener('pointerenter', onPointerEnter);
-    canvasEl.addEventListener('pointerleave', onPointerLeave);
-    canvasEl.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-    canvasEl.addEventListener('wheel', onWheel, { passive: false });
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-      canvasEl.removeEventListener('pointerenter', onPointerEnter);
-      canvasEl.removeEventListener('pointerleave', onPointerLeave);
-      canvasEl.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-      canvasEl.removeEventListener('wheel', onWheel);
-      canvasEl.style.touchAction = previousTouchAction;
-      canvasEl.style.cursor = '';
-      keysHeld.clear();
-    };
-  });
-
-  // ─── Camera ────────────────────────────────────────────────────────────
-  const baseY = Math.max(surface.heightScale + 5, 11);
-  const baseFov = isMobile ? 68 : 64;
-  const lookTarget = new Vector3();
-
-  // Atmospheric entry / departure. Entry starts high with the fog pulled in
-  // tight (the cut from the system scene lands inside the haze), then the
-  // camera sinks to flight level while the fog opens up. Departure reverses it.
-  const reduceMotion = prefersReducedMotion();
+  // Entry / departure choreography.
   let entryProgress = entryMode === 'descend' && !reduceMotion ? 0 : 1;
   let departProgress = 0;
-  const ENTRY_ALTITUDE = 62;
-  const DEPART_CLIMB = 55;
+  let departBaseY = 0;
+
+  // Spawn on solid ground at the world origin (seed offsets randomize it).
+  {
+    const spawn = groundInfo(0, 0);
+    feetY = spawn.ground + (entryProgress < 1 ? 58 : 2);
+  }
 
   const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
@@ -530,6 +304,285 @@
       if (raf !== undefined) cancelAnimationFrame(raf);
     };
   });
+
+  $effect(() => {
+    if (!departing) return;
+    departBaseY = feetY;
+  });
+
+  // ─── Look + movement input ─────────────────────────────────────────────
+  function applyLook(dx: number, dy: number, sensitivity: number) {
+    yaw -= dx * sensitivity;
+    pitch = Math.min(1.5, Math.max(-1.5, pitch - dy * sensitivity));
+    userLooked = true;
+  }
+
+  function onKeyDown(e: KeyboardEvent) {
+    const target = e.target as HTMLElement | null;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+    const captured = pointerInside || engaged || ['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code);
+    if (!captured) return;
+
+    if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
+    keys.add(e.code);
+  }
+
+  function onKeyUp(e: KeyboardEvent) {
+    keys.delete(e.code);
+  }
+
+  // The hero container: transition veils and journey chrome live inside it.
+  const heroRoot = canvasEl.closest('.threlte-app');
+
+  function onPointerEnter() {
+    pointerInside = true;
+  }
+
+  function onPointerLeave(e: PointerEvent) {
+    // The transition veil (pointer-events: auto while covering) steals the
+    // hit test and fires a bogus pointerleave without the mouse moving —
+    // ignore departures that stay inside the hero container, otherwise Space
+    // would fall through to page scrolling after every arrival.
+    const to = e.relatedTarget as Node | null;
+    if (to && heroRoot?.contains(to)) return;
+    pointerInside = false;
+    // NOTE: dragging intentionally survives leaving the canvas — like orbit
+    // controls, the look-drag follows the pointer until the button releases.
+  }
+
+  function onPointerDown(e: PointerEvent) {
+    pointerInside = true;
+    engaged = true;
+    dragging = true;
+    lastDragX = e.clientX;
+    lastDragY = e.clientY;
+    pressStart = performance.now();
+    pressMoved = false;
+  }
+
+  /** Clicking anywhere outside the hero hands the keyboard back to the page. */
+  function onWindowPointerDown(e: PointerEvent) {
+    const target = e.target as Node | null;
+    if (target && heroRoot && !heroRoot.contains(target)) engaged = false;
+  }
+
+  function onPointerMove(e: PointerEvent) {
+    if (!dragging) return;
+    const dx = e.clientX - lastDragX;
+    const dy = e.clientY - lastDragY;
+    lastDragX = e.clientX;
+    lastDragY = e.clientY;
+    if (Math.abs(dx) + Math.abs(dy) > 3) pressMoved = true;
+    // Dragging grabs the world (orbit-style, no mouse capture): swipe down
+    // looks up. The pointer stays free for the rest of the page.
+    applyLook(-dx, -dy, 0.0042);
+  }
+
+  function onPointerUp() {
+    dragging = false;
+  }
+
+  $effect(() => {
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    canvasEl.addEventListener('pointerenter', onPointerEnter);
+    canvasEl.addEventListener('pointermove', onPointerEnter);
+    canvasEl.addEventListener('pointerleave', onPointerLeave);
+    canvasEl.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointerdown', onWindowPointerDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      canvasEl.removeEventListener('pointerenter', onPointerEnter);
+      canvasEl.removeEventListener('pointermove', onPointerEnter);
+      canvasEl.removeEventListener('pointerleave', onPointerLeave);
+      canvasEl.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointerdown', onWindowPointerDown);
+      keys.clear();
+    };
+  });
+
+  // ─── Boost speed lines (fullscreen overlay, bypasses the camera) ───────
+  const speedLinesGeometry = new PlaneGeometry(2, 2);
+  const speedLinesMaterial = new ShaderMaterial({
+    vertexShader: speedLinesVertexShader,
+    fragmentShader: speedLinesFragmentShader,
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
+    uniforms: {
+      uTime: { value: 0 },
+      uBoost: { value: 0 },
+      uAspect: { value: 1.6 },
+    },
+  });
+  const speedLinesMesh = new Mesh(speedLinesGeometry, speedLinesMaterial);
+  speedLinesMesh.frustumCulled = false;
+  speedLinesMesh.renderOrder = 100;
+  speedLinesMesh.visible = false;
+
+  // ─── Flora (instanced, one pool per biome flora kind) ──────────────────
+  interface FloraItem {
+    wx: number;
+    wz: number;
+    y: number;
+    scale: number;
+    rotY: number;
+    visible: boolean;
+  }
+
+  interface FloraPool {
+    kind: Exclude<FloraKind, 'none'>;
+    /** Extra scatter pool (rocks everywhere) vs biome-owned vegetation. */
+    scatter: boolean;
+    mesh: InstancedMesh;
+    material: MeshStandardMaterial;
+    items: FloraItem[];
+    colorDirty: boolean;
+  }
+
+  const floraRng = mulberry32(pl.seed ^ 0x9e3779b9);
+  const dummy = new Object3D();
+  const tintA = new Color();
+  const tintB = new Color();
+  const tintOut = new Color();
+  const pools: FloraPool[] = [];
+
+  const BAND_RANGES: Record<Exclude<FloraKind, 'none'>, [number, number]> = {
+    trees: [0.04, 0.58],
+    palms: [0.01, 0.16],
+    cacti: [0.03, 0.62],
+    shards: [0.04, 0.8],
+    rocks: [0.02, 0.85],
+  };
+
+  function placeItem(pool: FloraPool, index: number, wx: number, wz: number): boolean {
+    const item = pool.items[index];
+    const gi = groundInfo(wx, wz);
+    const b = biomes[gi.biomeIndex];
+    const nh = normalizedHeight(gi.h);
+    if (surface.waterLevel >= 0 && nh < surface.waterLevel + 0.015) return false;
+    const band = landBand(nh);
+    const [bandMin, bandMax] = BAND_RANGES[pool.kind];
+    if (band < bandMin || band > bandMax) return false;
+    if (pool.scatter) {
+      if (floraRng() > 0.22) return false;
+      tintA.set(surface.cliffColor);
+      tintB.set(lightenHex(surface.cliffColor, 0.25));
+    } else {
+      if (b.flora !== pool.kind || floraRng() > b.floraDensity) return false;
+      tintA.set(b.floraColors[0]);
+      tintB.set(b.floraColors[1]);
+    }
+    // Skip steep slopes so nothing floats off a cliff face.
+    const grade =
+      Math.abs(groundInfo(wx + 1.4, wz).h - gi.h) + Math.abs(groundInfo(wx, wz + 1.4).h - gi.h);
+    if (grade > 1.6) return false;
+
+    item.wx = wx;
+    item.wz = wz;
+    item.y = gi.h;
+    item.scale = 0.75 + floraRng() * 0.85;
+    item.rotY = floraRng() * Math.PI * 2;
+    item.visible = true;
+    tintOut
+      .copy(tintA)
+      .lerp(tintB, floraRng())
+      .multiplyScalar(0.85 + floraRng() * 0.3);
+    pool.mesh.setColorAt(index, tintOut);
+    pool.colorDirty = true;
+    return true;
+  }
+
+  function trySpawn(pool: FloraPool, index: number) {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const wx = camX + (floraRng() * 2 - 1) * FLORA_RADIUS * 0.96;
+      const wz = camZ + (floraRng() * 2 - 1) * FLORA_RADIUS * 0.96;
+      if (placeItem(pool, index, wx, wz)) return;
+    }
+    pool.items[index].visible = false;
+    // Park far out; it re-rolls the next time the player moves past it.
+    pool.items[index].wx = camX + FLORA_RADIUS;
+    pool.items[index].wz = camZ + FLORA_RADIUS;
+  }
+
+  function createPool(
+    kind: Exclude<FloraKind, 'none'>,
+    count: number,
+    scatter: boolean,
+  ): FloraPool {
+    const geometry = createFloraGeometry(kind);
+    const material = new MeshStandardMaterial({
+      vertexColors: true,
+      flatShading: true,
+      roughness: 0.95,
+      metalness: 0,
+    });
+    const mesh = new InstancedMesh(geometry, material, count);
+    mesh.frustumCulled = false;
+    mesh.instanceMatrix.setUsage(DynamicDrawUsage);
+    const pool: FloraPool = { kind, scatter, mesh, material, items: [], colorDirty: false };
+    for (let i = 0; i < count; i++) {
+      pool.items.push({ wx: 0, wz: 0, y: 0, scale: 1, rotY: 0, visible: false });
+      trySpawn(pool, i);
+    }
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    pool.colorDirty = false;
+    pools.push(pool);
+    return pool;
+  }
+
+  {
+    const densityScale = isMobile ? 0.55 : 1;
+    const kinds = [...new Set(biomes.map((b) => b.flora))].filter(
+      (k): k is Exclude<FloraKind, 'none'> => k !== 'none',
+    );
+    for (const kind of kinds) createPool(kind, Math.round(130 * densityScale), false);
+    if (!kinds.includes('rocks')) createPool('rocks', Math.round(45 * densityScale), true);
+  }
+
+  function updatePool(pool: FloraPool) {
+    const { mesh, items } = pool;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      // Torus-wrap around the player: re-enter on the far side and re-roll
+      // against the biome there (it may be a different one now).
+      const dx = item.wx - camX;
+      const dz = item.wz - camZ;
+      if (Math.abs(dx) > FLORA_RADIUS || Math.abs(dz) > FLORA_RADIUS) {
+        const wx =
+          Math.abs(dx) > FLORA_RADIUS ? item.wx - Math.sign(dx) * FLORA_RADIUS * 1.92 : item.wx;
+        const wz =
+          Math.abs(dz) > FLORA_RADIUS ? item.wz - Math.sign(dz) * FLORA_RADIUS * 1.92 : item.wz;
+        if (!placeItem(pool, i, wx, wz)) {
+          item.visible = false;
+          item.wx = wx;
+          item.wz = wz;
+        }
+      }
+
+      if (item.visible) {
+        dummy.position.set(item.wx, item.y - 0.14 * item.scale, item.wz);
+        dummy.rotation.set(0, item.rotY, 0);
+        dummy.scale.setScalar(item.scale);
+      } else {
+        dummy.position.set(item.wx, -1000, item.wz);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.setScalar(0.001);
+      }
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    if (pool.colorDirty && mesh.instanceColor) {
+      mesh.instanceColor.needsUpdate = true;
+      pool.colorDirty = false;
+    }
+  }
 
   // ─── Renderer / scene environment ──────────────────────────────────────
   $effect(() => {
@@ -561,6 +614,8 @@
     terrainMaterial.dispose();
     skyGeometry.dispose();
     skyMaterial.dispose();
+    speedLinesGeometry.dispose();
+    speedLinesMaterial.dispose();
     moonGeometry.dispose();
     for (const record of moonRecords) record.material.dispose();
     for (const pool of pools) {
@@ -574,67 +629,76 @@
   const { start, stop } = useTask(
     (delta) => {
       time += delta;
+      const dt = Math.min(delta, 0.05); // clamp so tab-switch spikes can't launch the player
 
-      const keySteer =
-        (keysHeld.has('d') || keysHeld.has('arrowright') ? 1 : 0) -
-        (keysHeld.has('a') || keysHeld.has('arrowleft') ? 1 : 0);
-      const keyThrottle =
-        (keysHeld.has('w') || keysHeld.has('arrowup') ? 1 : 0) -
-        (keysHeld.has('s') || keysHeld.has('arrowdown') ? 0.85 : 0);
-      const boostTarget =
-        keysHeld.has('shift') || keysHeld.has('space') || dragThrottleTarget > 0.78 ? 1 : 0;
+      // Boost: Shift or a long-press without dragging. Eased so the FOV kick
+      // and the speed lines swell in instead of snapping.
+      const longPress = dragging && !pressMoved && performance.now() - pressStart > 350;
+      const boostHeld =
+        (keys.has('ShiftLeft') || keys.has('ShiftRight') || longPress) &&
+        entryProgress >= 1 &&
+        !departing;
+      boostFactor += ((boostHeld ? 1 : 0) - boostFactor) * Math.min(1, dt * 5);
 
-      const steerTarget = clamp(keySteer + dragSteerTarget, -1, 1);
-      const throttleTarget = clamp(keyThrottle + dragThrottleTarget, -1, 1);
-      steer += (steerTarget - steer) * Math.min(1, delta * 5.5);
-      throttle += (throttleTarget - throttle) * Math.min(1, delta * 4.5);
-      boost += (boostTarget - boost) * Math.min(1, delta * 5);
-
-      const targetSpeed = clamp(cruiseSpeed + throttle * 1.25 + boost * 1.9, 0.32, 5.4);
-      speed += (targetSpeed - speed) * Math.min(1, delta * (boostTarget ? 5.6 : 3.8));
-
-      const turnRate = (0.52 + speed * 0.11 + boost * 0.22) * (throttle < -0.35 ? 0.45 : 1);
-      heading += steer * turnRate * delta;
-      const travel = speed * delta * (4.9 + boost * 1.45);
-      scrollX += Math.sin(heading) * travel;
-      scrollY += Math.cos(heading) * travel;
-
-      terrainMaterial.uniforms.uTime.value = time;
-      // Snap the noise-sampling offset to whole grid cells and slide the mesh
-      // by the fractional remainder. Every vertex then re-samples identical
-      // heightfield positions between snaps, so landforms and shorelines move
-      // rigidly instead of morphing/shimmering through the vertex grid.
-      const cell = PLANE_SIZE / segments;
-      const snapX = Math.floor(scrollX / cell) * cell;
-      const snapY = Math.floor(scrollY / cell) * cell;
-      (terrainMaterial.uniforms.uScroll.value as Vector2).set(snapX, snapY);
-      if (terrainMesh) {
-        terrainMesh.position.x = -(scrollX - snapX);
-        terrainMesh.position.z = scrollY - snapY;
+      // Flight along the look direction: W/S follow the full 3D view vector
+      // (look down + W = descend), A/D strafe on the horizon plane, Space
+      // climbs straight up.
+      const mForward =
+        (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) -
+        (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
+      const mRight =
+        (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) -
+        (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
+      const cosP = Math.cos(pitch);
+      const fwdX = -Math.sin(yaw);
+      const fwdZ = -Math.cos(yaw);
+      const rightX = -fwdZ;
+      const rightZ = fwdX;
+      const mLen = Math.hypot(mForward, mRight) || 1;
+      let moveX = (fwdX * cosP * mForward + rightX * mRight) / mLen;
+      let moveY = (Math.sin(pitch) * mForward) / mLen;
+      let moveZ = (fwdZ * cosP * mForward + rightZ * mRight) / mLen;
+      if (isMobile && entryProgress >= 1 && !departing) {
+        // No keyboard on mobile — cruise gently forward, drag to steer.
+        moveX += fwdX * cosP * 0.4;
+        moveY += Math.sin(pitch) * 0.4;
+        moveZ += fwdZ * cosP * 0.4;
       }
-      skyMaterial.uniforms.uTime.value = time;
 
-      for (const record of moonRecords) {
-        record.azimuth += delta * record.drift;
-        record.material.uniforms.uTime.value = time;
-      }
-      placeMoons();
+      const speed = FLY_SPEED * (1 + boostFactor * BOOST_MULT);
+      camX += moveX * speed * dt;
+      camZ += moveZ * speed * dt;
 
-      if (primaryPool && primaryKind !== 'none') updatePool(primaryPool, primaryKind);
-      if (rockPool) updatePool(rockPool, 'rocks');
+      const gi = groundInfo(camX, camZ);
+      const support = gi.ground;
 
-      // Atmospheric entry sinks the camera in from altitude while the fog
-      // opens; departure climbs back out while it closes. The departure also
-      // drives the transition veil toward the surface fog color, so the cut
-      // back to space happens inside the haze — no curtain.
-      if (entryProgress < 1) entryProgress = Math.min(1, entryProgress + delta / 1.6);
-      if (departing && !reduceMotion) {
-        departProgress = Math.min(1, departProgress + delta / 0.85);
+      if (entryProgress < 1) {
+        // Guided atmospheric entry: sink from altitude to a low hover.
+        entryProgress = Math.min(1, entryProgress + dt / 1.6);
+        const de = easeOutCubic(entryProgress);
+        feetY = support + 6 + (1 - de) * 58;
+        vy = 0;
+        if (!userLooked) pitch = -0.45 + de * 0.37;
+      } else if (departing && !reduceMotion) {
+        // Climb back toward space; the veil saturates with the haze.
+        departProgress = Math.min(1, departProgress + dt / 0.85);
         onVeil?.(smoothstepJs(0.35, 0.94, departProgress), surface.fogColor);
+        feetY = departBaseY + easeInCubic(departProgress) * 55;
+        vy = 0;
+      } else {
+        const vertIn = keys.has('Space') ? 1 : 0;
+        vy += (vertIn * FLY_VERT - vy) * Math.min(1, dt * 8);
+        feetY += vy * dt + moveY * speed * dt;
+        // Skim the terrain, never clip into it.
+        feetY = Math.max(feetY, support + HOVER_MIN);
       }
+
+      // Gentle hover sway keeps the craft feeling alive when idle.
+      const bob = Math.sin(time * 1.1) * 0.05;
+
+      // Fog opens as the entry finishes and slams shut during departure.
       const de = easeOutCubic(entryProgress);
       const dp = easeInCubic(departProgress);
-
       const fogNearNow = lerp(lerp(4, fogNear, de), 3, dp);
       const fogFarNow = lerp(lerp(26, fogFar, de), 16, dp);
       terrainMaterial.uniforms.uFogNear.value = fogNearNow;
@@ -644,35 +708,43 @@
         scene.fog.far = fogFarNow;
       }
 
-      // Terrain-following flight camera with speed FOV and turn banking.
-      const cam = cameraCtx.current as PerspectiveCamera | undefined;
+      // Park the floating grid on whole cells under the player: vertices
+      // sample world-anchored noise, so the landscape is a fixed field the
+      // player walks through — zero shimmer.
+      const cell = PLANE_SIZE / segments;
+      const snapX = Math.round(camX / cell) * cell;
+      const snapZ = Math.round(camZ / cell) * cell;
+      (terrainMaterial.uniforms.uScroll.value as Vector2).set(snapX, -snapZ);
+      if (terrainMesh) terrainMesh.position.set(snapX, 0, snapZ);
+
+      terrainMaterial.uniforms.uTime.value = time;
+      skyMaterial.uniforms.uTime.value = time;
+
+      const eyeY = feetY + EYE + bob;
+      const cam = cameraCtx.current;
       if (cam) {
-        const terrainAhead = heightAt(
-          scrollX + Math.sin(heading) * 12,
-          scrollY + Math.cos(heading) * 12,
-        );
-        const terrainLift = clamp(terrainAhead * 0.34, -2.2, surface.heightScale * 0.55 + 2);
-        const altitude = baseY + terrainLift + (1 - de) * ENTRY_ALTITUDE + dp * DEPART_CLIMB;
-        const speedFeel = Math.max(0, speed - 1) * 0.72 + boost * 1.3;
-        const bankTarget = -steer * (0.22 + speed * 0.05 + boost * 0.1);
-        const pitchTarget = throttle * 0.08 + boost * 0.13;
-        bank += (bankTarget - bank) * Math.min(1, delta * 5.2);
-        pitch += (pitchTarget - pitch) * Math.min(1, delta * 4.2);
-
-        const bob = Math.sin(time * (1.1 + speed * 0.12)) * (0.1 + speed * 0.018);
-        cam.position.set(steer * 2.15, altitude + bob, 30 - speedFeel);
-        lookTarget.set(
-          steer * 6.6 + Math.sin(heading) * 2.1,
-          baseY * 0.32 + terrainLift * 0.18 - (1 - de) * 26 + dp * 46 + pitch * 7,
-          -34 - throttle * 8 - boost * 10,
-        );
-        cam.lookAt(lookTarget);
-        cam.rotateZ(bank);
-
-        const targetFov = baseFov + Math.max(0, speed - cruiseSpeed) * 1.9 + boost * 7;
-        cam.fov += (targetFov - cam.fov) * Math.min(1, delta * 4);
-        cam.updateProjectionMatrix();
+        cam.position.set(camX, eyeY, camZ);
+        cameraEuler.set(pitch, yaw, 0);
+        cam.quaternion.setFromEuler(cameraEuler);
+        // FOV kick sells the acceleration.
+        const targetFov = 68 + boostFactor * 10;
+        if (Math.abs((cam as import('three').PerspectiveCamera).fov - targetFov) > 0.05) {
+          (cam as import('three').PerspectiveCamera).fov = targetFov;
+          (cam as import('three').PerspectiveCamera).updateProjectionMatrix();
+        }
       }
+      if (skyMesh) skyMesh.position.set(camX, eyeY, camZ);
+      placeMoons(camX, eyeY, camZ);
+      for (const record of moonRecords) record.material.uniforms.uTime.value = time;
+
+      // Speed lines swell in at the edges while boosting.
+      speedLinesMesh.visible = boostFactor > 0.02;
+      speedLinesMaterial.uniforms.uBoost.value = boostFactor;
+      speedLinesMaterial.uniforms.uTime.value = time;
+      speedLinesMaterial.uniforms.uAspect.value =
+        canvasEl.clientWidth / Math.max(canvasEl.clientHeight, 1);
+
+      for (const pool of pools) updatePool(pool);
     },
     { autoStart: false },
   );
@@ -686,21 +758,21 @@
   });
 </script>
 
-<T.PerspectiveCamera makeDefault position={[0, baseY, 30]} fov={baseFov} />
+<T.PerspectiveCamera makeDefault position={[0, 60, 0]} fov={68} near={0.1} far={1200} />
 
 <T.DirectionalLight
   color={lightColor}
   intensity={1.5}
-  position={[sunDir.x * 120, sunDir.y * 120, sunDir.z * 120]}
+  position={[sunDir.x * 10000, sunDir.y * 10000, sunDir.z * 10000]}
 />
-<T.HemisphereLight args={[surface.skyHorizon, surface.palette.low, 0.8]} />
+<T.HemisphereLight args={[surface.skyHorizon, biomes[0].low, 0.8]} />
 
 <T.Mesh bind:ref={terrainMesh} rotation.x={-Math.PI / 2} frustumCulled={false}>
   <T is={terrainGeometry} />
   <T is={terrainMaterial} />
 </T.Mesh>
 
-<T.Mesh frustumCulled={false}>
+<T.Mesh bind:ref={skyMesh} frustumCulled={false}>
   <T is={skyGeometry} />
   <T is={skyMaterial} />
 </T.Mesh>
@@ -712,3 +784,5 @@
 {#each pools as pool, i (i)}
   <T is={pool.mesh} />
 {/each}
+
+<T is={speedLinesMesh} />

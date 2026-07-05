@@ -22,6 +22,8 @@ void main() {
   float alpha = falloff * (0.5 + 0.5 * streamers) * 0.85 + inner * 0.35;
   vec3 color = mix(uColor, vec3(1.0), 0.3);
 
-  gl_FragColor = vec4(color * alpha, alpha);
+  // Straight alpha: works under AdditiveBlending (dark theme) and
+  // NormalBlending (light theme paper background) alike.
+  gl_FragColor = vec4(color, alpha);
   #include <colorspace_fragment>
 }

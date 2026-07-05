@@ -1,4 +1,5 @@
 #include ./chunks/simplex2d.glsl;
+#include ./chunks/biomes.glsl;
 
 uniform float uTime;
 uniform float uTerrainScale;
@@ -6,19 +7,16 @@ uniform float uHeightScale;
 uniform float uWaterLevel;
 uniform float uWaterKind;      // 0 none · 1 water · 2 lava · 3 ice
 uniform float uCloudMode;
-uniform float uBiomeVariation; // strength of lateral biome patching
 uniform vec2 uWindDir;         // per-planet wind — liquid surfaces travel along it
 uniform float uFlowSpeed;      // how fast the liquid surface pattern travels
 
-uniform vec3 uPalWater;
-uniform vec3 uPalLow;
-uniform vec3 uPalMid;
-uniform vec3 uPalHigh;
-uniform vec3 uPalPeak;
-uniform vec3 uPalCliff;
-uniform vec3 uAltLow;
-uniform vec3 uAltMid;
-uniform vec3 uAltHigh;
+// Per-biome elevation palettes, blended by the climate weights.
+uniform vec3 uBioLow[4];
+uniform vec3 uBioMid[4];
+uniform vec3 uBioHigh[4];
+uniform vec3 uBioPeak[4];
+uniform vec3 uWaterColor;
+uniform vec3 uCliffColor;
 
 uniform vec3 uLightDir;
 uniform vec3 uLightColor;
@@ -41,15 +39,13 @@ void main() {
   float nh = clamp(vHeight / (uHeightScale * 1.6) + 0.5, 0.0, 1.0);
   float slope = 1.0 - vNormal.y;
 
-  // Lateral biome field — low-frequency patches that swap in the alternate
-  // palette (Minecraft-style biome variety, independent of elevation).
-  // The 37.7 offset decorrelates it from the elevation noise.
-  float biome = fbm3o(vNoisePos * uTerrainScale * 0.35 + 37.7);
-  float biomeMix = smoothstep(-0.18, 0.18, biome) * uBiomeVariation;
-
-  vec3 low = mix(uPalLow, uAltLow, biomeMix);
-  vec3 mid = mix(uPalMid, uAltMid, biomeMix);
-  vec3 high = mix(uPalHigh, uAltHigh, biomeMix);
+  // Blend the elevation palettes of up to 4 biomes by the climate weights —
+  // Minecraft-style regions with soft borders, one set of bands per biome.
+  vec4 bw = biomeWeights(vNoisePos);
+  vec3 low = uBioLow[0] * bw.x + uBioLow[1] * bw.y + uBioLow[2] * bw.z + uBioLow[3] * bw.w;
+  vec3 mid = uBioMid[0] * bw.x + uBioMid[1] * bw.y + uBioMid[2] * bw.z + uBioMid[3] * bw.w;
+  vec3 high = uBioHigh[0] * bw.x + uBioHigh[1] * bw.y + uBioHigh[2] * bw.z + uBioHigh[3] * bw.w;
+  vec3 peak = uBioPeak[0] * bw.x + uBioPeak[1] * bw.y + uBioPeak[2] * bw.z + uBioPeak[3] * bw.w;
 
   // Height bands measured above the water line so beaches hug shorelines.
   float wl = max(uWaterLevel, 0.12);
@@ -58,11 +54,11 @@ void main() {
   vec3 color = low;
   color = mix(color, mid, smoothstep(0.09, 0.24, t));
   color = mix(color, high, smoothstep(0.44, 0.62, t));
-  color = mix(color, uPalPeak, smoothstep(0.76, 0.9, t));
+  color = mix(color, peak, smoothstep(0.76, 0.9, t));
 
   // Rocky cliffs on steep land (skipped for cloud tops).
   float rockW = smoothstep(0.42, 0.72, slope) * (1.0 - uCloudMode);
-  color = mix(color, uPalCliff, rockW * 0.85);
+  color = mix(color, uCliffColor, rockW * 0.85);
 
   // Flooded surfaces: water / lava / ice sheets. The shoreline is resolved
   // per-pixel from the interpolated raw height (not per-vertex), so it stays
@@ -79,11 +75,11 @@ void main() {
     vec2 crossDir = vec2(-uWindDir.y, uWindDir.x);
 
     float depthN = clamp((waterDepth()) / (uHeightScale * 0.45), 0.0, 1.0);
-    vec3 liquid = mix(uPalWater, uPalWater * 0.42, depthN);
+    vec3 liquid = mix(uWaterColor, uWaterColor * 0.42, depthN);
 
     if (uWaterKind == 1.0) {
       // Shallows show the sand through the water.
-      liquid = mix(mix(uPalLow, uPalWater, 0.55), liquid, smoothstep(0.0, 0.3, depthN));
+      liquid = mix(mix(low, uWaterColor, 0.55), liquid, smoothstep(0.0, 0.3, depthN));
 
       // Waves: domain-warped so crests reshape while slowly drifting
       // downwind — an evolving surface, not a sliding decal.
@@ -110,7 +106,7 @@ void main() {
     } else if (uWaterKind == 2.0) {
       // Lava: bright, slowly creeping downwind, unlit (handled below).
       float churn = fbm3o(vNoisePos * 0.35 - flow);
-      liquid = uPalWater * (1.05 + 0.35 * churn);
+      liquid = uWaterColor * (1.05 + 0.35 * churn);
       liquid += vec3(0.9, 0.35, 0.05) * smoothstep(0.3, 0.75, churn) * 0.6;
       // Darker cooled plates drifting on the surface.
       float crust = smoothstep(0.45, 0.7, fbm3o(vNoisePos * 0.8 - flow * 0.4 + 11.3));
@@ -145,7 +141,7 @@ void main() {
   lit = mix(lit, color, isLava);
   if (uWaterKind == 2.0) {
     float lowGlow = pow(1.0 - t, 2.0) * shore;
-    lit += uPalWater * lowGlow * 0.22;
+    lit += uWaterColor * lowGlow * 0.22;
   }
 
   // Distance fog hides the far-edge morph of the infinite scroll.

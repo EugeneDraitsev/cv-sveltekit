@@ -1,10 +1,12 @@
 #include ./chunks/simplex2d.glsl;
+#include ./chunks/biomes.glsl;
 
 uniform float uTime;
-uniform vec2 uScroll;      // accumulated (strafe, forward) offsets in noise space
+uniform vec2 uScroll;      // world-anchored snap of the camera position
 uniform vec2 uSeedOffset;  // per-planet offset so no two worlds share terrain
 uniform float uTerrainScale;
 uniform float uHeightScale;
+uniform vec4 uBioHeightMul; // per-biome relief multipliers (packed)
 uniform float uWaterLevel; // normalized 0..1; negative disables flooding
 uniform float uWaterKind;  // 0 none · 1 water · 2 lava · 3 ice
 uniform float uCloudMode;  // gas giants: rolling cloud tops
@@ -19,19 +21,19 @@ float waterWorldHeight() {
   return (uWaterLevel - 0.5) * 1.6 * uHeightScale;
 }
 
-float rawHeight(vec2 p) {
+float rawHeight(vec2 p, float mul) {
   float h = fbm5(p * uTerrainScale);
   // Cloud mode: flatten the spectrum into soft, billowy swells.
   h = mix(h, h * 0.5 + 0.3 * snoise2(p * uTerrainScale * 0.5), uCloudMode);
-  return h * uHeightScale;
+  return h * uHeightScale * mul;
 }
 
 // Final displaced height: flooded areas flatten to the water line with
 // traveling waves. Waves move ALONG THE WIND, independent of the terrain
 // scroll — liquids get their own motion instead of being painted onto the
 // streaming landscape.
-float surfaceHeight(vec2 p) {
-  float h = rawHeight(p);
+float surfaceHeight(vec2 p, float mul) {
+  float h = rawHeight(p, mul);
   if (uWaterLevel >= 0.0) {
     float w = waterWorldHeight();
     if (h < w) {
@@ -53,15 +55,19 @@ float surfaceHeight(vec2 p) {
 }
 
 void main() {
-  // Local plane XY becomes world XZ after the mesh's -PI/2 X rotation.
-  // uScroll arrives SNAPPED to whole grid cells (the CPU slides the mesh by
-  // the fractional remainder), so every vertex re-samples the exact same
-  // noise positions frame after frame — features move rigidly instead of
-  // morphing through the grid.
+  // Local plane XY becomes world XZ after the mesh's -PI/2 X rotation. The
+  // mesh is a floating grid parked on whole grid cells under the camera, and
+  // uScroll carries that same snap — so every vertex samples a WORLD-anchored
+  // noise position: terrain is a fixed field the player moves through.
   vec2 scrolled = position.xy + uScroll + uSeedOffset;
 
-  float hRaw = rawHeight(scrolled);
-  float h = surfaceHeight(scrolled);
+  // Per-biome relief: one climate lookup per vertex, the multiplier is
+  // reused for the normal taps (noise.ts mirrors this for flora placement).
+  vec4 bw = biomeWeights(scrolled);
+  float mul = dot(bw, uBioHeightMul);
+
+  float hRaw = rawHeight(scrolled, mul);
+  float h = surfaceHeight(scrolled, mul);
 
   vHeight = hRaw;
   vNoisePos = scrolled;
@@ -72,10 +78,10 @@ void main() {
   // Normals via finite differences of the *flattened* height, so water reads
   // as a level plane and shorelines shade correctly.
   float eps = 1.1;
-  float hL = surfaceHeight(scrolled + vec2(-eps, 0.0));
-  float hR = surfaceHeight(scrolled + vec2(eps, 0.0));
-  float hD = surfaceHeight(scrolled + vec2(0.0, -eps));
-  float hU = surfaceHeight(scrolled + vec2(0.0, eps));
+  float hL = surfaceHeight(scrolled + vec2(-eps, 0.0), mul);
+  float hR = surfaceHeight(scrolled + vec2(eps, 0.0), mul);
+  float hD = surfaceHeight(scrolled + vec2(0.0, -eps), mul);
+  float hU = surfaceHeight(scrolled + vec2(0.0, eps), mul);
 
   vec3 localNormal = normalize(vec3((hL - hR) / (2.0 * eps), (hD - hU) / (2.0 * eps), 1.0));
   vNormal = normalize(normalMatrix * localNormal);

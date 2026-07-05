@@ -82,6 +82,27 @@ export interface RingData {
   opacity: number;
 }
 
+/**
+ * One biome: a full elevation palette plus flora and a relief multiplier.
+ * `climate` is the biome's home in the 2D climate space (temperature ×
+ * moisture noise); terrain blends biomes by their distance to the local
+ * climate — Minecraft-style regions with soft borders.
+ */
+export interface BiomeDef {
+  name: string;
+  low: number;
+  mid: number;
+  high: number;
+  peak: number;
+  /** Relief multiplier — lets one biome be flats and its neighbor mountains. */
+  heightMul: number;
+  flora: FloraKind;
+  floraColors: [number, number];
+  /** 0..1 spawn probability inside this biome. */
+  floraDensity: number;
+  climate: [number, number];
+}
+
 /** Everything the planet flyover scene needs to render this world's surface. */
 export interface SurfaceParams {
   /** Vertical amplitude of the terrain displacement. */
@@ -93,33 +114,22 @@ export interface SurfaceParams {
   waterKind: 'water' | 'lava' | 'ice' | 'none';
   /** Gas giants: render soft rolling cloud tops instead of rock. */
   cloudMode: boolean;
-  /** How strongly the lateral biome noise swaps palettes (Minecraft-style patches). */
-  biomeVariation: number;
-  /** Height-band palette, low → peak, plus flooded + cliff colors. */
-  palette: {
-    water: number;
-    low: number;
-    mid: number;
-    high: number;
-    peak: number;
-    cliff: number;
-  };
-  /** Secondary biome palette blended in via the lateral biome noise. */
-  altPalette: {
-    low: number;
-    mid: number;
-    high: number;
-  };
+  waterColor: number;
+  cliffColor: number;
+  /** 2–4 procedural biomes drawn from the archetype's logical pool. */
+  biomes: BiomeDef[];
+  /** Climate-noise frequency (fraction of terrainScale → biome patch size). */
+  climateScale: number;
+  /** Decorrelated offsets for the temperature / moisture noise channels. */
+  climOffTX: number;
+  climOffTY: number;
+  climOffMX: number;
+  climOffMY: number;
   skyHorizon: number;
   skyZenith: number;
   fogColor: number;
   /** 0..1 — how visible background stars are from the surface (thin atmosphere → 1). */
   skyStars: number;
-  flora: FloraKind;
-  /** 0..1 relative instance density. */
-  floraDensity: number;
-  /** Primary / secondary foliage tints. */
-  floraColors: [number, number];
   /** Noise-space offset so two same-archetype planets never share terrain. */
   offsetX: number;
   offsetY: number;
@@ -259,202 +269,587 @@ const ARCHETYPE_LABELS: Record<PlanetArchetype, string> = {
 
 // ─── Surface builders ──────────────────────────────────────────────────────
 
+type BiomeSeed = Omit<BiomeDef, 'climate'>;
+
+/** Small per-planet tint so two planets never share exact biome colors. */
+function tint(rng: Rng, hex: number, amount = 0.1): number {
+  const t = range(rng, -amount, amount);
+  return t >= 0 ? lightenHex(hex, t) : darkenHex(hex, -t);
+}
+
+function biome(
+  rng: Rng,
+  name: string,
+  low: number,
+  mid: number,
+  high: number,
+  peak: number,
+  heightMul: [number, number],
+  flora: FloraKind,
+  floraColors: [number, number],
+  floraDensity: [number, number],
+): BiomeSeed {
+  return {
+    name,
+    low: tint(rng, low),
+    mid: tint(rng, mid),
+    high: tint(rng, high),
+    peak: tint(rng, peak, 0.05),
+    heightMul: range(rng, heightMul[0], heightMul[1]),
+    flora,
+    floraColors: [tint(rng, floraColors[0]), tint(rng, floraColors[1])],
+    floraDensity: range(rng, floraDensity[0], floraDensity[1]),
+  };
+}
+
+// Logical biome pools per archetype. Each planet draws 2–4 DISTINCT entries,
+// then jitters colors/relief/density — endless variety that stays plausible:
+// a terran world mixes meadows with forests and highlands, a gas giant mixes
+// cloud decks, never a snowfield next to a lava flat.
+const BIOME_POOLS: Record<PlanetArchetype, ((rng: Rng) => BiomeSeed)[]> = {
+  terran: [
+    (r) =>
+      biome(
+        r,
+        'Meadow',
+        0xd8c48c,
+        0x6fae52,
+        0x3f7a42,
+        0xf4f7fa,
+        [0.8, 0.95],
+        'trees',
+        [0x4a8a3e, 0x63a24e],
+        [0.35, 0.55],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Forest',
+        0xc4b184,
+        0x3f7f3a,
+        0x2a5c30,
+        0xe8f0ea,
+        [0.95, 1.15],
+        'trees',
+        [0x24501f, 0x2f6b3c],
+        [0.8, 1],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Savanna',
+        0xe0c98c,
+        0xb0a24e,
+        0x8a7a3c,
+        0xd8cfa8,
+        [0.6, 0.78],
+        'trees',
+        [0x6e7a34, 0x8a8a42],
+        [0.15, 0.3],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Highlands',
+        0x8a9478,
+        0x74806a,
+        0x8c887c,
+        0xe8ecef,
+        [1.25, 1.5],
+        'rocks',
+        [0x6a6458, 0x7d766a],
+        [0.3, 0.45],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Tundra',
+        0xaab49a,
+        0x9aa88e,
+        0xc8d2c8,
+        0xf4f7fa,
+        [0.7, 0.85],
+        'shards',
+        [0xd8e4ea, 0xb8ccd8],
+        [0.08, 0.18],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Wetlands',
+        0x6a8a4e,
+        0x3d7a44,
+        0x2f6b3c,
+        0x9ab88a,
+        [0.45, 0.6],
+        'palms',
+        [0x2f7a3c, 0x4a9a50],
+        [0.4, 0.6],
+      ),
+  ],
+  ocean: [
+    (r) =>
+      biome(
+        r,
+        'Atolls',
+        0xe6d7a3,
+        0x76b868,
+        0x3d8a4a,
+        0xf0f4ea,
+        [0.62, 0.78],
+        'palms',
+        [0x3f8a4f, 0x63a24e],
+        [0.5, 0.7],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Tropics',
+        0xd8c48c,
+        0x3f9a52,
+        0x2e7a40,
+        0xe8f0f2,
+        [0.95, 1.15],
+        'palms',
+        [0x2e7a40, 0x4a9a50],
+        [0.75, 0.95],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Skerries',
+        0x9a958a,
+        0x7a7568,
+        0x8c887c,
+        0xeef2f4,
+        [1.2, 1.45],
+        'rocks',
+        [0x6a6458, 0x8a8478],
+        [0.25, 0.4],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Kelp shallows',
+        0xb8c98c,
+        0x5a9a5e,
+        0x3f7a4a,
+        0xd8e8da,
+        [0.5, 0.65],
+        'none',
+        [0x3f8a4f, 0x63a24e],
+        [0, 0],
+      ),
+  ],
+  desert: [
+    (r) =>
+      biome(
+        r,
+        'Golden dunes',
+        0xe8c98c,
+        0xdcb26e,
+        0xc49a54,
+        0xf0e2b8,
+        [0.68, 0.85],
+        'cacti',
+        [0x4a7a3d, 0x6b8a4a],
+        [0.2, 0.35],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Red mesa',
+        0xc46a3f,
+        0x9c4c2c,
+        0x7d3a22,
+        0xd8956a,
+        [1.3, 1.55],
+        'rocks',
+        [0x6e3a24, 0x8a4a2e],
+        [0.28, 0.42],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Salt flats',
+        0xece4d4,
+        0xe0d8c4,
+        0xcfc7b2,
+        0xf8f4ea,
+        [0.28, 0.42],
+        'none',
+        [0xd8cfc0, 0xe8e0d0],
+        [0, 0],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Cracked clay',
+        0xb8794a,
+        0x9a6238,
+        0x7d4e2e,
+        0xc99a6e,
+        [0.55, 0.7],
+        'rocks',
+        [0x7d5638, 0x9a6e48],
+        [0.18, 0.3],
+      ),
+  ],
+  ice: [
+    (r) =>
+      biome(
+        r,
+        'Snowfields',
+        0xdfe9f2,
+        0xd4e2ee,
+        0xe8f0f8,
+        0xffffff,
+        [0.78, 0.95],
+        'shards',
+        [0xcfe6f5, 0x9fc4dd],
+        [0.18, 0.32],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Glaciers',
+        0xb0cadb,
+        0x9fc4dd,
+        0xcfe4f2,
+        0xf4faff,
+        [1.25, 1.5],
+        'shards',
+        [0xbcdcf0, 0x8ab4d4],
+        [0.3, 0.45],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Frozen sea',
+        0xc8dae8,
+        0xbcd4e4,
+        0xd8e8f2,
+        0xf0f6fa,
+        [0.35, 0.5],
+        'none',
+        [0xcfe6f5, 0x9fc4dd],
+        [0, 0.06],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Firn drifts',
+        0xc4ccd4,
+        0xb4bec8,
+        0xd0d8e0,
+        0xf4f7fa,
+        [0.62, 0.8],
+        'rocks',
+        [0x8a929a, 0xa4aeb8],
+        [0.14, 0.24],
+      ),
+  ],
+  lava: [
+    (r) =>
+      biome(
+        r,
+        'Ashlands',
+        0x3a2e2a,
+        0x2e2422,
+        0x3f3833,
+        0x5a504a,
+        [0.78, 0.95],
+        'rocks',
+        [0x241d20, 0x33282e],
+        [0.25, 0.38],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Ember fields',
+        0x452a1e,
+        0x33201a,
+        0x2a1812,
+        0x4a3a34,
+        [0.5, 0.65],
+        'rocks',
+        [0x2b1a14, 0x3a241c],
+        [0.15, 0.28],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Obsidian hills',
+        0x241d2e,
+        0x1a1524,
+        0x2e2440,
+        0x4a3f5c,
+        [1.3, 1.55],
+        'shards',
+        [0x2e2440, 0x453a5c],
+        [0.28, 0.42],
+      ),
+  ],
+  barren: [
+    (r) =>
+      biome(
+        r,
+        'Regolith plains',
+        0x6f655c,
+        0x857a6e,
+        0x9a9083,
+        0xb8b0a4,
+        [0.82, 1],
+        'rocks',
+        [0x5c544c, 0x6e655c],
+        [0.25, 0.4],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Cratered lowlands',
+        0x5c544c,
+        0x4e463e,
+        0x6e655c,
+        0x8a8074,
+        [0.6, 0.75],
+        'rocks',
+        [0x453e36, 0x554c42],
+        [0.32, 0.48],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Oxide hills',
+        0x8a5638,
+        0x7a4a30,
+        0x9a6844,
+        0xb88a64,
+        [1.1, 1.3],
+        'rocks',
+        [0x6e4228, 0x84543a],
+        [0.22, 0.35],
+      ),
+    (r) =>
+      biome(
+        r,
+        'Pale uplands',
+        0x8d8375,
+        0x9a9083,
+        0xb0a898,
+        0xd0c8ba,
+        [1.3, 1.55],
+        'rocks',
+        [0x7d766a, 0x948c7e],
+        [0.18, 0.3],
+      ),
+  ],
+  gas: [], // cloud decks are generated procedurally from the planet's hue
+};
+
+/** Gas giants: banded cloud decks hue-shifted around the planet's base hue. */
+function gasDeck(rng: Rng, hue: number, shift: number): BiomeSeed {
+  const h = hue + shift;
+  return {
+    name: 'Cloud deck',
+    low: hslToHex(h + 18, 0.48, 0.42),
+    mid: hslToHex(h, 0.42, 0.6),
+    high: hslToHex(h + 36, 0.36, 0.78),
+    peak: hslToHex(h + 36, 0.3, 0.9),
+    heightMul: range(rng, 0.5, 1.1),
+    flora: 'none',
+    floraColors: [hslToHex(h, 0.42, 0.6), hslToHex(h + 36, 0.36, 0.78)],
+    floraDensity: 0,
+  };
+}
+
+/** Spread N climate centers apart so every picked biome actually shows up. */
+const CLIMATE_LAYOUTS: [number, number][][] = [
+  [],
+  [[0, 0]],
+  [
+    [-0.42, -0.28],
+    [0.42, 0.3],
+  ],
+  [
+    [-0.48, -0.34],
+    [0.5, -0.18],
+    [0, 0.5],
+  ],
+  [
+    [-0.5, -0.42],
+    [0.48, -0.34],
+    [-0.42, 0.44],
+    [0.5, 0.4],
+  ],
+];
+
+function pickBiomes(rng: Rng, archetype: PlanetArchetype): BiomeDef[] {
+  const count = pickWeighted(rng, [
+    [2, 25],
+    [3, 45],
+    [4, 30],
+  ] as const);
+
+  let seeds: BiomeSeed[];
+  if (archetype === 'gas') {
+    const hue = range(rng, 0, 360);
+    const shifts = [0, 28, -34, 58];
+    seeds = shifts.slice(0, count).map((shift) => gasDeck(rng, hue, shift));
+  } else {
+    const pool = BIOME_POOLS[archetype];
+    const order = pool.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    seeds = order.slice(0, Math.min(count, pool.length)).map((i) => pool[i](rng));
+  }
+
+  const layout = CLIMATE_LAYOUTS[seeds.length];
+  return seeds.map((seed, i) => ({
+    ...seed,
+    climate: [layout[i][0] + range(rng, -0.1, 0.1), layout[i][1] + range(rng, -0.1, 0.1)] as [
+      number,
+      number,
+    ],
+  }));
+}
+
 function buildSurface(archetype: PlanetArchetype, rng: Rng): SurfaceParams {
-  const offsetX = range(rng, -500, 500);
-  const offsetY = range(rng, -500, 500);
-  const common = { offsetX, offsetY, cloudMode: false, biomeVariation: 0.55 };
+  const biomes = pickBiomes(rng, archetype);
+
+  const common = {
+    biomes,
+    cloudMode: false,
+    offsetX: range(rng, -500, 500),
+    offsetY: range(rng, -500, 500),
+    climOffTX: range(rng, -500, 500),
+    climOffTY: range(rng, -500, 500),
+    climOffMX: range(rng, -500, 500),
+    climOffMY: range(rng, -500, 500),
+  };
 
   switch (archetype) {
     case 'terran': {
-      const grass = pick(rng, [0x63a24e, 0x6fae52, 0x559446]);
+      const terrainScale = range(rng, 0.02, 0.028);
       return {
         ...common,
         heightScale: range(rng, 7, 10),
-        terrainScale: range(rng, 0.02, 0.028),
+        terrainScale,
+        climateScale: terrainScale * range(rng, 0.24, 0.34),
         waterLevel: range(rng, 0.34, 0.4),
         waterKind: 'water',
-        palette: {
-          water: 0x1d5e8c,
-          low: 0xd8c48c,
-          mid: grass,
-          high: 0x2f6b3c,
-          peak: 0xf4f7fa,
-          cliff: 0x6f6658,
-        },
-        altPalette: { low: 0xc4b184, mid: 0x8fae52, high: 0x4a7a44 },
+        waterColor: 0x1d5e8c,
+        cliffColor: 0x6f6658,
         skyHorizon: 0xa9d4f5,
         skyZenith: 0x3372c4,
         fogColor: 0xa9cfe8,
         skyStars: 0.08,
-        flora: 'trees',
-        floraDensity: range(rng, 0.65, 0.9),
-        floraColors: [darkenHex(grass, 0.25), 0x2f6b3c],
       };
     }
-    case 'ocean':
+    case 'ocean': {
+      const terrainScale = range(rng, 0.018, 0.024);
       return {
         ...common,
         heightScale: range(rng, 6, 8),
-        terrainScale: range(rng, 0.018, 0.024),
+        terrainScale,
+        climateScale: terrainScale * range(rng, 0.24, 0.34),
         waterLevel: range(rng, 0.52, 0.6),
         waterKind: 'water',
-        palette: {
-          water: 0x1a5480,
-          low: 0xe6d7a3,
-          mid: 0x58a460,
-          high: 0x3d7a4a,
-          peak: 0xe8f0f2,
-          cliff: 0x77705e,
-        },
-        altPalette: { low: 0xd8c48c, mid: 0x6cb06e, high: 0x2f6b4c },
+        waterColor: 0x1a5480,
+        cliffColor: 0x77705e,
         skyHorizon: 0xbfe0f7,
         skyZenith: 0x2f7fc4,
         fogColor: 0xb4dcf4,
         skyStars: 0.05,
-        flora: 'palms',
-        floraDensity: range(rng, 0.4, 0.6),
-        floraColors: [0x3f8a4f, 0x63a24e],
-      };
-    case 'desert': {
-      const martian = chance(rng, 0.4);
-      const sand = martian ? 0xc46a3f : 0xe0ba7e;
-      const dune = martian ? 0x9c4c2c : 0xc98f52;
-      return {
-        ...common,
-        biomeVariation: 0.4,
-        heightScale: range(rng, 5, 8),
-        terrainScale: range(rng, 0.016, 0.024),
-        waterLevel: -1,
-        waterKind: 'none',
-        palette: {
-          water: sand,
-          low: sand,
-          mid: dune,
-          high: martian ? 0x7d3a22 : 0xa06b3d,
-          peak: martian ? 0xd8956a : 0xeadcb4,
-          cliff: martian ? 0x5f2d1c : 0x7d4e2e,
-        },
-        altPalette: {
-          low: lightenHex(sand, 0.18),
-          mid: darkenHex(dune, 0.12),
-          high: martian ? 0x8a4a2e : 0x8a6a48,
-        },
-        skyHorizon: martian ? 0xe8a476 : 0xf0cf96,
-        skyZenith: martian ? 0x8a5038 : 0x9db4cc,
-        fogColor: martian ? 0xd39670 : 0xdec090,
-        skyStars: 0.18,
-        flora: 'cacti',
-        floraDensity: range(rng, 0.25, 0.4),
-        floraColors: [0x4a7a3d, 0x6b8a4a],
       };
     }
-    case 'ice':
+    case 'desert': {
+      const terrainScale = range(rng, 0.016, 0.024);
+      return {
+        ...common,
+        heightScale: range(rng, 5.5, 8),
+        terrainScale,
+        climateScale: terrainScale * range(rng, 0.24, 0.34),
+        waterLevel: -1,
+        waterKind: 'none',
+        waterColor: 0xe0ba7e,
+        cliffColor: 0x7d4e2e,
+        skyHorizon: 0xf0cf96,
+        skyZenith: 0x9db4cc,
+        fogColor: 0xdec090,
+        skyStars: 0.18,
+      };
+    }
+    case 'ice': {
+      const terrainScale = range(rng, 0.02, 0.028);
       return {
         ...common,
         heightScale: range(rng, 7, 10),
-        terrainScale: range(rng, 0.02, 0.028),
-        waterLevel: range(rng, 0.38, 0.44),
+        terrainScale,
+        climateScale: terrainScale * range(rng, 0.24, 0.34),
+        waterLevel: range(rng, 0.38, 0.46),
         waterKind: 'ice',
-        palette: {
-          water: 0xbcd8e8,
-          low: 0xdfe9f2,
-          mid: 0xc9dbe8,
-          high: 0xedf4fa,
-          peak: 0xffffff,
-          cliff: 0x8fa8ba,
-        },
-        altPalette: { low: 0xcfdfe8, mid: 0xb0cadb, high: 0xdcebf4 },
+        waterColor: 0xbcd8e8,
+        cliffColor: 0x8fa8ba,
         skyHorizon: 0xcfe0ee,
         skyZenith: 0x39597a,
         fogColor: 0xc4d9e8,
         skyStars: 0.4,
-        flora: 'shards',
-        floraDensity: range(rng, 0.22, 0.38),
-        floraColors: [0xcfe6f5, 0x9fc4dd],
       };
-    case 'lava':
+    }
+    case 'lava': {
+      const terrainScale = range(rng, 0.024, 0.032);
       return {
         ...common,
-        biomeVariation: 0.35,
         heightScale: range(rng, 8, 11),
-        terrainScale: range(rng, 0.024, 0.032),
+        terrainScale,
+        climateScale: terrainScale * range(rng, 0.24, 0.34),
         waterLevel: range(rng, 0.32, 0.38),
         waterKind: 'lava',
-        palette: {
-          water: 0xff5a1f,
-          low: 0x3a2420,
-          mid: 0x2c1c18,
-          high: 0x241512,
-          peak: 0x4a3a34,
-          cliff: 0x1a100e,
-        },
-        altPalette: { low: 0x452a1e, mid: 0x33201a, high: 0x2a1812 },
+        waterColor: 0xff5a1f,
+        cliffColor: 0x1a100e,
         skyHorizon: 0x542218,
         skyZenith: 0x160a0c,
         fogColor: 0x331412,
         skyStars: 0.25,
-        flora: 'rocks',
-        floraDensity: range(rng, 0.18, 0.3),
-        floraColors: [0x1f1721, 0x2b1f2b],
       };
-    case 'barren':
+    }
+    case 'barren': {
+      const terrainScale = range(rng, 0.024, 0.034);
       return {
         ...common,
-        biomeVariation: 0.3,
         heightScale: range(rng, 8, 12),
-        terrainScale: range(rng, 0.024, 0.034),
+        terrainScale,
+        climateScale: terrainScale * range(rng, 0.24, 0.34),
         waterLevel: -1,
         waterKind: 'none',
-        palette: {
-          water: 0x6f655c,
-          low: 0x6f655c,
-          mid: 0x857a6e,
-          high: 0x9a9083,
-          peak: 0xb8b0a4,
-          cliff: 0x4a423c,
-        },
-        altPalette: { low: 0x60564e, mid: 0x776b60, high: 0x8d8375 },
+        waterColor: 0x6f655c,
+        cliffColor: 0x4a423c,
         skyHorizon: 0x585049,
         skyZenith: 0x101318,
         fogColor: 0x4c453f,
         skyStars: 0.85,
-        flora: 'rocks',
-        floraDensity: range(rng, 0.25, 0.4),
-        floraColors: [0x5c544c, 0x6e655c],
       };
+    }
     case 'gas': {
-      const hue = range(rng, 0, 360);
-      const base = hslToHex(hue, 0.42, 0.6);
-      const deep = hslToHex(hue + 18, 0.48, 0.42);
-      const light = hslToHex(hue + 36, 0.36, 0.78);
+      const terrainScale = range(rng, 0.01, 0.015);
+      const deck = biomes[0];
       return {
         ...common,
         cloudMode: true,
-        biomeVariation: 0.5,
         heightScale: range(rng, 3.5, 5.5),
-        terrainScale: range(rng, 0.01, 0.015),
+        terrainScale,
+        climateScale: terrainScale * range(rng, 0.28, 0.4),
         waterLevel: -1,
         waterKind: 'none',
-        palette: {
-          water: deep,
-          low: deep,
-          mid: base,
-          high: light,
-          peak: lightenHex(light, 0.5),
-          cliff: darkenHex(deep, 0.2),
-        },
-        altPalette: {
-          low: darkenHex(deep, 0.15),
-          mid: hslToHex(hue - 20, 0.4, 0.55),
-          high: lightenHex(base, 0.3),
-        },
-        skyHorizon: base,
-        skyZenith: darkenHex(deep, 0.45),
-        fogColor: mixHex(base, deep, 0.5),
+        waterColor: deck.low,
+        cliffColor: darkenHex(deck.low, 0.2),
+        skyHorizon: deck.mid,
+        skyZenith: darkenHex(deck.low, 0.45),
+        fogColor: mixHex(deck.mid, deck.low, 0.5),
         skyStars: 0,
-        flora: 'none',
-        floraDensity: 0,
-        floraColors: [base, light],
       };
     }
   }
@@ -511,27 +906,27 @@ function generatePlanet(
   const isGas = archetype === 'gas';
   const radius = isGas ? range(rng, 1.1, 1.7) : range(rng, 0.42, 0.88);
 
-  // System-view surface colors: reuse the surface palette so the planet you
-  // orbit is recognizably the planet you land on.
-  const p = surface.palette;
-  let colorA = p.mid;
-  let colorB = p.low;
-  let colorC = p.high;
+  // System-view surface colors: reuse the dominant biome's palette so the
+  // planet you orbit is recognizably the planet you land on.
+  const b0 = surface.biomes[0];
+  let colorA = b0.mid;
+  let colorB = b0.low;
+  let colorC = b0.high;
   if (archetype === 'terran' || archetype === 'ocean') {
-    colorA = p.water; // oceans dominate from orbit
-    colorB = p.mid;
-    colorC = p.low;
+    colorA = surface.waterColor; // oceans dominate from orbit
+    colorB = b0.mid;
+    colorC = b0.low;
   } else if (archetype === 'ice') {
-    colorA = p.low;
-    colorB = p.water;
-    colorC = p.peak;
+    colorA = b0.low;
+    colorB = surface.waterColor;
+    colorC = b0.peak;
   } else if (archetype === 'lava') {
-    colorA = p.low;
+    colorA = b0.low;
     colorB = 0xff5a1f;
-    colorC = p.peak;
+    colorC = b0.peak;
   }
 
-  const atmosphereColor = isGas ? lightenHex(p.mid, 0.35) : ATMOSPHERES[archetype];
+  const atmosphereColor = isGas ? lightenHex(b0.mid, 0.35) : ATMOSPHERES[archetype];
 
   const moonCount = isGas
     ? rangeInt(rng, 1, 3)
@@ -558,7 +953,7 @@ function generatePlanet(
     ? {
         innerRadius: radius * range(rng, 1.35, 1.55),
         outerRadius: radius * range(rng, 2.0, 2.6),
-        color: lightenHex(p.high, 0.3),
+        color: lightenHex(b0.high, 0.3),
         opacity: range(rng, 0.35, 0.6),
       }
     : null;

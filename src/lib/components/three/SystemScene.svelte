@@ -362,6 +362,10 @@
     starfieldMaterial.uniforms.uAlpha.value = isDark ? 0.85 : 0.34;
     starfieldMaterial.blending = isDark ? AdditiveBlending : NormalBlending;
     starfieldMaterial.needsUpdate = true;
+
+    // Additive corona glow vanishes on the light theme's paper background —
+    // fall back to normal alpha blending there (straight-alpha shader).
+    coronaMaterial.blending = isDark ? AdditiveBlending : NormalBlending;
   });
 
   function blackOut() {
@@ -833,7 +837,7 @@
       moonCount === 0 ? 'no moons' : moonCount === 1 ? '1 moon' : `${moonCount} moons`;
     showHud({
       title: planet.name,
-      subtitle: `${planet.archetypeLabel} · ${moonsLabel}`,
+      subtitle: `${planet.archetypeLabel} · ${planet.surface.biomes.length} biomes · ${moonsLabel}`,
       hint: 'Land',
       onDark: themeStore.theme === 'dark',
       onActivate: () => onSelectPlanet?.(index),

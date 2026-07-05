@@ -473,8 +473,13 @@
       </button>
       <span class="hero-journey-chip">
         {currentPlanet.name}
-        <span class="hero-journey-dim">· {currentPlanet.archetypeLabel}</span>
+        <span class="hero-journey-dim">
+          · {currentPlanet.archetypeLabel} · {currentPlanet.surface.biomes.length} biomes
+        </span>
       </span>
+    </div>
+    <div class="hero-flight-hint" aria-hidden="true">
+      WASD — fly&ensp;·&ensp;Space — up&ensp;·&ensp;Shift — boost&ensp;·&ensp;drag — look
     </div>
   {/if}
 
@@ -512,14 +517,16 @@
     max-width: calc(100% - 2rem);
   }
 
+  /* Theme-aware chrome: follows the site palette on both themes, matching
+     the pre-journey look of main. */
   .hero-journey-btn {
     pointer-events: auto;
     cursor: pointer;
     padding: 0.4rem 0.9rem;
     border-radius: 0.5rem;
-    border: 1px solid rgb(223 226 238 / 0.28);
-    background: rgb(12 14 22 / 0.66);
-    color: #dfe2ee;
+    border: 1px solid color-mix(in srgb, var(--color-identifier) 30%, transparent);
+    background: color-mix(in srgb, var(--color-base-100) 70%, transparent);
+    color: var(--color-identifier);
     font-size: 0.85rem;
     white-space: nowrap;
     backdrop-filter: blur(8px);
@@ -531,8 +538,8 @@
   }
 
   .hero-journey-btn:hover:not(:disabled) {
-    background: rgb(30 34 52 / 0.75);
-    box-shadow: 0 0 18px rgb(255 217 160 / 0.22);
+    background: color-mix(in srgb, var(--color-identifier) 12%, var(--color-base-100) 70%);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--color-primary) 25%, transparent);
     transform: translateY(-1px);
   }
 
@@ -544,9 +551,9 @@
   .hero-journey-chip {
     padding: 0.4rem 0.9rem;
     border-radius: 0.5rem;
-    border: 1px solid rgb(255 217 160 / 0.3);
-    background: rgb(12 14 22 / 0.66);
-    color: #ffd9a0;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+    background: color-mix(in srgb, var(--color-base-100) 70%, transparent);
+    color: var(--color-primary);
     font-size: 0.85rem;
     letter-spacing: 0.05em;
     white-space: nowrap;
@@ -556,8 +563,37 @@
   }
 
   .hero-journey-dim {
-    color: rgb(223 226 238 / 0.62);
+    color: color-mix(in srgb, var(--color-identifier) 65%, transparent);
     letter-spacing: 0.02em;
+  }
+
+  .hero-flight-hint {
+    position: absolute;
+    bottom: 6.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--color-identifier) 20%, transparent);
+    background: color-mix(in srgb, var(--color-base-100) 60%, transparent);
+    color: color-mix(in srgb, var(--color-identifier) 80%, transparent);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    pointer-events: none;
+    backdrop-filter: blur(6px);
+    animation: flight-hint-fade 9s ease forwards;
+  }
+
+  @keyframes flight-hint-fade {
+    0%,
+    75% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
   }
 
   .warp-overlay {

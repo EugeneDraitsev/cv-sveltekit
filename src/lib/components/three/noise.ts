@@ -104,3 +104,37 @@ export function fbm3o(x: number, y: number): number {
   }
   return value;
 }
+
+export interface ClimateParams {
+  climateScale: number;
+  climOffTX: number;
+  climOffTY: number;
+  climOffMX: number;
+  climOffMY: number;
+  /** Biome climate centers, up to 4. */
+  centers: [number, number][];
+}
+
+/**
+ * Biome weights at noise-space point (x, y) — mirrors biomeWeights() in
+ * chunks/biomes.glsl exactly (same channels, gaussian falloff, normalization).
+ */
+export function biomeWeights(x: number, y: number, params: ClimateParams): number[] {
+  const t = fbm3o(
+    x * params.climateScale + params.climOffTX,
+    y * params.climateScale + params.climOffTY,
+  );
+  const m = fbm3o(
+    x * params.climateScale + params.climOffMX,
+    y * params.climateScale + params.climOffMY,
+  );
+  const weights = params.centers.map(([ct, cm]) => {
+    const d2 = (t - ct) * (t - ct) + (m - cm) * (m - cm);
+    return Math.exp(-d2 * 14);
+  });
+  const total = Math.max(
+    weights.reduce((sum, w) => sum + w, 0),
+    1e-5,
+  );
+  return weights.map((w) => w / total);
+}

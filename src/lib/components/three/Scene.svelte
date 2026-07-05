@@ -393,6 +393,12 @@
   warpGlowMesh.renderOrder = 30;
   warpGlowMesh.frustumCulled = false;
 
+  // Additive glow is invisible on the light theme's white galaxy — switch to
+  // normal alpha blending there (the corona shader outputs straight alpha).
+  $effect(() => {
+    warpGlowMaterial.blending = themeStore.theme === 'dark' ? AdditiveBlending : NormalBlending;
+  });
+
   onDestroy(() => {
     warpGlowMesh.geometry.dispose();
     warpGlowMaterial.dispose();
