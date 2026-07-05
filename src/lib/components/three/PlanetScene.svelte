@@ -350,7 +350,23 @@
     // controls, the look-drag follows the pointer until the button releases.
   }
 
+  // Track exactly ONE pointer for look-drag. On touch this is essential: a
+  // second finger, a browser-hijacked scroll gesture, or a lost pointerup all
+  // corrupt the drag state otherwise (the classic "camera sticks" bug).
+  let activePointerId: number | null = null;
+  // Touch look wants a bit more travel than a mouse for the same feel.
+  const lookSensitivity = isMobile ? 0.006 : 0.0042;
+
   function onPointerDown(e: PointerEvent) {
+    if (activePointerId !== null) return; // already dragging with another pointer
+    activePointerId = e.pointerId;
+    // Capture routes every move/up/cancel for this pointer back to the canvas,
+    // even if the finger slides off it — no more lost pointerups on mobile.
+    try {
+      canvasEl.setPointerCapture(e.pointerId);
+    } catch {
+      // pointer already gone; ignore
+    }
     pointerInside = true;
     engaged = true;
     dragging = true;
@@ -367,18 +383,20 @@
   }
 
   function onPointerMove(e: PointerEvent) {
-    if (!dragging) return;
+    if (!dragging || e.pointerId !== activePointerId) return;
     const dx = e.clientX - lastDragX;
     const dy = e.clientY - lastDragY;
     lastDragX = e.clientX;
     lastDragY = e.clientY;
     if (Math.abs(dx) + Math.abs(dy) > 3) pressMoved = true;
-    // Dragging grabs the world (orbit-style, no mouse capture): swipe down
-    // looks up. The pointer stays free for the rest of the page.
-    applyLook(-dx, -dy, 0.0042);
+    // Dragging grabs the world (orbit-style): swipe down looks up. The pointer
+    // stays free for the rest of the page.
+    applyLook(-dx, -dy, lookSensitivity);
   }
 
-  function onPointerUp() {
+  function endDrag(e: PointerEvent) {
+    if (e.pointerId !== activePointerId) return;
+    activePointerId = null;
     dragging = false;
   }
 
@@ -389,9 +407,20 @@
     canvasEl.addEventListener('pointermove', onPointerEnter);
     canvasEl.addEventListener('pointerleave', onPointerLeave);
     canvasEl.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
+    canvasEl.addEventListener('pointermove', onPointerMove);
+    canvasEl.addEventListener('pointerup', endDrag);
+    // pointercancel is the mobile killer: a scroll/pinch/zoom gesture the
+    // browser steals fires cancel (not up), so without this the drag sticks on.
+    canvasEl.addEventListener('pointercancel', endDrag);
+    canvasEl.addEventListener('lostpointercapture', endDrag);
     window.addEventListener('pointerdown', onWindowPointerDown);
+
+    // Own touch gestures inside the flyover: no native page-scroll / pinch to
+    // fight the look-drag. Restored when the scene unmounts (galaxy/system
+    // want their normal touch behavior back).
+    const prevTouchAction = canvasEl.style.touchAction;
+    canvasEl.style.touchAction = 'none';
+
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
@@ -399,9 +428,12 @@
       canvasEl.removeEventListener('pointermove', onPointerEnter);
       canvasEl.removeEventListener('pointerleave', onPointerLeave);
       canvasEl.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
+      canvasEl.removeEventListener('pointermove', onPointerMove);
+      canvasEl.removeEventListener('pointerup', endDrag);
+      canvasEl.removeEventListener('pointercancel', endDrag);
+      canvasEl.removeEventListener('lostpointercapture', endDrag);
       window.removeEventListener('pointerdown', onWindowPointerDown);
+      canvasEl.style.touchAction = prevTouchAction;
       keys.clear();
     };
   });
