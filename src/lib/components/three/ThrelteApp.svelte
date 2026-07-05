@@ -65,6 +65,10 @@
   let overlayDuration = $state(400);
 
   const reduceMotion = prefersReducedMotion();
+  // Flight keys (WASD / Space / Shift) only apply on desktop, so the controls
+  // hint is desktop-only; touch just drags to look.
+  const isDesktop =
+    typeof window !== 'undefined' && !window.matchMedia('(max-width: 768px)').matches;
   let seq = 0;
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -478,9 +482,14 @@
         </span>
       </span>
     </div>
-    <div class="hero-flight-hint" aria-hidden="true">
-      WASD — fly&ensp;·&ensp;Space — up&ensp;·&ensp;Shift — boost&ensp;·&ensp;drag — look
-    </div>
+    {#if isDesktop}
+      <div class="hero-flight-help">
+        <span class="hero-flight-badge" aria-hidden="true">?</span>
+        <span class="hero-flight-tip">
+          WASD — fly&ensp;·&ensp;Space — up&ensp;·&ensp;Shift — boost&ensp;·&ensp;drag — look
+        </span>
+      </div>
+    {/if}
   {/if}
 
   <!-- Warp flash: tinted by the destination, hides the scene swap. -->
@@ -567,32 +576,71 @@
     letter-spacing: 0.02em;
   }
 
-  .hero-flight-hint {
+  /* Controls hint tucked into a small badge (desktop only). Expands to the
+     full key list on hover so it never crowds the scene. */
+  .hero-flight-help {
     position: absolute;
-    bottom: 6.5rem;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: 1.4rem;
+    right: 1.4rem;
     z-index: 5;
-    padding: 0.35rem 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .hero-flight-badge {
+    display: grid;
+    place-items: center;
+    width: 1.7rem;
+    height: 1.7rem;
     border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--color-identifier) 20%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-identifier) 22%, transparent);
     background: color-mix(in srgb, var(--color-base-100) 60%, transparent);
+    color: color-mix(in srgb, var(--color-identifier) 70%, transparent);
+    font-size: 0.85rem;
+    line-height: 1;
+    cursor: help;
+    backdrop-filter: blur(6px);
+    transition:
+      color 160ms ease,
+      border-color 160ms ease;
+  }
+
+  .hero-flight-tip {
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--color-identifier) 18%, transparent);
+    background: color-mix(in srgb, var(--color-base-100) 66%, transparent);
     color: color-mix(in srgb, var(--color-identifier) 80%, transparent);
     font-size: 0.72rem;
     letter-spacing: 0.06em;
     white-space: nowrap;
-    pointer-events: none;
     backdrop-filter: blur(6px);
-    animation: flight-hint-fade 9s ease forwards;
+    /* Briefly show on arrival, then collapse to just the badge. */
+    animation: flight-tip-fade 6s ease forwards;
   }
 
-  @keyframes flight-hint-fade {
+  .hero-flight-help:hover .hero-flight-tip {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .hero-flight-help:hover .hero-flight-badge {
+    color: color-mix(in srgb, var(--color-primary) 85%, transparent);
+    border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+  }
+
+  @keyframes flight-tip-fade {
     0%,
-    75% {
+    55% {
       opacity: 1;
+      transform: translateX(0);
     }
     100% {
       opacity: 0;
+      transform: translateX(0.5rem);
+      pointer-events: none;
     }
   }
 
