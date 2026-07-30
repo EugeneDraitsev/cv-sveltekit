@@ -3,33 +3,33 @@
 
   const posts = [
     {
-      title: 'Telegram bot: from local chat utility to agentic system',
+      title: 'Telegram agent architecture: from commands to asynchronous workers',
       href: '/blog/telegram-bot-app',
-      label: 'Personal build',
+      label: 'Personal build · since 2015',
       image: '/blog/telegram-bot/architecture-light.svg',
       imageMode: 'contain',
       description:
-        'A Telegram bot first committed in July 2015: from local chat features to async AWS workers, reply gating, tool execution, memory, metrics and live stats.',
+        'Ten years of the same bot: how a currency-command script grew Lambda ingress, async workers, reply gating, tools, scoped memory and provider failover — without ever leaving its group chats.',
       tags: ['Agents', 'AWS Lambda', 'Tools', 'Memory', 'Metrics'],
     },
     {
-      title: 'Orb Knight: AI-assisted game jam experiment',
+      title: 'Orb Knight: a 3D browser roguelite in 13 days',
       href: '/blog/gamedevjs-2026',
-      label: 'Game jam experiment',
+      label: 'Game jam · built with AI agents',
       image: '/blog/gamedevjs-2026/orb-knight-splash.webp',
       imageMode: 'cover',
       description:
-        'A browser 3D game built with Codex and Claude Code under hackathon constraints, finishing 12th overall and 6th in Gameplay at Gamedev.js Jam 2026.',
+        'A machine knight with a sword, a gun and a chargeable laser — 6th in Gameplay of 495 jam entries. Build log, honest scores and live WebGL scenes from the actual game, embedded in the post.',
       tags: ['Codex', 'Claude Code', 'SvelteKit', 'Three.js', 'Rapier'],
     },
     {
-      title: 'MowFleet Control Center: dashboard for autonomous mower fleets',
+      title: 'MowFleet Control Center: operating an autonomous mower fleet',
       href: '/blog/mowfleet-dashboard',
       label: 'Hobby-freelance project',
       image: '/blog/mowfleet-dashboard/architecture-light.svg',
       imageMode: 'contain',
       description:
-        'A from-scratch Next.js dashboard and Serverless AWS backend for MowFleet: Husqvarna Fleet Services data, utilization, zone coverage, reports and long-running operational support.',
+        'The dashboard that answers "did the robots actually mow my lawn?" — a Next.js app and serverless AWS pipeline turning Husqvarna telemetry into coverage, utilization, errors and reports.',
       tags: ['Next.js', 'Serverless', 'AWS Lambda', 'DynamoDB', 'Fleet data'],
     },
   ] as const;
@@ -39,7 +39,7 @@
   <title>Blog | Eugene Draitsev</title>
   <meta
     name="description"
-    content="Personal projects by Eugene Draitsev: bots, AI agents, game development experiments and long-running hobby builds."
+    content="Build notes by Eugene Draitsev: a decade-old Telegram agent, a robot mower fleet dashboard, and a 3D browser game built in 13 days with AI coding agents."
   />
 </svelte:head>
 
@@ -47,12 +47,13 @@
   <div class="relative mx-auto mt-[-72px] max-w-4xl px-3 pb-10 sm:px-4">
     <div class="card">
       <div class="mb-8">
-        <p class="mb-3 text-xs uppercase text-keyword sm:text-sm">Blog</p>
-        <h1 class="blog-title">Personal projects</h1>
+        <p class="mb-3 text-xs uppercase text-keyword sm:text-sm">Build notes · real systems</p>
+        <h1 class="blog-title">Things I run, break and occasionally ship</h1>
         <p class="blog-lead">
-          Things I build outside work: long-running bots, AI experiments, WebGL sketches and game
-          jam projects. The useful part is usually how they change over time: architecture,
-          iteration, model behavior, feedback and trade-offs.
+          Write-ups from systems I actually operate: a Telegram agent that has lived in the same
+          group chats since 2015, an operations dashboard for robot mower fleets, and a 3D game
+          built in 13 days with coding agents. Real constraints, honest numbers, and the odd WebGL
+          scene you can poke at.
         </p>
       </div>
 
