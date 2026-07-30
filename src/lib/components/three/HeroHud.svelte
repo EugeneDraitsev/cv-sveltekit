@@ -38,7 +38,11 @@
       class="hud-card"
       type="button"
       disabled={!hudState.onActivate}
-      aria-label={hudState.hint ? `${hudState.title}: ${hudState.hint}` : hudState.title}
+      aria-label={hudState.title
+        ? hudState.hint
+          ? `${hudState.title}: ${hudState.hint}`
+          : hudState.title
+        : 'Hovered object details'}
       onpointerdown={stopHudPointer}
       onpointerup={stopHudPointer}
       onclick={onHudClick}

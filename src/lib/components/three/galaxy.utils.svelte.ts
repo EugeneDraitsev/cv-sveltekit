@@ -20,7 +20,7 @@ function getInitialParticleCount(): number {
   if (typeof window === 'undefined') return 150_000;
   const isMobile = window.matchMedia('(max-width: 768px)').matches;
   const cores = navigator.hardwareConcurrency ?? 8;
-  if (isMobile) return 50_000;
+  if (isMobile) return 40_000;
   if (cores <= 4) return 90_000;
   return 150_000;
 }

@@ -1,6 +1,11 @@
 import { browser } from '$app/environment';
 import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
 
+// Every route is static content — prerender the whole site at build time.
+// This removes per-request SSR from TTFB (locally and on Vercel: pages come
+// straight from the CDN), which is what LCP hangs off in Lighthouse.
+export const prerender = true;
+
 // Vercel's analytics scripts are served only from Vercel deployments. In a local
 // preview build they 404 and log console errors (which drag down Best Practices),
 // so only enable them when we're actually running on a real (non-local) host.

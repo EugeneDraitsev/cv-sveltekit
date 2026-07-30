@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Icon from '@iconify/svelte';
+  import Icon from '$lib/components/Icon.svelte';
   import type { Component, ComponentProps } from 'svelte';
 
   import { SITE_DATA } from '$lib/constants';

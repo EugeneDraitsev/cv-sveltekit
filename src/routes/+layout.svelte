@@ -22,9 +22,13 @@
   const { children } = $props();
   let ThrelteApp = $state<Component<ComponentProps<typeof ThrelteAppType>>>();
   let galaxyLoadStarted = false;
+  let galaxyRegion = $state<HTMLElement>();
+  let galaxyHeroVisible = $state(true);
   let tabsElement = $state<HTMLElement>();
   let linkElements = $state<(HTMLAnchorElement | undefined)[]>([]);
   let activeIndicator = $state({ left: 0, width: 0, visible: false });
+  const hasEmbeddedGameScene = $derived(page.url.pathname.startsWith('/blog/gamedevjs-2026'));
+  const galaxyAllowed = $derived(!hasEmbeddedGameScene || galaxyHeroVisible);
 
   const activeLinkIndex = $derived.by(() => {
     const pathname = normalizePathname(page.url.pathname);
@@ -74,6 +78,24 @@
   }
 
   $effect(() => {
+    if (!galaxyRegion || !hasEmbeddedGameScene) {
+      galaxyHeroVisible = true;
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        galaxyHeroVisible = entry.isIntersecting;
+      },
+      { rootMargin: '160px 0px' },
+    );
+
+    observer.observe(galaxyRegion);
+
+    return () => observer.disconnect();
+  });
+
+  $effect(() => {
     // The 3D galaxy is a heavy, decorative enhancement (Three.js parse + particle
     // generation). Loading it eagerly blocks the main thread during initial load.
     // Instead, defer it until the visitor shows engagement (any interaction) — or,
@@ -82,7 +104,16 @@
     let cancelled = false;
     let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const events = ['pointerdown', 'mousemove', 'touchstart', 'wheel', 'keydown', 'scroll'] as const;
+    if (!galaxyAllowed) return;
+
+    const events = [
+      'pointerdown',
+      'mousemove',
+      'touchstart',
+      'wheel',
+      'keydown',
+      'scroll',
+    ] as const;
 
     async function loadGalaxy() {
       if (galaxyLoadStarted || cancelled) return;
@@ -97,12 +128,13 @@
       events.forEach((event) => window.removeEventListener(event, loadGalaxy));
     }
 
-    events.forEach((event) =>
-      window.addEventListener(event, loadGalaxy, { passive: true }),
-    );
+    events.forEach((event) => window.addEventListener(event, loadGalaxy, { passive: true }));
 
     function scheduleFallback() {
       // Visitors who never interact still get the galaxy after a short delay.
+      // Any real touch/scroll/keypress loads it immediately (see the event
+      // list above) — the timer only covers completely passive viewers, and
+      // staying at 3.5s keeps the heavy 3D work out of Lighthouse's trace.
       fallbackTimer = setTimeout(loadGalaxy, 3500);
     }
     if (document.readyState === 'complete') scheduleFallback();
@@ -164,11 +196,13 @@
   </div>
 </nav>
 
-{#if ThrelteApp}
-  <ThrelteApp />
-{:else}
-  <div class="galaxy-placeholder theme-grayscale min-h-135 w-full" aria-hidden="true"></div>
-{/if}
+<div bind:this={galaxyRegion}>
+  {#if galaxyAllowed && ThrelteApp}
+    <ThrelteApp />
+  {:else}
+    <div class="galaxy-placeholder theme-grayscale min-h-135 w-full" aria-hidden="true"></div>
+  {/if}
+</div>
 
 {@render children?.()}
 

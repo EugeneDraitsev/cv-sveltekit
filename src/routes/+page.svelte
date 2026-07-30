@@ -12,17 +12,17 @@
     </div>
 
     <h1 class="title">Experience</h1>
-    <div class="card">
+    <div class="card cv-auto">
       <Experience />
     </div>
 
     <h1 class="title">Abilities</h1>
-    <div class="card">
+    <div class="card cv-auto">
       <Abilities />
     </div>
 
     <h1 class="title">Projects</h1>
-    <div class="card">
+    <div class="card cv-auto">
       <Projects />
     </div>
   </div>

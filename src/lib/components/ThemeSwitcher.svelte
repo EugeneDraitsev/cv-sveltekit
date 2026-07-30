@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Icon from '@iconify/svelte';
+  import Icon from '$lib/components/Icon.svelte';
 
   import themeStore, { setGrayscale, setTheme } from '$lib/stores/theme.svelte';
 </script>
