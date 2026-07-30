@@ -14,9 +14,9 @@
     <div class="mb-7">
       <h2 class="subtitle">Selected recent delivery</h2>
       <p class="max-w-3xl text-sm leading-6 text-identifier/75">
-        Production work across partner launches, authentication and AI systems. Recent examples of
-        work involving external partners, identity/security flows, commerce delivery and agentic
-        systems.
+        A few recent examples where the job went beyond writing a component: partner launches,
+        identity and security flows, commerce delivery and agent systems that need to behave well
+        outside a demo.
       </p>
     </div>
 
