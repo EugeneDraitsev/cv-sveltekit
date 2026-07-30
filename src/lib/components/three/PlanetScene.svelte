@@ -28,6 +28,7 @@
   import speedLinesVertexShader from './speedLinesVertexShader.glsl';
   import speedLinesFragmentShader from './speedLinesFragmentShader.glsl';
   import { createFloraGeometry } from './flora';
+  import { touchInput } from './touchInput.svelte';
   import { fbm5, snoise2, biomeWeights, type ClimateParams } from './noise';
   import { mulberry32 } from './rng';
   import { easeInCubic, easeOutCubic, prefersReducedMotion, smoothstepJs } from './cameraTween';
@@ -667,7 +668,7 @@
       // and the speed lines swell in instead of snapping.
       const longPress = dragging && !pressMoved && performance.now() - pressStart > 350;
       const boostHeld =
-        (keys.has('ShiftLeft') || keys.has('ShiftRight') || longPress) &&
+        (keys.has('ShiftLeft') || keys.has('ShiftRight') || longPress || touchInput.boost) &&
         entryProgress >= 1 &&
         !departing;
       boostFactor += ((boostHeld ? 1 : 0) - boostFactor) * Math.min(1, dt * 5);
@@ -677,21 +678,24 @@
       // climbs straight up.
       const mForward =
         (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) -
-        (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
+        (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) +
+        touchInput.moveY;
       const mRight =
         (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) -
-        (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
+        (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0) +
+        touchInput.moveX;
       const cosP = Math.cos(pitch);
       const fwdX = -Math.sin(yaw);
       const fwdZ = -Math.cos(yaw);
       const rightX = -fwdZ;
       const rightZ = fwdX;
-      const mLen = Math.hypot(mForward, mRight) || 1;
+      // Normalize diagonals but keep sub-unit analog magnitudes from the stick.
+      const mLen = Math.max(1, Math.hypot(mForward, mRight));
       let moveX = (fwdX * cosP * mForward + rightX * mRight) / mLen;
       let moveY = (Math.sin(pitch) * mForward) / mLen;
       let moveZ = (fwdZ * cosP * mForward + rightZ * mRight) / mLen;
-      if (isMobile && entryProgress >= 1 && !departing) {
-        // No keyboard on mobile — cruise gently forward, drag to steer.
+      if (isMobile && !touchInput.active && entryProgress >= 1 && !departing) {
+        // Touch overlay unavailable — cruise gently forward, drag to steer.
         moveX += fwdX * cosP * 0.4;
         moveY += Math.sin(pitch) * 0.4;
         moveZ += fwdZ * cosP * 0.4;
@@ -718,7 +722,7 @@
         feetY = departBaseY + easeInCubic(departProgress) * 55;
         vy = 0;
       } else {
-        const vertIn = keys.has('Space') ? 1 : 0;
+        const vertIn = keys.has('Space') || touchInput.up ? 1 : 0;
         vy += (vertIn * FLY_VERT - vy) * Math.min(1, dt * 8);
         feetY += vy * dt + moveY * speed * dt;
         // Skim the terrain, never clip into it.

@@ -4,6 +4,7 @@
   import { untrack } from 'svelte';
 
   import GalaxyControls from './GalaxyControls.svelte';
+  import PlanetTouchControls from './PlanetTouchControls.svelte';
   import type GalaxyDebugPanelType from './GalaxyDebugPanel.svelte';
   import type SystemSceneType from './SystemScene.svelte';
   import type PlanetSceneType from './PlanetScene.svelte';
@@ -494,6 +495,11 @@
         </button>
       {/if}
     </div>
+  {/if}
+
+  <!-- Touch flight controls: joystick + climb/boost, phones and tablets only. -->
+  {#if mode === 'planet' && !isDesktop}
+    <PlanetTouchControls />
   {/if}
 
   <!-- Warp flash: tinted by the destination, hides the scene swap. -->
