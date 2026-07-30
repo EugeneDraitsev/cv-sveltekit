@@ -22,3 +22,7 @@ vite.config.ts.timestamp-*
 .idea
 .claude/
 .codex-remote-attachments
+
+# npm lockfile is intentionally untracked: Vercel resolves fresh via npm install;
+# a Windows-generated lock omits linux native bindings (rolldown) and breaks CI.
+package-lock.json
