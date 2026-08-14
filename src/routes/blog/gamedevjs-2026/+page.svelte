@@ -205,7 +205,7 @@
 
       <section class="mb-12" aria-labelledby="outcome-heading">
         <p class="section-kicker">01 · The result</p>
-        <h2 id="outcome-heading" class="subtitle">6th in Gameplay, and one honest 79th</h2>
+        <h2 id="outcome-heading" class="section-heading">6th in Gameplay, and one honest 79th</h2>
         <p class="mb-6 max-w-3xl">
           The category I care about most is Gameplay — how the game actually feels in your hands.
           Orb Knight scored <strong>4.027/5</strong> there, 6th across the whole jam, and players specifically
@@ -278,7 +278,7 @@
 
       <section class="mb-12" aria-labelledby="game-heading">
         <p class="section-kicker">02 · What shipped</p>
-        <h2 id="game-heading" class="subtitle">A machine knight and the foundry it escapes</h2>
+        <h2 id="game-heading" class="section-heading">A machine knight and the foundry it escapes</h2>
         <p class="mb-6">
           The submitted build is a complete run: fight through seeded foundry rooms, collect gears,
           rebuild your machine at the loadout bay, survive the shop keeper's prices, beat the Gate
@@ -318,7 +318,7 @@
 
       <section class="mb-12" aria-labelledby="log-heading">
         <p class="section-kicker">03 · Build log</p>
-        <h2 id="log-heading" class="subtitle">13 days, compressed</h2>
+        <h2 id="log-heading" class="section-heading">13 days, compressed</h2>
         <p class="mb-6 max-w-3xl">
           The commit history tells the story better than any retrospective, so here it is, lightly
           annotated. 113 commits between April 15 and April 27.
@@ -424,7 +424,7 @@
 
       <section class="mb-12" aria-labelledby="roles-heading">
         <p class="section-kicker">05 · The workflow</p>
-        <h2 id="roles-heading" class="subtitle">How the agent collaboration actually worked</h2>
+        <h2 id="roles-heading" class="section-heading">How the agent collaboration actually worked</h2>
         <p class="mb-6">
           Branches in the repo are literally named <code>codex/*</code> — agents wrote a lot of this game.
           But "agents wrote it" undersells what the job became: decomposing systems into tasks small enough
@@ -450,12 +450,13 @@
 
       <section aria-labelledby="lessons-heading">
         <p class="section-kicker">06 · Notes to future me</p>
-        <h2 id="lessons-heading" class="subtitle">What I'd keep, what I'd change</h2>
-        <div class="grid gap-5 md:grid-cols-2">
-          {#each lessons as lesson}
-            <article class="border-t border-base-300 pt-4">
-              <h3 class="text-lg text-constant">{lesson.title}</h3>
-              <p class="mt-2 text-sm">{lesson.text}</p>
+        <h2 id="lessons-heading" class="section-heading">What I'd keep, what I'd change</h2>
+        <div class="rulelist">
+          {#each lessons as lesson, index}
+            <article class="rule">
+              <span class="rule-index">{String(index + 1).padStart(2, '0')}</span>
+              <h3 class="rule-title">{lesson.title}</h3>
+              <p class="rule-text">{lesson.text}</p>
             </article>
           {/each}
         </div>
