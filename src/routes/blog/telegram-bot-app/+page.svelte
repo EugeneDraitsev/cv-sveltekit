@@ -234,8 +234,9 @@
       <section class="mb-12">
         <h2 class="section-heading">Decisions that keep it debuggable</h2>
         <div class="decisions">
-          {#each decisions as decision (decision.title)}
+          {#each decisions as decision, index (decision.title)}
             <article class="decision">
+              <span class="decision-index">{String(index + 1).padStart(2, '0')}</span>
               <h3 class="decision-title">{decision.title}</h3>
               <p class="decision-text">{decision.text}</p>
             </article>
@@ -260,11 +261,11 @@
         <ol class="timeline">
           {#each timeline as item, index (item.title)}
             <li class="timeline-item">
-              <span class="timeline-index">{String(index + 1).padStart(2, '0')}</span>
-              <div>
-                <h3 class="timeline-title">{item.title}</h3>
-                <p class="timeline-text">{item.text}</p>
-              </div>
+              <h3 class="timeline-title">
+                <span class="timeline-index">{String(index + 1).padStart(2, '0')}</span>
+                {item.title}
+              </h3>
+              <p class="timeline-text">{item.text}</p>
             </li>
           {/each}
         </ol>
@@ -461,34 +462,53 @@
     }
   }
 
-  /* Decision titles as lowercase comments; the body carries the weight. */
+  /* Same aligned-column language as the trace and the spec block: the rule on
+     the left scans top to bottom, the reasoning sits beside it. */
   .decisions {
+    border-top: 1px solid var(--color-base-300);
+  }
+
+  .decision {
     display: grid;
-    gap: 1.75rem;
+    grid-template-columns: 2.25rem 1fr;
+    gap: 0.15rem 0.75rem;
+    border-bottom: 1px solid var(--color-base-300);
+    padding: 1.1rem 0.5rem 1.1rem 0;
+    transition: background-color 160ms ease;
+  }
+
+  .decision:hover {
+    background: color-mix(in srgb, var(--color-base-100) 55%, transparent);
+  }
+
+  .decision-index {
+    color: var(--color-keyword);
+    font-size: 0.7rem;
+    line-height: 1.6;
   }
 
   .decision-title {
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
     color: var(--color-string);
-    font-size: 1rem;
-  }
-
-  .decision-title::before {
-    content: '//';
-    color: color-mix(in srgb, var(--color-identifier) 38%, transparent);
+    font-size: 0.95rem;
   }
 
   .decision-text {
-    margin-top: 0.6rem;
-    font-size: 0.9rem;
+    grid-column: 2;
+    margin-top: 0.5rem;
+    color: color-mix(in srgb, var(--color-identifier) 78%, transparent);
+    font-size: 0.875rem;
   }
 
-  @media (min-width: 768px) {
-    .decisions {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 2rem 2.5rem;
+  @media (min-width: 900px) {
+    .decision {
+      grid-template-columns: 2.25rem 13rem 1fr;
+      gap: 1.25rem;
+      align-items: baseline;
+    }
+
+    .decision-text {
+      grid-column: auto;
+      margin-top: 0;
     }
   }
 
@@ -522,49 +542,69 @@
     }
   }
 
+  /* One continuous rail from the first marker to the last, with the markers
+     sitting on it rather than beside it. */
   .timeline {
+    position: relative;
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding-left: 1.5rem;
   }
 
-  .timeline-item {
-    display: grid;
-    grid-template-columns: 2.5rem 1fr;
-    gap: 1rem;
-    border-left: 1px solid var(--color-base-300);
-    padding: 0 0 1.75rem 1.25rem;
-  }
-
-  .timeline-item:last-child {
-    border-left-color: transparent;
-    padding-bottom: 0;
-  }
-
-  .timeline-index {
-    position: relative;
-    color: var(--color-number);
-    font-size: 0.8rem;
-  }
-
-  .timeline-index::before {
+  .timeline::before {
     position: absolute;
-    top: 0.45rem;
-    left: -1.55rem;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
+    top: 0.6rem;
+    bottom: 0.6rem;
+    left: 0;
+    width: 1px;
     background: var(--color-base-300);
     content: '';
   }
 
+  .timeline-item {
+    position: relative;
+    padding-bottom: 1.75rem;
+  }
+
+  .timeline-item:last-child {
+    padding-bottom: 0;
+  }
+
+  .timeline-item::before {
+    position: absolute;
+    top: 0.5rem;
+    left: calc(-1.5rem - 2.5px);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-keyword);
+    content: '';
+  }
+
+  .timeline-item:last-child::before {
+    top: 0.45rem;
+    left: calc(-1.5rem - 3.5px);
+    width: 8px;
+    height: 8px;
+    background: var(--color-declaration);
+  }
+
   .timeline-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.65rem;
     color: var(--color-constant);
     font-size: 1.05rem;
   }
 
+  .timeline-index {
+    color: color-mix(in srgb, var(--color-identifier) 45%, transparent);
+    font-size: 0.7rem;
+  }
+
   .timeline-text {
     margin-top: 0.4rem;
+    color: color-mix(in srgb, var(--color-identifier) 78%, transparent);
     font-size: 0.9rem;
   }
 
