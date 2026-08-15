@@ -18,14 +18,6 @@ export const SYSTEM_TARGET_COUNT = 120;
 const SYSTEM_SCALE_MIN = 14;
 
 /**
- * Deterministic hash in 0..1 for stable per-index decisions.
- */
-function hash(i: number): number {
-  const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
-  return x - Math.floor(x);
-}
-
-/**
  * Pick a deterministic, evenly-spread subset of particle indices to treat as
  * planetary systems. Scanned once on mount and whenever the galaxy regenerates
  * (count/structure change) so the systems always reference valid particles.

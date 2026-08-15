@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "singleQuote": true,
+  "useTabs": false,
+  "sortPackageJson": false,
+  "sortTailwindcss": {
+    "stylesheet": "./src/global.css"
+  },
+  "svelte": {
+    "sortOrder": "options-scripts-markup-styles"
+  },
+  "ignorePatterns": [
+    ".svelte-kit/**",
+    ".vercel/**",
+    ".playwright-cli/**",
+    "build/**",
+    "node_modules/**",
+    "output/**",
+    "playwright-report/**",
+    "test-results/**",
+    "static/**"
+  ]
+}

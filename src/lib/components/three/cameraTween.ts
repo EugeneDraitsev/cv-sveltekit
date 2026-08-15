@@ -85,7 +85,7 @@ export function tweenCamera(
   const start = performance.now();
   let raf: number | undefined;
   let done = false;
-  let lastTarget = fromTarget.clone();
+  const lastTarget = fromTarget.clone();
 
   function frame(now: number) {
     const t = Math.min(1, (now - start) / durationMs);

@@ -16,7 +16,7 @@
 </script>
 
 <div
-  class="absolute pane-container right-4 top-4 z-10 w-75 overflow-auto rounded-lg bg-base-100/90 shadow-lg"
+  class="pane-container absolute top-4 right-4 z-10 w-75 overflow-auto rounded-lg bg-base-100/90 shadow-lg"
 >
   <Pane expanded>
     <!-- Galaxy Structure -->

@@ -5,6 +5,10 @@ node_modules
 .vercel
 /.svelte-kit
 /build
+/coverage
+/playwright-report
+/test-results
+/output
 
 # OS
 .DS_Store
@@ -23,6 +27,5 @@ vite.config.ts.timestamp-*
 .claude/
 .codex-remote-attachments
 
-# npm lockfile is intentionally untracked: Vercel resolves fresh via npm install;
-# a Windows-generated lock omits linux native bindings (rolldown) and breaks CI.
+# Bun is the project package manager; avoid creating a competing npm lockfile.
 package-lock.json

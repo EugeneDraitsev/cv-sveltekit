@@ -2,6 +2,7 @@ import { Color } from 'three';
 
 import themeStore from '$lib/stores/theme.svelte';
 import type { Theme } from '$lib/stores/theme.svelte';
+import { mulberry32 } from './rng';
 
 function toColor(input?: string | Color): Color | undefined {
   if (!input) return undefined;
@@ -17,12 +18,12 @@ export const customNebulaColors: { inside?: Color; outside?: Color } = $state({}
  * when the scene loads, while capable desktops keep the full, dense visual.
  */
 function getInitialParticleCount(): number {
-  if (typeof window === 'undefined') return 150_000;
+  if (typeof window === 'undefined') return 120_000;
   const isMobile = window.matchMedia('(max-width: 768px)').matches;
   const cores = navigator.hardwareConcurrency ?? 8;
-  if (isMobile) return 40_000;
-  if (cores <= 4) return 90_000;
-  return 150_000;
+  if (isMobile) return 30_000;
+  if (cores <= 4) return 70_000;
+  return 120_000;
 }
 
 export const parameters = {
@@ -84,10 +85,11 @@ export function getGalaxyColorPalette(theme?: Theme) {
 }
 
 function generateGalaxy(newParameters = parameters) {
+  const rng = mulberry32(0x6a09e667);
   const positions = new Float32Array(newParameters.count * 3);
   const randomness = new Float32Array(newParameters.count * 3);
   const colors = new Float32Array(newParameters.count * 3);
-  const radii = new Array(newParameters.count);
+  const radii = new Float32Array(newParameters.count);
   const scales = new Float32Array(newParameters.count);
   const isNebula = new Float32Array(newParameters.count); // Flag for nebula particles
 
@@ -106,10 +108,10 @@ function generateGalaxy(newParameters = parameters) {
     if (isNebulaParticle) {
       // Nebula particles are concentrated in the center with exponential falloff
       // Use nebulaSize parameter to control the size of the nebula relative to galaxy radius
-      radius = Math.pow(Math.random(), 1.8) * newParameters.radius * newParameters.nebulaSize;
+      radius = Math.pow(rng(), 1.8) * newParameters.radius * newParameters.nebulaSize;
     } else {
       // Regular galaxy particles follow the original distribution
-      radius = Math.random() * newParameters.radius;
+      radius = rng() * newParameters.radius;
     }
 
     radii[i] = radius;
@@ -119,7 +121,7 @@ function generateGalaxy(newParameters = parameters) {
 
     if (isNebulaParticle) {
       // Random angle for nebula
-      branchAngle = Math.random() * Math.PI * 2;
+      branchAngle = rng() * Math.PI * 2;
     } else {
       // For regular galaxy particles, create a more natural spiral pattern
       // Base angle for the branch
@@ -128,7 +130,7 @@ function generateGalaxy(newParameters = parameters) {
       // Add variation within each branch to make them wider
       // This creates a gaussian-like distribution around the branch center line
       const armWidthFactor = newParameters.armWidth || 0.4;
-      const randomArmOffset = (Math.random() - 0.5) * armWidthFactor;
+      const randomArmOffset = (rng() - 0.5) * armWidthFactor;
 
       // Add spiral effect based on radius
       const spiralFactor = radius * newParameters.spin;
@@ -154,33 +156,27 @@ function generateGalaxy(newParameters = parameters) {
 
     // Horizontal randomness (X and Z) - maintains the spiral arm structure
     const randomX =
-      Math.pow(Math.random(), randomPower) *
-      (Math.random() < 0.5 ? 1 : -1) *
-      randomnessFactor *
-      radius;
+      Math.pow(rng(), randomPower) * (rng() < 0.5 ? 1 : -1) * randomnessFactor * radius;
 
     // Vertical randomness (Y) - adjusted for different particle types
     // Use diskThickness parameter to control the vertical spread
     const diskThicknessFactor = newParameters.diskThickness || 0.1;
     const randomY = isNebulaParticle
       ? // For nebula particles - more vertical randomness for spherical shape
-        Math.pow(Math.random(), randomPower * 0.8) * // Lower power for less concentration
-        (Math.random() < 0.5 ? 1 : -1) *
+        Math.pow(rng(), randomPower * 0.8) * // Lower power for less concentration
+        (rng() < 0.5 ? 1 : -1) *
         randomnessFactor *
         radius *
         0.6 // Much higher vertical spread for more spherical nebula (increased from 0.5)
       : // For sleeve particles - highly constrained to create disk shape
-        Math.pow(Math.random(), randomPower * 1.5) * // Higher power for more concentration
-        (Math.random() < 0.5 ? 1 : -1) *
+        Math.pow(rng(), randomPower * 1.5) * // Higher power for more concentration
+        (rng() < 0.5 ? 1 : -1) *
         randomnessFactor *
         radius *
         diskThicknessFactor; // Apply disk thickness constraint
 
     const randomZ =
-      Math.pow(Math.random(), randomPower) *
-      (Math.random() < 0.5 ? 1 : -1) *
-      randomnessFactor *
-      radius;
+      Math.pow(rng(), randomPower) * (rng() < 0.5 ? 1 : -1) * randomnessFactor * radius;
 
     randomness[i3] = randomX;
     randomness[i3 + 1] = randomY;
@@ -217,7 +213,7 @@ function generateGalaxy(newParameters = parameters) {
     if (isNebulaParticle) {
       // Nebula particles are generally smaller but with high variability
       // Use nebulaParticleSize parameter to control the size of nebula particles
-      scales[i] = (Math.random() * 25 + 10) * newParameters.nebulaParticleSize; // Base range 10-35, scaled by parameter
+      scales[i] = (rng() * 25 + 10) * newParameters.nebulaParticleSize; // Base range 10-35, scaled by parameter
 
       // Central nebula particles can be larger
       if (radius < newParameters.radius * 0.18 * newParameters.nebulaSize) {
@@ -227,7 +223,7 @@ function generateGalaxy(newParameters = parameters) {
     } else {
       // Regular galaxy particles have a different size distribution
       // Exponential distribution for more small particles
-      scales[i] = Math.pow(Math.random(), 1.5) * 20 + 2; // More small particles, fewer large ones
+      scales[i] = Math.pow(rng(), 1.5) * 20 + 2; // More small particles, fewer large ones
     }
   }
 

@@ -2,6 +2,23 @@
   import { resolve } from '$app/paths';
   import Icon from '$lib/components/Icon.svelte';
   import ZoomableImage from '$lib/components/ZoomableImage.svelte';
+  import { getBlogPost, serializeJsonLd } from '$lib/blog';
+  import { SITE_DATA } from '$lib/constants';
+
+  const post = getBlogPost('mowfleet-dashboard');
+  const canonicalUrl = new URL(`/blog/${post.slug}`, SITE_DATA.siteUrl).href;
+  const socialImageUrl = new URL(post.image, SITE_DATA.siteUrl).href;
+  const postSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.description,
+    image: socialImageUrl,
+    datePublished: post.datePublished,
+    dateModified: post.dateModified,
+    mainEntityOfPage: canonicalUrl,
+    author: { '@type': 'Person', name: SITE_DATA.details.name, url: SITE_DATA.siteUrl },
+  };
 
   const facts = [
     'Designed and implemented the dashboard, backend services, data model and deployment architecture.',
@@ -44,29 +61,53 @@
   ];
 
   const dataPath = [
-    { name: 'Husqvarna OAuth', detail: 'interactive sign-in, tokens scoped per customer', owner: 'vendor' },
-    { name: 'Fleet Services API', detail: 'live reads for the few screens that need them', owner: 'vendor' },
-    { name: 'Scheduled Lambda sync', detail: 'pulls activity, utilization and errors on a timer', owner: 'MowFleet' },
-    { name: 'DynamoDB + S3', detail: 'normalized history and generated map tiles', owner: 'MowFleet' },
-    { name: 'MCC API endpoints', detail: 'query shapes the dashboard actually asks for', owner: 'MowFleet' },
-    { name: 'Dashboard + reports', detail: 'operator screens and the customer-facing PDF', owner: 'MowFleet' },
+    {
+      name: 'Husqvarna OAuth',
+      detail: 'interactive sign-in, tokens scoped per customer',
+      owner: 'vendor',
+    },
+    {
+      name: 'Fleet Services API',
+      detail: 'live reads for the few screens that need them',
+      owner: 'vendor',
+    },
+    {
+      name: 'Scheduled Lambda sync',
+      detail: 'pulls activity, utilization and errors on a timer',
+      owner: 'MowFleet',
+    },
+    {
+      name: 'DynamoDB + S3',
+      detail: 'normalized history and generated map tiles',
+      owner: 'MowFleet',
+    },
+    {
+      name: 'MCC API endpoints',
+      detail: 'query shapes the dashboard actually asks for',
+      owner: 'MowFleet',
+    },
+    {
+      name: 'Dashboard + reports',
+      detail: 'operator screens and the customer-facing PDF',
+      owner: 'MowFleet',
+    },
   ];
 
   const screenshots = [
     {
-      src: '/blog/mowfleet-dashboard/dashboard-overview.png',
+      src: '/blog/mowfleet-dashboard/dashboard-overview.webp',
       alt: 'MowFleet Control Center dashboard overview with utilization, zone coverage, savings and stop-time charts',
       caption:
         'Dashboard overview: utilization against planned operating time, zone coverage, savings and the main error distribution.',
     },
     {
-      src: '/blog/mowfleet-dashboard/zones-coverage.png',
+      src: '/blog/mowfleet-dashboard/zones-coverage.webp',
       alt: 'MowFleet zones coverage map and weekly zone status table',
       caption:
         'Zones view: GeoJSON customer zones over Google Maps, weekly coverage status and detailed zone-by-zone history.',
     },
     {
-      src: '/blog/mowfleet-dashboard/mowers-list.png',
+      src: '/blog/mowfleet-dashboard/mowers-list.webp',
       alt: 'MowFleet mowers list with mower status, battery, cutting height and recent error details',
       caption:
         'Mowers view: machine-level status, battery, cutting height, location history and translated operational errors.',
@@ -133,9 +174,21 @@
     name="description"
     content="Architecture and implementation of MowFleet Control Center: a Next.js operations dashboard and serverless AWS pipeline for autonomous mower fleet data."
   />
+  <link rel="canonical" href={canonicalUrl} />
+  <meta property="og:title" content={post.title} />
+  <meta property="og:description" content={post.description} />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content={canonicalUrl} />
+  <meta property="og:image" content={socialImageUrl} />
+  <meta property="article:published_time" content={post.datePublished} />
+  <meta property="article:modified_time" content={post.dateModified} />
+  <meta name="twitter:card" content="summary_large_image" />
+  <svelte:element this={"script"} type="application/ld+json">
+    {serializeJsonLd(postSchema)}
+  </svelte:element>
 </svelte:head>
 
-<main class="overlapped blog-page">
+<main id="main-content" class="overlapped blog-page" tabindex="-1">
   <article class="relative mx-auto mt-[-72px] max-w-4xl px-3 pb-10 sm:px-4">
     <div class="card">
       <a
@@ -147,7 +200,7 @@
       </a>
 
       <div class="mt-6 mb-8">
-        <p class="mb-3 text-xs uppercase text-keyword sm:text-sm">
+        <p class="mb-3 text-xs text-keyword uppercase sm:text-sm">
           Production B2B system · Full-stack ownership
         </p>
         <h1 class="blog-title">MowFleet Control Center: operating an autonomous mower fleet</h1>
@@ -180,7 +233,7 @@
           vendor API shifts under the product.
         </p>
         <dl class="stat-strip mb-8">
-          {#each operatingRhythm as item}
+          {#each operatingRhythm as item (item)}
             <div class="stat">
               <dt class="stat-value">{item.value}</dt>
               <dd class="stat-label">{item.label}</dd>
@@ -188,7 +241,7 @@
           {/each}
         </dl>
         <ul class="factlist">
-          {#each facts as fact}
+          {#each facts as fact (fact)}
             <li>{fact}</li>
           {/each}
         </ul>
@@ -217,7 +270,7 @@
       <section class="mb-10">
         <h2 class="section-heading">What operators get</h2>
         <div class="rulelist">
-          {#each productAreas as area, index}
+          {#each productAreas as area, index (index)}
             <article class="rule">
               <span class="rule-index">{String(index + 1).padStart(2, '0')}</span>
               <h3 class="rule-title">{area.title}</h3>
@@ -236,7 +289,7 @@
           recorded mowing sessions.
         </p>
         <div class="grid gap-5">
-          {#each screenshots as screenshot}
+          {#each screenshots as screenshot (screenshot)}
             <ZoomableImage
               src={screenshot.src}
               alt={screenshot.alt}
@@ -260,7 +313,7 @@
           From external fleet data to customer-facing operations
         </p>
         <ol class="trace">
-          {#each dataPath as step, index}
+          {#each dataPath as step, index (index)}
             <li class="trace-step">
               <span class="trace-index">{String(index + 1).padStart(2, '0')}</span>
               <span class="trace-name">{step.name}</span>
@@ -279,7 +332,7 @@
           receives. Concretely:
         </p>
         <ul class="list-disc space-y-2 pl-5">
-          {#each deliverySignals as signal}
+          {#each deliverySignals as signal (signal)}
             <li>{signal}</li>
           {/each}
         </ul>
@@ -288,7 +341,7 @@
       <section class="mb-10">
         <h2 class="section-heading">Design decisions</h2>
         <div class="rulelist">
-          {#each engineeringDecisions as decision, index}
+          {#each engineeringDecisions as decision, index (index)}
             <article class="rule">
               <span class="rule-index">{String(index + 1).padStart(2, '0')}</span>
               <h3 class="rule-title">{decision.title}</h3>
@@ -306,7 +359,7 @@
           checks, and visibility features Husqvarna quietly removed from their own product:
         </p>
         <ul class="list-disc space-y-2 pl-5">
-          {#each supportSignals as signal}
+          {#each supportSignals as signal (signal)}
             <li>{signal}</li>
           {/each}
         </ul>
@@ -319,7 +372,7 @@
           so that's where the next effort goes:
         </p>
         <ul class="list-disc space-y-2 pl-5">
-          {#each nextSteps as step}
+          {#each nextSteps as step (step)}
             <li>{step}</li>
           {/each}
         </ul>

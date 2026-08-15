@@ -2,9 +2,26 @@
   import { resolve } from '$app/paths';
   import Icon from '$lib/components/Icon.svelte';
   import ZoomableImage from '$lib/components/ZoomableImage.svelte';
+  import { getBlogPost, serializeJsonLd } from '$lib/blog';
+  import { SITE_DATA } from '$lib/constants';
 
   const repoUrl = 'https://github.com/EugeneDraitsev/telegram-bot-app';
   const uiUrl = 'https://github.com/EugeneDraitsev/telegram-bot-ui';
+
+  const post = getBlogPost('telegram-bot-app');
+  const canonicalUrl = new URL(`/blog/${post.slug}`, SITE_DATA.siteUrl).href;
+  const socialImageUrl = new URL(post.image, SITE_DATA.siteUrl).href;
+  const postSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.description,
+    image: socialImageUrl,
+    datePublished: post.datePublished,
+    dateModified: post.dateModified,
+    mainEntityOfPage: canonicalUrl,
+    author: { '@type': 'Person', name: SITE_DATA.details.name, url: SITE_DATA.siteUrl },
+  };
 
   const highlights = [
     { value: '2015', label: 'first commit' },
@@ -101,9 +118,21 @@
     name="description"
     content="Architecture of a Telegram bot running since 2015: Lambda ingress, FIFO queues, idempotent workers, a fail-closed authorization gate, reply gating and provider failover."
   />
+  <link rel="canonical" href={canonicalUrl} />
+  <meta property="og:title" content={post.title} />
+  <meta property="og:description" content={post.description} />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content={canonicalUrl} />
+  <meta property="og:image" content={socialImageUrl} />
+  <meta property="article:published_time" content={post.datePublished} />
+  <meta property="article:modified_time" content={post.dateModified} />
+  <meta name="twitter:card" content="summary_large_image" />
+  <svelte:element this={"script"} type="application/ld+json">
+    {serializeJsonLd(postSchema)}
+  </svelte:element>
 </svelte:head>
 
-<main class="overlapped blog-page">
+<main id="main-content" class="overlapped blog-page" tabindex="-1">
   <article class="relative mx-auto mt-[-72px] max-w-4xl px-3 pb-10 sm:px-4">
     <div class="card">
       <a
@@ -115,7 +144,7 @@
       </a>
 
       <header class="mt-6 mb-10">
-        <p class="mb-3 text-xs uppercase text-keyword sm:text-sm">
+        <p class="mb-3 text-xs text-keyword uppercase sm:text-sm">
           Long-running production side project · 2015–present
         </p>
         <h1 class="blog-title">
@@ -187,9 +216,9 @@
           caption="One update, three lanes: activity, registered commands, agent."
         />
         <p class="mt-6">
-          Three separate queues mean a stuck agent turn cannot delay statistics, and a broken command
-          cannot block agent replies. Each lane has its own dead-letter queue; more than three
-          visible messages in any of them sends an email.
+          Three separate queues mean a stuck agent turn cannot delay statistics, and a broken
+          command cannot block agent replies. Each lane has its own dead-letter queue; more than
+          three visible messages in any of them sends an email.
         </p>
       </section>
 
@@ -283,7 +312,7 @@
               caption="June 2026, before the diagram was split into separate views."
             />
             <ZoomableImage
-              src="/blog/telegram-bot/architecture-legacy.png"
+              src="/blog/telegram-bot/architecture-legacy.webp"
               alt="Legacy Telegram bot architecture diagram"
               figureClass="diagram"
               imageClass="w-full rounded"

@@ -17,6 +17,7 @@
     DynamicDrawUsage,
   } from 'three';
   import { onDestroy, untrack } from 'svelte';
+  import { SvelteSet } from 'svelte/reactivity';
   import { T, useTask, useThrelte } from '@threlte/core';
 
   import terrainVertexShader from './terrainVertexShader.glsl';
@@ -59,11 +60,15 @@
   const surface = pl.surface;
   const biomes = surface.biomes;
   const pixelRatio = Math.min(window.devicePixelRatio, 2);
+  // Two different questions: isMobile sizes the workload (small screen ≈ small
+  // GPU), isTouch decides how input behaves. A narrow desktop window is the
+  // first without being the second.
   const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
   const reduceMotion = prefersReducedMotion();
 
   // ─── World constants ───────────────────────────────────────────────────
-  const PLANE_SIZE = 220;
+  const PLANE_SIZE = isMobile ? 240 : 312;
   const FLORA_RADIUS = 105; // flora lives in this square around the player
 
   const segments = (() => {
@@ -73,9 +78,29 @@
     return 256;
   })();
 
-  const fogNear = surface.cloudMode ? 16 : 42;
-  const fogFar = surface.cloudMode ? 92 : 138;
+  // Fog has to clear before the grid runs out, or its straight edge hangs in
+  // the air and the planet reads as one square tile. So the reach is derived
+  // from the plane instead of being picked on its own.
+  const fogFar = Math.min(surface.cloudMode ? 92 : 138, (PLANE_SIZE / 2) * 0.88);
+  const fogNear = Math.min(surface.cloudMode ? 16 : 42, fogFar * 0.4);
   const fogColor = new Color(surface.fogColor);
+
+  // Climbing zooms the grid out in whole doublings: the same vertices cover
+  // more ground and the fog reach grows with them, so height buys a view of
+  // the planet instead of a wall of haze. Powers of two keep the cell snapping
+  // below exact at every level.
+  const MAX_GRID_SCALE = 4;
+  const MAX_ALTITUDE = fogFar * MAX_GRID_SCALE * 0.72;
+  let gridScale = 1;
+  let floraShown = true;
+
+  /** One doubling per frame, with a wide dead band so hovering can't flip it. */
+  function updateGridScale(altitude: number) {
+    const reach = fogFar * gridScale;
+    if (gridScale < MAX_GRID_SCALE && altitude > reach * 0.62) gridScale *= 2;
+    else if (gridScale > 1 && altitude < reach * 0.22) gridScale /= 2;
+    return gridScale;
+  }
 
   const sunDir = new Vector3(0.42, 0.52, -0.72).normalize();
   const lightColor = new Color(sys.starLightColor);
@@ -148,6 +173,7 @@
     uniforms: {
       uTime: { value: 0 },
       uScroll: { value: new Vector2(0, 0) },
+      uGridScale: { value: 1 },
       uSeedOffset: { value: new Vector2(surface.offsetX, surface.offsetY) },
       uTerrainScale: { value: surface.terrainScale },
       uHeightScale: { value: surface.heightScale },
@@ -174,12 +200,15 @@
       uFogColor: { value: fogColor.clone() },
       uFogNear: { value: fogNear },
       uFogFar: { value: fogFar },
+      uSkyHorizon: { value: new Color(surface.skyHorizon) },
+      uSkyZenith: { value: new Color(surface.skyZenith) },
     },
   });
 
   // ─── Sky dome (follows the player) ─────────────────────────────────────
   let skyMesh = $state<Mesh>();
-  const skyGeometry = new SphereGeometry(500, 32, 16);
+  // Wide enough to still sit outside the grid at full zoom-out.
+  const skyGeometry = new SphereGeometry(1600, 32, 16);
   const skyMaterial = new ShaderMaterial({
     vertexShader: skyVertexShader,
     fragmentShader: skyFragmentShader,
@@ -257,7 +286,7 @@
   let boostFactor = 0;
   let userLooked = false;
 
-  const keys = new Set<string>();
+  const keys = new SvelteSet<string>();
   // Starts true: the player reached this scene by clicking the canvas, so the
   // keyboard is theirs immediately (Space must not scroll the page).
   let pointerInside = true;
@@ -356,7 +385,7 @@
   // corrupt the drag state otherwise (the classic "camera sticks" bug).
   let activePointerId: number | null = null;
   // Touch look wants a bit more travel than a mouse for the same feel.
-  const lookSensitivity = isMobile ? 0.006 : 0.0042;
+  const lookSensitivity = isTouch ? 0.006 : 0.0042;
 
   function onPointerDown(e: PointerEvent) {
     if (activePointerId !== null) return; // already dragging with another pointer
@@ -694,8 +723,9 @@
       let moveX = (fwdX * cosP * mForward + rightX * mRight) / mLen;
       let moveY = (Math.sin(pitch) * mForward) / mLen;
       let moveZ = (fwdZ * cosP * mForward + rightZ * mRight) / mLen;
-      if (isMobile && !touchInput.active && entryProgress >= 1 && !departing) {
-        // Touch overlay unavailable — cruise gently forward, drag to steer.
+      if (isTouch && !touchInput.active && entryProgress >= 1 && !departing) {
+        // Touch device with no joystick mounted and no keyboard to fall back
+        // on — cruise gently forward so a drag still steers something.
         moveX += fwdX * cosP * 0.4;
         moveY += Math.sin(pitch) * 0.4;
         moveZ += fwdZ * cosP * 0.4;
@@ -727,16 +757,26 @@
         feetY += vy * dt + moveY * speed * dt;
         // Skim the terrain, never clip into it.
         feetY = Math.max(feetY, support + HOVER_MIN);
+        // Ceiling where the grid stops zooming out — past it the ground would
+        // just fade into empty haze, so hold the climb here instead.
+        if (feetY > support + MAX_ALTITUDE) {
+          feetY = support + MAX_ALTITUDE;
+          vy = Math.min(vy, 0);
+        }
       }
 
       // Gentle hover sway keeps the craft feeling alive when idle.
       const bob = Math.sin(time * 1.1) * 0.05;
 
+      // Grid zoom follows altitude; fog follows the grid, so the haze always
+      // closes in before the plane's edge can show.
+      const scale = updateGridScale(feetY - support);
+
       // Fog opens as the entry finishes and slams shut during departure.
       const de = easeOutCubic(entryProgress);
       const dp = easeInCubic(departProgress);
-      const fogNearNow = lerp(lerp(4, fogNear, de), 3, dp);
-      const fogFarNow = lerp(lerp(26, fogFar, de), 16, dp);
+      const fogNearNow = lerp(lerp(4, fogNear, de), 3, dp) * scale;
+      const fogFarNow = lerp(lerp(26, fogFar, de), 16, dp) * scale;
       terrainMaterial.uniforms.uFogNear.value = fogNearNow;
       terrainMaterial.uniforms.uFogFar.value = fogFarNow;
       if (scene.fog instanceof Fog) {
@@ -746,10 +786,12 @@
 
       // Park the floating grid on whole cells under the player: vertices
       // sample world-anchored noise, so the landscape is a fixed field the
-      // player walks through — zero shimmer.
-      const cell = PLANE_SIZE / segments;
+      // player walks through — zero shimmer. The cell grows with the zoom, so
+      // each level keeps its own exact snap.
+      const cell = (PLANE_SIZE * scale) / segments;
       const snapX = Math.round(camX / cell) * cell;
       const snapZ = Math.round(camZ / cell) * cell;
+      terrainMaterial.uniforms.uGridScale.value = scale;
       (terrainMaterial.uniforms.uScroll.value as Vector2).set(snapX, -snapZ);
       if (terrainMesh) terrainMesh.position.set(snapX, 0, snapZ);
 
@@ -780,7 +822,19 @@
       speedLinesMaterial.uniforms.uAspect.value =
         canvasEl.clientWidth / Math.max(canvasEl.clientHeight, 1);
 
-      for (const pool of pools) updatePool(pool);
+      // Zoomed out, plants are sub-pixel and their scatter square would draw
+      // its own visible edge — park them until the camera comes back down.
+      if (floraShown !== (scale === 1)) {
+        floraShown = scale === 1;
+        for (const pool of pools) {
+          pool.mesh.visible = floraShown;
+          // The player may have crossed the map while up there, so re-roll the
+          // whole pool around the new position instead of letting the per-frame
+          // wrap crawl after them.
+          if (floraShown) for (let i = 0; i < pool.items.length; i++) trySpawn(pool, i);
+        }
+      }
+      if (floraShown) for (const pool of pools) updatePool(pool);
     },
     { autoStart: false },
   );
@@ -794,7 +848,7 @@
   });
 </script>
 
-<T.PerspectiveCamera makeDefault position={[0, 60, 0]} fov={68} near={0.1} far={1200} />
+<T.PerspectiveCamera makeDefault position={[0, 60, 0]} fov={68} near={0.2} far={2600} />
 
 <T.DirectionalLight
   color={lightColor}

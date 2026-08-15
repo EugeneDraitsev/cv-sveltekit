@@ -1,105 +1,127 @@
 # Eugene Draitsev — CV
 
-A personal CV that boots a procedural galaxy before it shows you a single bullet point.
+My CV site. It is a normal prerendered SvelteKit page — work history, skills, blog — except
+the header is a 3D galaxy you can fly into.
 
 **Live: [eugene-draitsev.vercel.app](https://eugene-draitsev.vercel.app/)**
 
 ![Procedural spiral galaxy rendered above the About section](docs/galaxy.webp)
 
-The site is a normal, boring, prerendered CV — work history, skills, blog — with one
-exception: the hero is a real-time 3D journey. Click a marked star in the galaxy and the
-camera dives into its star system. Click a planet and you land on it, in a free-flight
-camera, over terrain that is generated as you fly. Every system, planet, biome and moon is
-derived from a particle-index seed, so the galaxy is the same for every visitor — there
-are just a lot of places to visit.
+Click a marked star and the camera dives into its star system. Click a planet there and you
+land on it, in a free camera, over terrain that is generated while you fly. The particle
+field uses a fixed seed and each marked system, planet, biome and moon comes from its
+particle index, so everyone gets the same galaxy — there is just a lot of it.
 
 ![Free flight over a procedurally generated gas giant](docs/planet.webp)
 
-## Flying around
+## Controls
 
-| Action | Desktop | Touch |
-| --- | --- | --- |
-| Enter a star system | click a marked star | tap it |
-| Land on a planet | click it | tap it |
-| Look around | drag | drag |
-| Fly | `WASD` / arrows | virtual joystick |
-| Climb | `Space` | `⬆` button |
-| Boost | `Shift` | `⚡` button or long-press |
-| Go back | breadcrumb button, top center | same |
+| Action              | Desktop            | Touch       |
+| ------------------- | ------------------ | ----------- |
+| Enter a star system | click a star       | tap it      |
+| Land on a planet    | click it           | tap it      |
+| Look around         | drag               | drag        |
+| Fly                 | `WASD` / arrows    | joystick    |
+| Climb               | `Space`            | `⬆` button  |
+| Boost               | `Shift`            | `⚡` button |
+| Go back             | button, top center | same        |
 
-The galaxy view also has a Tweakpane editor (the tune icon, bottom left) for live-editing
-spin, arm count, colors and particle parameters — because if you generate a galaxy, you
-owe people the sliders.
+The galaxy view has a Tweakpane panel (tune icon, bottom left) for spin, arm count, colors
+and particle parameters.
 
-## The parts that were fun to build
+## How it works
 
-- **Everything procedural, one seed.** `starSystem.ts` turns a galaxy particle index into
-  a full star system — star class, planets, biomes, moons, names — memoized, so the hover
-  HUD, the system scene and the planet surface all read the same generated world.
-- **CPU/GPU noise contract.** Terrain height is computed in GLSL for rendering and in
-  TypeScript for flora placement and flight collision. The two implementations stay
-  byte-for-byte in sync (same fbm octaves, offsets and waterline math) or plants float.
-- **Floating-grid terrain.** The planet mesh parks on whole grid cells under the camera
-  and the noise scroll is snapped to the same cells — vertices never re-sample moving
-  noise, so the landscape doesn't shimmer while you fly through it.
-- **Motion-locked transitions.** Scene swaps hide behind a veil whose opacity is driven
-  per-frame by the outgoing camera move (dive into star glare, plunge into atmosphere
-  fog), then the incoming scene dissolves it from its own entry motion. No timed curtains.
-- **The 3D pays rent.** All of three.js lives in one lazy chunk that loads on first
-  interaction (or after a short idle). The page itself is prerendered HTML with ~135 kB of
-  eager JavaScript, zero icon runtime (20 inline SVGs in a generated registry) and
-  `content-visibility: auto` below the fold.
+**One seed per body.** `starSystem.ts` turns a galaxy particle index into a whole star
+system: star class, planets, biomes, moons, names. Results are memoized, so the hover HUD,
+the system scene and the planet surface all read the same data.
+
+**Terrain height is written twice.** Once in GLSL for rendering, once in TypeScript for
+placing plants and keeping the camera above ground. Both use the same constants, octave
+counts and waterline math. Unit tests compare CPU samples against recorded values so the two
+cannot drift apart unnoticed.
+
+**The ground is one grid that follows you.** It parks on whole grid cells under the camera
+and the noise offset is snapped to the same cells, so vertices always sample the same world
+positions. Feed it a continuous offset instead and the whole landscape shimmers.
+
+**Climbing zooms the grid out.** The same vertex budget covers more ground in power-of-two
+steps, and fog range grows with it. Without this you eventually see the edge of the grid
+hanging in the air, which is what the fog is there to prevent.
+
+**Transitions follow the camera, not a timer.** The veil that covers a scene swap gets its
+opacity per frame from the outgoing camera move — diving into a star, dropping through
+atmosphere — and the incoming scene dissolves it as it arrives.
+
+**Three.js is not in the initial load.** It sits in a lazy chunk that loads after the first
+interaction, so someone who just reads the page never pays for WebGL parsing or particle
+generation. The page itself is prerendered HTML, icons are inline SVG instead of an icon
+runtime, and sections below the fold use `content-visibility: auto`.
 
 ## Performance
 
-Lighthouse against production, both presets:
+Production scores 100 across all four Lighthouse categories on both the mobile and desktop
+presets, with 0 ms total blocking time and no layout shift.
 
-| | Performance | Accessibility | Best Practices | SEO |
-| --- | --- | --- | --- | --- |
-| Mobile | 100 | 100 | 100 | 100 |
-| Desktop | 100 | 100 | 100 | 100 |
-
-TBT 0 ms, CLS 0, first paint well under 200 ms observed. One caveat for future me:
-`vite preview` speaks HTTP/1.1, and Lighthouse's simulator serializes the modulepreload
-chain per connection — mobile caps at ~99 there no matter what you do. Audit production
-(HTTP/2), or any h2 server over the build output, to see the real number.
+Worth knowing if you audit this locally: `vite preview` serves over HTTP/1.1, and
+Lighthouse's simulator serializes the modulepreload chain per connection, so mobile sits at
+99 there no matter what. Test against production or any HTTP/2 server over the build output.
+Lighthouse only covers initial delivery — runtime WebGL profiling and manual accessibility
+checks are separate.
 
 ## Blog
 
-The [blog](https://eugene-draitsev.vercel.app/blog) covers systems I actually run — a
-Telegram agent alive since 2015, an operations dashboard for robot mower fleets — and
-[Orb Knight](https://eugene-draitsev.vercel.app/blog/gamedevjs-2026), a 3D roguelite
-built in 13 days with AI coding agents for Gamedev.js Jam 2026 (6th in Gameplay of 495
-entries). That post embeds six live WebGL scenes from the actual game — the charge-up
-laser included — served straight from its
-[Storybook](https://github.com/EugeneDraitsev/gamedevjs-2026).
+[The blog](https://eugene-draitsev.vercel.app/blog) covers things I actually run: a Telegram
+bot that has been in the same group chats since 2015, an operations dashboard for robot mower
+fleets, and [Orb Knight](https://eugene-draitsev.vercel.app/blog/gamedevjs-2026) — a 3D
+roguelite I built in 13 days with coding agents for Gamedev.js Jam 2026, which placed 6th in
+Gameplay out of 495 entries. That post embeds live WebGL scenes straight from the game's
+[Storybook](https://github.com/EugeneDraitsev/gamedevjs-2026), including the laser.
 
 ## Stack
 
 - [SvelteKit](https://kit.svelte.dev/) with Svelte 5 runes, fully prerendered
-- [Threlte](https://threlte.xyz/) / [Three.js](https://threejs.org/) with custom GLSL for
-  the galaxy, star systems, terrain, sky, water and speed lines
-- [Tailwind CSS v4](https://tailwindcss.com/) with a JetBrains-flavored syntax-highlight
-  palette (light and dark)
-- Vercel for hosting and deploys
+- [Threlte](https://threlte.xyz/) / [Three.js](https://threejs.org/), with custom GLSL for the
+  galaxy, star systems, terrain, sky, water and speed lines
+- [Tailwind CSS v4](https://tailwindcss.com/), themed after a JetBrains syntax palette
+- Vercel
 
 ## Develop
 
 ```bash
-npm install
-npm run dev      # dev server
-npm run check    # svelte-check
-npm run build    # production build + prerender
-npm run preview  # serve the build (see the HTTP/1.1 caveat above)
+bun install
+bun run dev
 ```
 
-## Deploy notes
+Other scripts: `bun run lint` (Oxlint), `bun run format` (Oxfmt), `bun run check`
+(svelte-check), `bun run test:unit` (generation and CPU noise contracts), `bun run test:e2e`
+(production build plus Playwright), `bun run build` and `bun run preview`. `bun run verify` runs
+the whole set, and GitHub Actions runs the same thing plus Chromium smoke tests on pull requests
+and pushes to `main`.
 
-Pushing to `main` deploys via Vercel. Two hard-earned rules:
+Two notes on that toolchain.
 
-- **Don't commit a package-lock.json.** The repo is intentionally lockfile-free: a lock
-  generated on Windows omits the Linux native bindings for rolldown (the npm
-  optional-deps bug) and breaks `npm ci` on Vercel.
-- **Keep `adapter-auto`.** `@sveltejs/adapter-vercel` can't finish a local build on
-  Windows (symlink permissions in the functions output); adapter-auto no-ops locally and
-  resolves to the Vercel adapter in CI.
+Oxlint and Oxfmt are the only linter and formatter here — ESLint and Prettier are gone. Oxlint
+reads the `<script>` block of a `.svelte` file but not the template, so Svelte-specific template
+rules are not enforced; `bun run check` still covers template types and the compiler's
+accessibility warnings.
+
+Type checking runs on **TypeScript 7**: `@typescript/native` is the 7.x compiler and `--tsgo`
+tells svelte-check to use it. The `typescript@~6` devDependency next to it is not a leftover —
+svelte-check refuses to start unless both are installed, so bumping `typescript` to 7 breaks
+`bun run check` entirely. `bun update --latest` will try exactly that; re-pin it afterwards.
+
+## Deploy
+
+Pushing to `main` deploys to Vercel. Two things that will waste an afternoon if you do not
+know them:
+
+- **Use Bun everywhere.** `bun.lock` is committed and CI installs with
+  `bun install --frozen-lockfile`. `package-lock.json` stays ignored — an npm lockfile
+  generated on Windows misses the Linux native bindings for rolldown and breaks the build.
+- **Keep `adapter-auto` in the config, but keep `adapter-vercel` installed.** Pointing the
+  config straight at `@sveltejs/adapter-vercel` cannot finish a local build on Windows
+  because of symlink permissions in the functions output, so the config uses `adapter-auto`,
+  which does nothing locally and picks the Vercel adapter in CI. The Vercel adapter still has
+  to be a devDependency though: without it, `adapter-auto` shells out to `bun add` in the
+  middle of the build, that install re-resolves the whole tree, and a CJS consumer ends up on
+  the ESM-only `estree-walker@3` — `No "exports" main defined`, build dead.

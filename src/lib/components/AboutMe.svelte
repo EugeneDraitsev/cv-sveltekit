@@ -36,16 +36,24 @@
 
 <div class="grid gap-5 md:mx-auto md:max-w-5xl md:grid-cols-2">
   <div>
-    <h2 class="subtitle">About me</h2>
+    <h1 class="subtitle">About me</h1>
     <p class="my-8">
       {SITE_DATA.authorDescription}
     </p>
     <p class="my-6">
       Prefer the one-page version? My
-      <a class="text-declaration cursor-pointer underline" href={SITE_DATA.pdf} target="_blank">
+      <a class="cursor-pointer text-declaration underline" href={SITE_DATA.pdf} target="_blank">
         detailed CV is available as a PDF
       </a>
     </p>
+    <a
+      class="inline-block rounded border border-declaration px-3 py-2 text-sm text-declaration transition-colors hover:bg-declaration/10"
+      href={SITE_DATA.pdf}
+      target="_blank"
+      rel="noreferrer"
+    >
+      Download CV
+    </a>
   </div>
 
   <div class="flex flex-col">
@@ -53,7 +61,7 @@
     <div class="flex flex-1 flex-col justify-start">
       <span>{'{'}</span>
       <div class="ml-4">
-        {#each Object.entries(details) as [key, value]}
+        {#each Object.entries(details) as [key, value] (key)}
           <div class="my-1">
             <span class="text-constant">{key}</span>:
             {#if typeof value === 'number'}
@@ -63,7 +71,7 @@
                 '{value}'
               </span>
             {/if}
-            <span class="text-keyword -ml-2">,</span>
+            <span class="-ml-2 text-keyword">,</span>
           </div>
         {/each}
       </div>
@@ -72,7 +80,7 @@
       <div class="mt-8">
         <h2 class="subtitle">Focused on</h2>
         <div class="space-y-3">
-          {#each profileHighlights as highlight}
+          {#each profileHighlights as highlight (highlight)}
             <p>{highlight}</p>
           {/each}
         </div>

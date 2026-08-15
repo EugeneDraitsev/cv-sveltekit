@@ -1,6 +1,8 @@
 <script module lang="ts">
+  import { SvelteSet } from 'svelte/reactivity';
+
   let activeSceneLabel: string | null = null;
-  const activeSceneListeners = new Set<(label: string | null) => void>();
+  const activeSceneListeners = new SvelteSet<(label: string | null) => void>();
 
   const selectActiveScene = (label: string | null) => {
     activeSceneLabel = label;
