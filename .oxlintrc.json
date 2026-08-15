@@ -1,0 +1,33 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn"
+  },
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "ignorePatterns": [
+    ".svelte-kit/**",
+    ".vercel/**",
+    ".playwright-cli/**",
+    "build/**",
+    "node_modules/**",
+    "output/**",
+    "playwright-report/**",
+    "test-results/**"
+  ],
+  "overrides": [
+    {
+      "files": ["src/app.d.ts"],
+      "rules": {
+        "unicorn/require-module-specifiers": "off"
+      }
+    }
+  ],
+  "rules": {
+    "no-shadow": "off"
+  }
+}
