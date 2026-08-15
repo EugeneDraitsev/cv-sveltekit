@@ -3,6 +3,7 @@
 
 uniform float uTime;
 uniform vec2 uScroll;      // world-anchored snap of the camera position
+uniform float uGridScale;  // grid zoom: 1 near the ground, higher as you climb
 uniform vec2 uSeedOffset;  // per-planet offset so no two worlds share terrain
 uniform float uTerrainScale;
 uniform float uHeightScale;
@@ -59,7 +60,10 @@ void main() {
   // mesh is a floating grid parked on whole grid cells under the camera, and
   // uScroll carries that same snap — so every vertex samples a WORLD-anchored
   // noise position: terrain is a fixed field the player moves through.
-  vec2 scrolled = position.xy + uScroll + uSeedOffset;
+  // uGridScale spreads the same vertex budget over more ground as the camera
+  // climbs; the snap on the CPU side uses the scaled cell size to match.
+  vec2 local = position.xy * uGridScale;
+  vec2 scrolled = local + uScroll + uSeedOffset;
 
   // Per-biome relief: one climate lookup per vertex, the multiplier is
   // reused for the normal taps (noise.ts mirrors this for flora placement).
@@ -72,8 +76,7 @@ void main() {
   vHeight = hRaw;
   vNoisePos = scrolled;
 
-  vec3 displaced = position;
-  displaced.z += h;
+  vec3 displaced = vec3(local, position.z + h);
 
   // Normals via finite differences of the *flattened* height, so water reads
   // as a level plane and shorelines shade correctly.

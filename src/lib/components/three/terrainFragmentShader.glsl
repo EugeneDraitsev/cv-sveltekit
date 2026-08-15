@@ -23,6 +23,10 @@ uniform vec3 uLightColor;
 uniform vec3 uFogColor;
 uniform float uFogNear;
 uniform float uFogFar;
+// Sky gradient, mirrored from skyFragmentShader so fog can land on the exact
+// backdrop colour behind it.
+uniform vec3 uSkyHorizon;
+uniform vec3 uSkyZenith;
 
 varying float vHeight;
 varying vec3 vNormal;
@@ -144,10 +148,24 @@ void main() {
     lit += uWaterColor * lowGlow * 0.22;
   }
 
-  // Distance fog hides the far-edge morph of the infinite scroll.
-  float dist = length(vWorldPos.xz - cameraPosition.xz);
+  // Distance fog hides the far-edge morph of the infinite scroll. Measured in
+  // 3D: a horizontal-only distance leaves the ground crisp no matter how high
+  // you climb, which turns the grid into a visibly floating square slab. The
+  // fog range grows with the grid scale (see PlanetScene), so climbing still
+  // shows the landscape — just with more air in front of it.
+  float dist = length(vWorldPos - cameraPosition);
   float fogFactor = smoothstep(uFogNear, uFogFar, dist);
-  lit = mix(lit, uFogColor, fogFactor);
+
+  // Fully fogged terrain is a flat slab of uFogColor. Where that colour differs
+  // from the sky behind it, the grid's straight edge shows up as a silhouette —
+  // so over the last stretch of the ramp, drift the fog to the sky colour in
+  // this exact view direction and let the edge dissolve into the backdrop.
+  vec3 viewDir = normalize(vWorldPos - cameraPosition);
+  vec3 skyTint = mix(uSkyHorizon, uSkyZenith, smoothstep(-0.06, 0.6, viewDir.y));
+  float skyHaze = 1.0 - smoothstep(0.0, 0.26, abs(viewDir.y + 0.02));
+  skyTint = mix(skyTint, uSkyHorizon, skyHaze * 0.55);
+
+  lit = mix(lit, mix(uFogColor, skyTint, smoothstep(0.55, 1.0, fogFactor)), fogFactor);
 
   gl_FragColor = vec4(lit, 1.0);
   #include <colorspace_fragment>

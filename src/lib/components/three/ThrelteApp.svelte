@@ -66,10 +66,21 @@
   let overlayDuration = $state(400);
 
   const reduceMotion = prefersReducedMotion();
-  // Flight keys (WASD / Space / Shift) only apply on desktop, so the controls
-  // hint is desktop-only; touch just drags to look.
-  const isDesktop =
-    typeof window !== 'undefined' && !window.matchMedia('(max-width: 768px)').matches;
+  // Which flight chrome to show is a question about the input device, not the
+  // window size: a narrow desktop window still has a keyboard and a mouse, and
+  // it used to get the touch joystick. Ask for a coarse pointer without hover
+  // instead, and keep listening — plugging in a mouse changes the answer.
+  const touchQuery =
+    typeof window === 'undefined' ? null : window.matchMedia('(hover: none) and (pointer: coarse)');
+  let isTouch = $state(touchQuery?.matches ?? false);
+
+  $effect(() => {
+    if (!touchQuery) return;
+    const sync = () => (isTouch = touchQuery.matches);
+    sync();
+    touchQuery.addEventListener('change', sync);
+    return () => touchQuery.removeEventListener('change', sync);
+  });
   let seq = 0;
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -404,7 +415,7 @@
 <div
   bind:this={rootElement}
   class="threlte-app theme-grayscale relative overflow-hidden transition-all duration-200"
-  style:height={isExpanded ? '100dvh' : '540px'}
+  style:height={isExpanded ? '100dvh' : 'var(--galaxy-height)'}
 >
   <Canvas>
     {#if mode === 'planet' && currentSystem && currentPlanet}
@@ -482,7 +493,7 @@
           · {currentPlanet.archetypeLabel} · {currentPlanet.surface.biomes.length} biomes
         </span>
       </span>
-      {#if isDesktop}
+      {#if !isTouch}
         <button
           class="hero-flight-help"
           type="button"
@@ -497,8 +508,8 @@
     </div>
   {/if}
 
-  <!-- Touch flight controls: joystick + climb/boost, phones and tablets only. -->
-  {#if mode === 'planet' && !isDesktop}
+  <!-- Touch flight controls: joystick + climb/boost, touch devices only. -->
+  {#if mode === 'planet' && isTouch}
     <PlanetTouchControls />
   {/if}
 
