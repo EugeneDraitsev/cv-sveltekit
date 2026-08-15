@@ -38,37 +38,19 @@
       </header>
 
       <section class="mb-10">
-        <h2 class="subtitle">What the current iteration explores</h2>
-        <div class="grid gap-4 md:grid-cols-2">
-          <article class="about-card">
-            <h3 class="text-lg text-constant">Procedural continuity</h3>
-            <p class="mt-2 text-sm leading-6">
-              Marked stars resolve to deterministic systems, planets, biomes and moons. The same
-              generated data drives hover details, orbital scenes and terrain visits.
-            </p>
-          </article>
-          <article class="about-card">
-            <h3 class="text-lg text-constant">Progressive runtime cost</h3>
-            <p class="mt-2 text-sm leading-6">
-              CV content arrives as static HTML. Three.js, debug controls and deeper scenes are
-              split into interaction-driven chunks, and particle density adapts to the device.
-            </p>
-          </article>
-          <article class="about-card">
-            <h3 class="text-lg text-constant">CPU and GPU agreement</h3>
-            <p class="mt-2 text-sm leading-6">
-              Terrain height and biome math have matching TypeScript and GLSL implementations so
-              flight collision and flora placement follow the rendered surface.
-            </p>
-          </article>
-          <article class="about-card">
-            <h3 class="text-lg text-constant">Content as proof</h3>
-            <p class="mt-2 text-sm leading-6">
-              The blog now documents real systems: an agent used since 2015, a robot-mower
-              operations dashboard and a game-jam build with live production scenes.
-            </p>
-          </article>
-        </div>
+        <h2 class="subtitle">How the galaxy works</h2>
+        <p class="mb-4">
+          Every marked star is a seed. It resolves to the same star class, planets, biomes and moons
+          for everyone, and the hover label, the orbital view and the surface you land on all read
+          that one generated result.
+        </p>
+        <p>
+          The part I like most is the least visible: terrain height and biome blending are
+          implemented twice, once in GLSL for rendering and once in TypeScript for placing plants
+          and keeping the camera above ground. They have to agree, or plants float and you fly
+          through hills. Unit tests compare CPU samples against recorded values so the two cannot
+          quietly drift apart.
+        </p>
       </section>
 
       <section class="mb-10">
@@ -150,12 +132,3 @@
     </div>
   </article>
 </main>
-
-<style>
-  .about-card {
-    border: 1px solid var(--color-base-300);
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--color-base-100) 55%, transparent);
-    padding: 1rem;
-  }
-</style>

@@ -98,12 +98,17 @@ Other scripts: `bun run lint` (Oxlint), `bun run format` (Oxfmt), `bun run check
 the whole set, and GitHub Actions runs the same thing plus Chromium smoke tests on pull requests
 and pushes to `main`.
 
-Two notes on that toolchain. Oxlint and Oxfmt are the only linter and formatter here — ESLint and
-Prettier are gone. Oxlint reads the `<script>` block of a `.svelte` file but not the template, so
-Svelte-specific template rules are not enforced; `bun run check` still covers template types and
-the compiler's accessibility warnings. And `check` runs svelte-check against the TypeScript 7
-native compiler, which it only accepts with a 6.x install alongside it and the `--tsgo` flag —
-that is why both `typescript` and `@typescript/native` are devDependencies.
+Two notes on that toolchain.
+
+Oxlint and Oxfmt are the only linter and formatter here — ESLint and Prettier are gone. Oxlint
+reads the `<script>` block of a `.svelte` file but not the template, so Svelte-specific template
+rules are not enforced; `bun run check` still covers template types and the compiler's
+accessibility warnings.
+
+Type checking runs on **TypeScript 7**: `@typescript/native` is the 7.x compiler and `--tsgo`
+tells svelte-check to use it. The `typescript@~6` devDependency next to it is not a leftover —
+svelte-check refuses to start unless both are installed, so bumping `typescript` to 7 breaks
+`bun run check` entirely. `bun update --latest` will try exactly that; re-pin it afterwards.
 
 ## Deploy
 
