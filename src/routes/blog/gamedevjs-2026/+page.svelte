@@ -5,7 +5,7 @@
   import { onMount } from 'svelte';
   import WebGLSceneEmbed from '$lib/components/WebGLSceneEmbed.svelte';
   import ZoomableImage from '$lib/components/ZoomableImage.svelte';
-  import { formatPostDate, getBlogPost, serializeJsonLd } from '$lib/blog';
+  import { getBlogPost, serializeJsonLd } from '$lib/blog';
   import { SITE_DATA } from '$lib/constants';
 
   const repoUrl = 'https://github.com/EugeneDraitsev/gamedevjs-2026';
@@ -13,6 +13,7 @@
   const winnersUrl = 'https://gamedevjs.com/competitions/gamedev-js-jam-2026-winners-announced/';
   const gameplayUrl = 'https://itch.io/jam/gamedevjs-2026/results/gameplay';
   const productionStorybookUrl = 'https://gamedevjs-2026-orb-knight.vercel.app/storybook/';
+
   const post = getBlogPost('gamedevjs-2026');
   const canonicalUrl = new URL(`/blog/${post.slug}`, SITE_DATA.siteUrl).href;
   const socialImageUrl = new URL(post.image, SITE_DATA.siteUrl).href;
@@ -176,7 +177,7 @@
   </svelte:element>
 </svelte:head>
 
-<main id="main-content" class="overlapped blog-page" tabindex="-1">
+<main class="overlapped blog-page">
   <article class="relative mx-auto mt-[-72px] max-w-4xl px-3 pb-10 sm:px-4">
     <div class="card">
       <a
@@ -188,12 +189,8 @@
       </a>
 
       <header class="mt-6 mb-8">
-        <p class="mb-3 text-xs text-keyword uppercase sm:text-sm">
+        <p class="mb-3 text-xs uppercase text-keyword sm:text-sm">
           Game jam · 13 days · built with AI agents
-        </p>
-        <p class="mb-3 text-xs text-identifier/60">
-          Published <time datetime={post.datePublished}>{formatPostDate(post.datePublished)}</time>
-          · Updated <time datetime={post.dateModified}>{formatPostDate(post.dateModified)}</time>
         </p>
         <h1 class="blog-title">Orb Knight: a 3D browser roguelite in 13 days</h1>
         <p class="blog-lead">
@@ -237,7 +234,7 @@
 
       <section class="mb-12" aria-labelledby="outcome-heading">
         <p class="section-kicker">01 · The result</p>
-        <h2 id="outcome-heading" class="subtitle">6th in Gameplay, and one honest 79th</h2>
+        <h2 id="outcome-heading" class="section-heading">6th in Gameplay, and one honest 79th</h2>
         <p class="mb-6 max-w-3xl">
           The category I care about most is Gameplay — how the game actually feels in your hands.
           Orb Knight scored <strong>4.027/5</strong> there, 6th across the whole jam, and players specifically
@@ -245,7 +242,7 @@
         </p>
 
         <div class="mb-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {#each highlights as highlight (highlight.label)}
+          {#each highlights as highlight}
             <div class="metric-card">
               <strong class="text-2xl text-number sm:text-3xl">{highlight.value}</strong>
               <span class="mt-1 text-xs text-identifier/70 sm:text-sm">{highlight.label}</span>
@@ -267,14 +264,14 @@
           <figure class="rounded border border-base-300 bg-base-100 p-4">
             <figcaption class="mb-5 text-sm text-declaration">Category scores out of 5</figcaption>
             <div class="space-y-4">
-              {#each scores as criterion (criterion.label)}
+              {#each scores as criterion}
                 <div>
                   <div class="mb-1.5 flex items-center justify-between gap-3 text-xs sm:text-sm">
                     <span
                       >{criterion.label}
                       <span class="text-identifier/55">{criterion.rank}</span></span
                     >
-                    <span class="font-semibold text-number tabular-nums"
+                    <span class="font-semibold tabular-nums text-number"
                       >{criterion.score.toFixed(3)}</span
                     >
                   </div>
@@ -294,7 +291,7 @@
             </div>
           </figure>
           <aside class="result-note">
-            <p class="text-xs tracking-wide text-keyword uppercase">Reading the board</p>
+            <p class="text-xs uppercase tracking-wide text-keyword">Reading the board</p>
             <h3 class="mt-2 text-xl text-constant">The loop landed. The idea was safe.</h3>
             <p class="mt-3 text-sm">
               Gameplay at 6th means the moment-to-moment feel — dodging, hitting, getting hit — did
@@ -310,7 +307,7 @@
 
       <section class="mb-12" aria-labelledby="game-heading">
         <p class="section-kicker">02 · What shipped</p>
-        <h2 id="game-heading" class="subtitle">A machine knight and the foundry it escapes</h2>
+        <h2 id="game-heading" class="section-heading">A machine knight and the foundry it escapes</h2>
         <p class="mb-6">
           The submitted build is a complete run: fight through seeded foundry rooms, collect gears,
           rebuild your machine at the loadout bay, survive the shop keeper's prices, beat the Gate
@@ -319,7 +316,7 @@
           Three.js for rendering, Rapier for physics, Bun for everything else.
         </p>
         <div class="mb-7 grid gap-4 md:grid-cols-3">
-          {#each shipped as item (item.title)}
+          {#each shipped as item}
             <article class="detail-card">
               <h3 class="text-lg text-constant">{item.title}</h3>
               <p class="mt-2 text-sm">{item.text}</p>
@@ -350,13 +347,13 @@
 
       <section class="mb-12" aria-labelledby="log-heading">
         <p class="section-kicker">03 · Build log</p>
-        <h2 id="log-heading" class="subtitle">13 days, compressed</h2>
+        <h2 id="log-heading" class="section-heading">13 days, compressed</h2>
         <p class="mb-6 max-w-3xl">
           The commit history tells the story better than any retrospective, so here it is, lightly
           annotated. 113 commits between April 15 and April 27.
         </p>
         <ol class="build-log">
-          {#each buildLog as entry (entry.date)}
+          {#each buildLog as entry}
             <li class="build-log-entry">
               <span class="build-log-date">{entry.date}</span>
               <div class="build-log-body">
@@ -456,7 +453,7 @@
 
       <section class="mb-12" aria-labelledby="roles-heading">
         <p class="section-kicker">05 · The workflow</p>
-        <h2 id="roles-heading" class="subtitle">How the agent collaboration actually worked</h2>
+        <h2 id="roles-heading" class="section-heading">How the agent collaboration actually worked</h2>
         <p class="mb-6">
           Branches in the repo are literally named <code>codex/*</code> — agents wrote a lot of this game.
           But "agents wrote it" undersells what the job became: decomposing systems into tasks small enough
@@ -464,11 +461,11 @@
           away, and playtesting every change because no agent can feel a bad camera. The split, roughly:
         </p>
         <div class="grid gap-5 md:grid-cols-2">
-          {#each ownership as column (column.title)}
+          {#each ownership as column}
             <article class="detail-card">
               <h3 class="text-lg text-constant">{column.title}</h3>
               <ul class="mt-4 space-y-2">
-                {#each column.items as item (item)}
+                {#each column.items as item}
                   <li class="flex gap-2 text-sm">
                     <span class="text-keyword" aria-hidden="true">→</span>
                     <span>{item}</span>
@@ -482,12 +479,13 @@
 
       <section aria-labelledby="lessons-heading">
         <p class="section-kicker">06 · Notes to future me</p>
-        <h2 id="lessons-heading" class="subtitle">What I'd keep, what I'd change</h2>
-        <div class="grid gap-5 md:grid-cols-2">
-          {#each lessons as lesson (lesson.title)}
-            <article class="border-t border-base-300 pt-4">
-              <h3 class="text-lg text-constant">{lesson.title}</h3>
-              <p class="mt-2 text-sm">{lesson.text}</p>
+        <h2 id="lessons-heading" class="section-heading">What I'd keep, what I'd change</h2>
+        <div class="rulelist">
+          {#each lessons as lesson, index}
+            <article class="rule">
+              <span class="rule-index">{String(index + 1).padStart(2, '0')}</span>
+              <h3 class="rule-title">{lesson.title}</h3>
+              <p class="rule-text">{lesson.text}</p>
             </article>
           {/each}
         </div>

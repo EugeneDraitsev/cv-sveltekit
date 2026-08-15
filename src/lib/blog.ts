@@ -4,13 +4,13 @@ export const BLOG_POSTS = [
     title: 'Telegram agent architecture: from commands to asynchronous workers',
     label: 'Personal build · since 2015',
     datePublished: '2026-06-19',
-    dateModified: '2026-07-30',
-    image: '/blog/telegram-bot/architecture-light.svg',
+    dateModified: '2026-08-15',
+    image: '/blog/telegram-bot/architecture-overview-light.svg',
     imageAlt: 'Architecture diagram for the Telegram agent and its asynchronous workers',
     imageMode: 'contain',
     description:
-      'Ten years of the same bot: how a currency-command script grew Lambda ingress, async workers, reply gating, tools, scoped memory and provider failover — without ever leaving its group chats.',
-    tags: ['Agents', 'AWS Lambda', 'Tools', 'Memory', 'Metrics'],
+      'Ten years of the same bot: how a currency-command script grew a routing-only webhook, FIFO queues, idempotent workers, a fail-closed authorization gate and reply gating — without ever leaving its group chats.',
+    tags: ['Agents', 'AWS Lambda', 'SQS', 'Idempotency', 'Tools'],
   },
   {
     slug: 'gamedevjs-2026',

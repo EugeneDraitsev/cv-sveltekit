@@ -207,7 +207,12 @@ body {
     var(--color-base-100);
 }
 
+/* Own stacking context. The warp overlay inside the hero sits at z-index 6;
+   without a context here it escapes to the root and paints over the post card,
+   which overlaps the hero by 72px. The fixed nav is at z-10 and stays above. */
 .threlte-app {
+  position: relative;
+  z-index: 0;
   opacity: 0;
 }
 
@@ -232,4 +237,333 @@ body {
     animation: none;
     opacity: 1;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Blog post building blocks
+
+   One visual language across every post: aligned columns on hairlines rather
+   than boxed cards, and headings that read as comments to match the editor
+   palette the rest of the site uses. Global rather than per-page so the three
+   posts cannot drift apart again.
+   --------------------------------------------------------------------------- */
+
+.blog-page .section-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+  color: var(--color-declaration);
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+.blog-page .section-heading::before {
+  content: '//';
+  color: color-mix(in srgb, var(--color-identifier) 38%, transparent);
+  font-size: 1.1rem;
+}
+
+@media (min-width: 640px) {
+  .blog-page .section-heading {
+    font-size: 1.875rem;
+  }
+}
+
+/* Figures: a quiet frame, never a heavy card. */
+.blog-page .diagram {
+  margin-top: 0.5rem;
+  border: 1px solid var(--color-base-300);
+  border-radius: 6px;
+  background: var(--color-base-100);
+  padding: 0.75rem;
+}
+
+/* Numbers on hairlines instead of stat boxes. */
+.blog-page .stat-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--color-base-300);
+}
+
+.blog-page .stat {
+  border-bottom: 1px solid var(--color-base-300);
+  padding: 1rem 0.25rem;
+}
+
+.blog-page .stat + .stat {
+  border-left: 1px solid var(--color-base-300);
+  padding-left: 1rem;
+}
+
+.blog-page .stat-value {
+  color: var(--color-number);
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.blog-page .stat-label {
+  margin-top: 0.45rem;
+  color: color-mix(in srgb, var(--color-identifier) 62%, transparent);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 639px) {
+  .blog-page .stat:nth-child(3) {
+    border-left: 0;
+    padding-left: 0.25rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .blog-page .stat-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Execution trace: ordered stages, with the exits that can end a run. */
+.blog-page .trace {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-base-300);
+}
+
+.blog-page .trace-step {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr;
+  align-items: baseline;
+  gap: 0.15rem 0.75rem;
+  border-bottom: 1px solid var(--color-base-300);
+  padding: 0.85rem 0.5rem 0.85rem 0;
+  transition: background-color 160ms ease;
+}
+
+.blog-page .trace-step:hover {
+  background: color-mix(in srgb, var(--color-base-100) 55%, transparent);
+}
+
+.blog-page .trace-index {
+  color: var(--color-keyword);
+  font-size: 0.7rem;
+}
+
+.blog-page .trace-name {
+  color: var(--color-identifier);
+}
+
+.blog-page .trace-detail {
+  grid-column: 2;
+  color: color-mix(in srgb, var(--color-identifier) 62%, transparent);
+  font-size: 0.85rem;
+}
+
+.blog-page .trace-exit {
+  grid-column: 2;
+  margin-top: 0.35rem;
+  color: var(--color-keyword);
+  font-size: 0.75rem;
+}
+
+.blog-page .trace-note {
+  margin-top: 1rem;
+  color: color-mix(in srgb, var(--color-identifier) 55%, transparent);
+  font-size: 0.8rem;
+}
+
+@media (min-width: 768px) {
+  .blog-page .trace-step {
+    grid-template-columns: 2.25rem 11rem 1fr auto;
+    gap: 1rem;
+  }
+
+  .blog-page .trace-detail,
+  .blog-page .trace-exit {
+    grid-column: auto;
+    margin-top: 0;
+  }
+
+  .blog-page .trace-exit {
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+
+/* Rules: the claim scans down the middle column, reasoning sits beside it. */
+.blog-page .rulelist {
+  border-top: 1px solid var(--color-base-300);
+}
+
+.blog-page .rule {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr;
+  gap: 0.15rem 0.75rem;
+  border-bottom: 1px solid var(--color-base-300);
+  padding: 1.1rem 0.5rem 1.1rem 0;
+  transition: background-color 160ms ease;
+}
+
+.blog-page .rule:hover {
+  background: color-mix(in srgb, var(--color-base-100) 55%, transparent);
+}
+
+.blog-page .rule-index {
+  color: var(--color-keyword);
+  font-size: 0.7rem;
+  line-height: 1.6;
+}
+
+.blog-page .rule-title {
+  color: var(--color-string);
+  font-size: 0.95rem;
+}
+
+.blog-page .rule-text {
+  grid-column: 2;
+  margin-top: 0.5rem;
+  color: color-mix(in srgb, var(--color-identifier) 78%, transparent);
+  font-size: 0.875rem;
+}
+
+@media (min-width: 900px) {
+  .blog-page .rule {
+    grid-template-columns: 2.25rem 13rem 1fr;
+    gap: 1.25rem;
+    align-items: baseline;
+  }
+
+  .blog-page .rule-text {
+    grid-column: auto;
+    margin-top: 0;
+  }
+}
+
+/* Aligned key/value block, like a config file. */
+.blog-page .spec {
+  border-top: 1px solid var(--color-base-300);
+}
+
+.blog-page .spec-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.2rem;
+  border-bottom: 1px solid var(--color-base-300);
+  padding: 0.7rem 0;
+}
+
+.blog-page .spec-key {
+  color: var(--color-keyword);
+  font-size: 0.85rem;
+}
+
+.blog-page .spec-value {
+  font-size: 0.9rem;
+}
+
+@media (min-width: 640px) {
+  .blog-page .spec-row {
+    grid-template-columns: 8.5rem 1fr;
+    gap: 1.5rem;
+    align-items: baseline;
+  }
+}
+
+/* One continuous rail, markers sitting on it rather than beside it. */
+.blog-page .timeline {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.blog-page .timeline::before {
+  position: absolute;
+  top: 0.6rem;
+  bottom: 0.6rem;
+  left: 0;
+  width: 1px;
+  background: var(--color-base-300);
+  content: '';
+}
+
+.blog-page .timeline-item {
+  position: relative;
+  padding-bottom: 1.75rem;
+}
+
+.blog-page .timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.blog-page .timeline-item::before {
+  position: absolute;
+  top: 0.5rem;
+  left: calc(-1.5rem - 2.5px);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-keyword);
+  content: '';
+}
+
+.blog-page .timeline-item:last-child::before {
+  top: 0.45rem;
+  left: calc(-1.5rem - 3.5px);
+  width: 8px;
+  height: 8px;
+  background: var(--color-declaration);
+}
+
+.blog-page .timeline-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  color: var(--color-constant);
+  font-size: 1.05rem;
+}
+
+.blog-page .timeline-index {
+  color: color-mix(in srgb, var(--color-identifier) 45%, transparent);
+  font-size: 0.7rem;
+}
+
+.blog-page .timeline-text {
+  margin-top: 0.4rem;
+  color: color-mix(in srgb, var(--color-identifier) 78%, transparent);
+  font-size: 0.9rem;
+}
+
+/* Collapsed archive block. */
+.blog-page .archive {
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--color-base-300);
+  padding-top: 1.25rem;
+}
+
+.blog-page .archive-summary {
+  cursor: pointer;
+  color: color-mix(in srgb, var(--color-identifier) 70%, transparent);
+  font-size: 0.85rem;
+  list-style: none;
+  transition: color 160ms ease;
+}
+
+.blog-page .archive-summary::-webkit-details-marker {
+  display: none;
+}
+
+.blog-page .archive-summary::before {
+  display: inline-block;
+  width: 1.1rem;
+  color: var(--color-keyword);
+  content: '+';
+}
+
+.blog-page .archive[open] .archive-summary::before {
+  content: '−';
+}
+
+.blog-page .archive-summary:hover {
+  color: var(--color-identifier);
 }
