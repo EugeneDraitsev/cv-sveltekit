@@ -92,7 +92,9 @@ bun install
 bun run dev
 ```
 
-Other scripts: `bun run check` (svelte-check), `bun run lint` (Oxlint, then ESLint for Svelte
+Other scripts: `bun run check` (svelte-check on the TypeScript 7 native compiler — it needs both
+`typescript@~6` and `@typescript/native` installed plus the `--tsgo` flag, which is why both are in
+devDependencies), `bun run lint` (Oxlint, then ESLint for Svelte
 template rules), `bun run format` (Oxfmt), `bun run test:unit` (generation and CPU noise
 contracts), `bun run test:e2e` (production build plus Playwright), `bun run build` and
 `bun run preview`. `bun run verify` runs the whole set, and GitHub Actions runs the same
