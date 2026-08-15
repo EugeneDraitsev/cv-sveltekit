@@ -115,22 +115,7 @@
           initial delivery, not a substitute for runtime profiling or manual accessibility testing.
         </p>
 
-        <a
-          class="block overflow-hidden rounded border border-base-300 bg-white"
-          href={pageSpeedUrl}
-          target="_blank"
-          rel="noreferrer"
-        >
-          <img
-            src="/pagespeed-mobile.webp"
-            alt="PageSpeed Insights scoring the production site 100 for Performance, Accessibility, Best Practices and SEO on mobile"
-            width="1200"
-            height="1020"
-            class="w-full"
-            loading="lazy"
-          />
-        </a>
-        <p class="mt-3 mb-8 text-sm">
+        <p class="mb-8 text-sm">
           <a class="text-constant underline" href={pageSpeedUrl} target="_blank" rel="noreferrer">
             Open the live PageSpeed Insights report
           </a>
