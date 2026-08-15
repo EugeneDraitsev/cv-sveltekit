@@ -30,7 +30,10 @@
     // `as const` keeps each href a literal route, which resolve() requires.
   } as const;
 
-  const featuredProjects = BLOG_POSTS.map((post) => ({ tags: post.tags, ...cardCopy[post.slug] }));
+  const featuredProjects = BLOG_POSTS.map((post) => ({
+    card: cardCopy[post.slug],
+    tags: post.tags,
+  }));
 
   const repositoryDateFormatter = new Intl.DateTimeFormat('en', {
     year: 'numeric',
@@ -54,16 +57,16 @@
     survived contact with real users.
   </p>
   <div class="mb-10 grid gap-4 md:grid-cols-3">
-    {#each featuredProjects as project (project.href)}
+    {#each featuredProjects as { card, tags } (card.href)}
       <article class="project-card">
-        <p class="mb-3 text-[11px] tracking-wide text-keyword uppercase">{project.eyebrow}</p>
+        <p class="mb-3 text-[11px] tracking-wide text-keyword uppercase">{card.eyebrow}</p>
         <h3 class="text-lg leading-snug text-constant">
-          <a href={resolve(project.href)} class="underline">{project.title}</a>
+          <a href={resolve(card.href)} class="underline">{card.title}</a>
         </h3>
-        <p class="mt-3 text-sm leading-6">{project.text}</p>
-        <p class="mt-4 text-xs text-number">{project.signal}</p>
+        <p class="mt-3 text-sm leading-6">{card.text}</p>
+        <p class="mt-4 text-xs text-number">{card.signal}</p>
         <div class="mt-4 flex flex-wrap gap-1.5">
-          {#each project.tags as tag (tag)}
+          {#each tags as tag (tag)}
             <span class="project-tag">{tag}</span>
           {/each}
         </div>

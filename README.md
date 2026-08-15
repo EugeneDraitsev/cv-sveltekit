@@ -92,13 +92,18 @@ bun install
 bun run dev
 ```
 
-Other scripts: `bun run check` (svelte-check on the TypeScript 7 native compiler — it needs both
-`typescript@~6` and `@typescript/native` installed plus the `--tsgo` flag, which is why both are in
-devDependencies), `bun run lint` (Oxlint, then ESLint for Svelte
-template rules), `bun run format` (Oxfmt), `bun run test:unit` (generation and CPU noise
-contracts), `bun run test:e2e` (production build plus Playwright), `bun run build` and
-`bun run preview`. `bun run verify` runs the whole set, and GitHub Actions runs the same
-thing plus Chromium smoke tests on pull requests and pushes to `main`.
+Other scripts: `bun run lint` (Oxlint), `bun run format` (Oxfmt), `bun run check`
+(svelte-check), `bun run test:unit` (generation and CPU noise contracts), `bun run test:e2e`
+(production build plus Playwright), `bun run build` and `bun run preview`. `bun run verify` runs
+the whole set, and GitHub Actions runs the same thing plus Chromium smoke tests on pull requests
+and pushes to `main`.
+
+Two notes on that toolchain. Oxlint and Oxfmt are the only linter and formatter here — ESLint and
+Prettier are gone. Oxlint reads the `<script>` block of a `.svelte` file but not the template, so
+Svelte-specific template rules are not enforced; `bun run check` still covers template types and
+the compiler's accessibility warnings. And `check` runs svelte-check against the TypeScript 7
+native compiler, which it only accepts with a 6.x install alongside it and the `--tsgo` flag —
+that is why both `typescript` and `@typescript/native` are devDependencies.
 
 ## Deploy
 
