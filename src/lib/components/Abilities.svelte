@@ -5,18 +5,18 @@
 
 <div>
   <h2 class="subtitle">Skills</h2>
-  <div class="grid grid-cols-1 sm:grid-cols-[300px_300px] gap-6">
-    {#each SITE_DATA.skills as skillSection}
+  <div class="grid grid-cols-1 gap-6 sm:grid-cols-[300px_300px]">
+    {#each SITE_DATA.skills as skillSection (skillSection.name)}
       <div>
         <div>{skillSection.name}:</div>
         <div class="mt-2"></div>
 
         <span>{'{'}</span>
         <div class="ml-4">
-          {#each skillSection.data as skill}
+          {#each skillSection.data as skill (skill.name)}
             <div class="flex items-center">
               <span class="text-constant">{skill.name}: </span>
-              <div class="flex ml-2">
+              <div class="ml-2 flex">
                 <StarRating rating={skill.value * 2} />
               </div>
               <span class="text-keyword">,</span>
@@ -31,10 +31,10 @@
   <h2 class="subtitle mt-6">Languages</h2>
   <span>{'{'}</span>
   <div class="ml-4">
-    {#each SITE_DATA.languages as language}
+    {#each SITE_DATA.languages as language (language.name)}
       <div class="flex items-center">
         <span class="text-constant">{language.name}: </span>
-        <div class="flex ml-2">
+        <div class="ml-2 flex">
           <StarRating rating={language.value * 2} />
         </div>
         <span class="text-keyword">,</span>

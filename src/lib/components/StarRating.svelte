@@ -4,15 +4,13 @@
   const width = $derived(ref?.getBoundingClientRect()?.width ?? 83);
 </script>
 
-<div class="relative flex text-[20px] indent-0" bind:this={ref}>
+<div class="relative flex indent-0 text-[20px]" bind:this={ref}>
   <span class="text-identifier/15">★★★★★</span>
 
+  <!-- Same five stars, clipped to the score — the fractional width is what
+       renders half stars, so counting glyphs would only fight it. -->
   <span
-    class="text-identifier absolute top-0 left-0 overflow-hidden"
-    style="width: {(width * rating) / 10}px;"
+    class="absolute top-0 left-0 overflow-hidden text-identifier"
+    style="width: {(width * rating) / 10}px;">★★★★★</span
   >
-    {#each Array(Math.round(rating / 2)) as _, i}
-      ★
-    {/each}
-  </span>
 </div>

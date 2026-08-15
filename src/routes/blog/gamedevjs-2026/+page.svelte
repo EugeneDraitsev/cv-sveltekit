@@ -35,10 +35,8 @@
 
   const laserSceneUrl = $derived(sceneUrl('weapons-playground--laser'));
   const bossSceneUrl = $derived(sceneUrl('playgrounds-combat--boss-gate-keeper'));
-  const roomSceneUrl = $derived(sceneUrl('playgrounds-rooms--lava-lane'));
   const finaleSceneUrl = $derived(sceneUrl('playgrounds-outside-finale--unlocked-entrance'));
   const loadoutSceneUrl = $derived(sceneUrl('playgrounds-loadout-modules--try-on-playground'));
-  const wallKitSceneUrl = $derived(sceneUrl('models-environment-wall-kit--modules'));
 
   onMount(() => {
     if (dev) {
@@ -177,7 +175,7 @@
   </svelte:element>
 </svelte:head>
 
-<main class="overlapped blog-page">
+<main id="main-content" class="overlapped blog-page" tabindex="-1">
   <article class="relative mx-auto mt-[-72px] max-w-4xl px-3 pb-10 sm:px-4">
     <div class="card">
       <a
@@ -189,7 +187,7 @@
       </a>
 
       <header class="mt-6 mb-8">
-        <p class="mb-3 text-xs uppercase text-keyword sm:text-sm">
+        <p class="mb-3 text-xs text-keyword uppercase sm:text-sm">
           Game jam · 13 days · built with AI agents
         </p>
         <h1 class="blog-title">Orb Knight: a 3D browser roguelite in 13 days</h1>
@@ -242,7 +240,7 @@
         </p>
 
         <div class="mb-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {#each highlights as highlight}
+          {#each highlights as highlight (highlight)}
             <div class="metric-card">
               <strong class="text-2xl text-number sm:text-3xl">{highlight.value}</strong>
               <span class="mt-1 text-xs text-identifier/70 sm:text-sm">{highlight.label}</span>
@@ -251,7 +249,7 @@
         </div>
 
         <ZoomableImage
-          src="/blog/gamedevjs-2026/jam-results.png"
+          src="/blog/gamedevjs-2026/jam-results.webp"
           alt="Gamedev.js Jam results for Orb Knight showing 6th place in Gameplay and 12th overall"
           aspect="flow"
           figureClass="mb-6"
@@ -264,14 +262,14 @@
           <figure class="rounded border border-base-300 bg-base-100 p-4">
             <figcaption class="mb-5 text-sm text-declaration">Category scores out of 5</figcaption>
             <div class="space-y-4">
-              {#each scores as criterion}
+              {#each scores as criterion (criterion)}
                 <div>
                   <div class="mb-1.5 flex items-center justify-between gap-3 text-xs sm:text-sm">
                     <span
                       >{criterion.label}
-                      <span class="text-identifier/55">{criterion.rank}</span></span
+                      <span class="text-identifier/75">{criterion.rank}</span></span
                     >
-                    <span class="font-semibold tabular-nums text-number"
+                    <span class="font-semibold text-number tabular-nums"
                       >{criterion.score.toFixed(3)}</span
                     >
                   </div>
@@ -291,7 +289,7 @@
             </div>
           </figure>
           <aside class="result-note">
-            <p class="text-xs uppercase tracking-wide text-keyword">Reading the board</p>
+            <p class="text-xs tracking-wide text-keyword uppercase">Reading the board</p>
             <h3 class="mt-2 text-xl text-constant">The loop landed. The idea was safe.</h3>
             <p class="mt-3 text-sm">
               Gameplay at 6th means the moment-to-moment feel — dodging, hitting, getting hit — did
@@ -307,7 +305,9 @@
 
       <section class="mb-12" aria-labelledby="game-heading">
         <p class="section-kicker">02 · What shipped</p>
-        <h2 id="game-heading" class="section-heading">A machine knight and the foundry it escapes</h2>
+        <h2 id="game-heading" class="section-heading">
+          A machine knight and the foundry it escapes
+        </h2>
         <p class="mb-6">
           The submitted build is a complete run: fight through seeded foundry rooms, collect gears,
           rebuild your machine at the loadout bay, survive the shop keeper's prices, beat the Gate
@@ -316,7 +316,7 @@
           Three.js for rendering, Rapier for physics, Bun for everything else.
         </p>
         <div class="mb-7 grid gap-4 md:grid-cols-3">
-          {#each shipped as item}
+          {#each shipped as item (item)}
             <article class="detail-card">
               <h3 class="text-lg text-constant">{item.title}</h3>
               <p class="mt-2 text-sm">{item.text}</p>
@@ -353,7 +353,7 @@
           annotated. 113 commits between April 15 and April 27.
         </p>
         <ol class="build-log">
-          {#each buildLog as entry}
+          {#each buildLog as entry (entry)}
             <li class="build-log-entry">
               <span class="build-log-date">{entry.date}</span>
               <div class="build-log-body">
@@ -407,40 +407,18 @@
 
           <article>
             <WebGLSceneEmbed
-              label="Scene 03 · Room grammar"
-              title="Lava Lane, from JSON"
-              src={roomSceneUrl}
-              poster="/blog/gamedevjs-2026/posters/lava-lane.webp"
-              description="One of 29 room templates: layout, hazards, platforms and enemy formation defined in JSON, validated with Zod, then assembled by the same code that builds every room in a seeded run. Lava included at no extra charge."
-            />
-          </article>
-        </div>
-
-        <div class="scene-pair">
-          <article>
-            <WebGLSceneEmbed
-              label="Scene 04 · The finale"
+              label="Scene 03 · The finale"
               title="Castle road, unlocked"
               src={finaleSceneUrl}
               poster="/blog/gamedevjs-2026/posters/finale.webp"
               description="What the whole run points at: the outside world past the broken dome. Seeded terrain chunks, road and grass shaders, and the gate that only opens when the Gate Keeper stops arguing."
             />
           </article>
-
-          <article>
-            <WebGLSceneEmbed
-              label="Scene 05 · Environment kit"
-              title="Foundry wall modules"
-              src={wallKitSceneUrl}
-              poster="/blog/gamedevjs-2026/posters/wall-kit.webp"
-              description="The foundry is assembled from code-defined frames, lamps, vents, pipes and gears — no imported level meshes. This fixture lays out the source modules and their composed variants under one camera."
-            />
-          </article>
         </div>
 
         <div>
           <WebGLSceneEmbed
-            label="Scene 06 · Loadout"
+            label="Scene 04 · Loadout"
             title="Try-on bay with live stats"
             src={loadoutSceneUrl}
             poster="/blog/gamedevjs-2026/posters/loadout.webp"
@@ -453,7 +431,9 @@
 
       <section class="mb-12" aria-labelledby="roles-heading">
         <p class="section-kicker">05 · The workflow</p>
-        <h2 id="roles-heading" class="section-heading">How the agent collaboration actually worked</h2>
+        <h2 id="roles-heading" class="section-heading">
+          How the agent collaboration actually worked
+        </h2>
         <p class="mb-6">
           Branches in the repo are literally named <code>codex/*</code> — agents wrote a lot of this game.
           But "agents wrote it" undersells what the job became: decomposing systems into tasks small enough
@@ -461,11 +441,11 @@
           away, and playtesting every change because no agent can feel a bad camera. The split, roughly:
         </p>
         <div class="grid gap-5 md:grid-cols-2">
-          {#each ownership as column}
+          {#each ownership as column (column)}
             <article class="detail-card">
               <h3 class="text-lg text-constant">{column.title}</h3>
               <ul class="mt-4 space-y-2">
-                {#each column.items as item}
+                {#each column.items as item (item)}
                   <li class="flex gap-2 text-sm">
                     <span class="text-keyword" aria-hidden="true">→</span>
                     <span>{item}</span>
@@ -481,7 +461,7 @@
         <p class="section-kicker">06 · Notes to future me</p>
         <h2 id="lessons-heading" class="section-heading">What I'd keep, what I'd change</h2>
         <div class="rulelist">
-          {#each lessons as lesson, index}
+          {#each lessons as lesson, index (index)}
             <article class="rule">
               <span class="rule-index">{String(index + 1).padStart(2, '0')}</span>
               <h3 class="rule-title">{lesson.title}</h3>

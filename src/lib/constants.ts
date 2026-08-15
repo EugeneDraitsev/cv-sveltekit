@@ -55,6 +55,7 @@ export const SITE_DATA = {
   experienceStartDate: '2011-12-01',
   details: {
     name: 'Eugene Draitsev',
+    birthDate: '1990-10-02',
     position: 'Senior Full-Stack / Platform Engineer',
     location: 'Stockholm, Sweden',
   },

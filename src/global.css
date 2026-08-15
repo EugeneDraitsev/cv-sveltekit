@@ -101,6 +101,14 @@ body {
   contain-intrinsic-size: auto 1000px;
 }
 
+/* Long posts: everything past the opening section skips style, layout and paint
+   until it is scrolled near. `auto` remembers each real height after the first
+   render, so the scrollbar settles instead of jumping. */
+.blog-page section:nth-of-type(n + 2) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 700px;
+}
+
 .nav-active-indicator {
   @apply pointer-events-none absolute bottom-0 left-0 h-px bg-identifier;
   transition:
@@ -368,7 +376,8 @@ body {
 
 .blog-page .trace-note {
   margin-top: 1rem;
-  color: color-mix(in srgb, var(--color-identifier) 55%, transparent);
+  /* 55% muted this below the 4.5:1 contrast floor in both themes. */
+  color: color-mix(in srgb, var(--color-identifier) 78%, transparent);
   font-size: 0.8rem;
 }
 
