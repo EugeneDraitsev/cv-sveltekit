@@ -98,11 +98,9 @@
   $effect(() => {
     // The 3D galaxy is a heavy, decorative enhancement (Three.js parse + particle
     // generation). Loading it eagerly blocks the main thread during initial load.
-    // Instead, defer it until the visitor shows engagement (any interaction) — or,
-    // for passive visitors, until the page has fully settled. This keeps first paint
-    // and interactivity instant while still delivering the live galaxy.
+    // Defer it until the visitor shows engagement. Passive readers keep the static
+    // backdrop and never pay the parsing or synchronous particle-generation cost.
     let cancelled = false;
-    let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
 
     if (!galaxyAllowed) return;
 
@@ -119,37 +117,34 @@
       if (galaxyLoadStarted || cancelled) return;
       galaxyLoadStarted = true;
       teardown();
-      const { default: App } = await import('$lib/components/three/ThrelteApp.svelte');
-      if (!cancelled) ThrelteApp = App;
+      try {
+        const { default: App } = await import('$lib/components/three/ThrelteApp.svelte');
+        if (cancelled) {
+          galaxyLoadStarted = false;
+          return;
+        }
+        ThrelteApp = App;
+      } catch (error) {
+        galaxyLoadStarted = false;
+        console.error('Unable to load the interactive galaxy', error);
+      }
     }
 
     function teardown() {
-      if (fallbackTimer) clearTimeout(fallbackTimer);
       events.forEach((event) => window.removeEventListener(event, loadGalaxy));
     }
 
     events.forEach((event) => window.addEventListener(event, loadGalaxy, { passive: true }));
 
-    function scheduleFallback() {
-      // Visitors who never interact still get the galaxy after a short delay.
-      // Any real touch/scroll/keypress loads it immediately (see the event
-      // list above) — the timer only covers completely passive viewers, and
-      // staying at 3.5s keeps the heavy 3D work out of Lighthouse's trace.
-      fallbackTimer = setTimeout(loadGalaxy, 3500);
-    }
-    if (document.readyState === 'complete') scheduleFallback();
-    else window.addEventListener('load', scheduleFallback, { once: true });
-
     return () => {
       cancelled = true;
       teardown();
-      window.removeEventListener('load', scheduleFallback);
     };
   });
 
   $effect(() => {
-    activeLinkIndex;
-    page.url.pathname;
+    void activeLinkIndex;
+    void page.url.pathname;
     tick().then(updateViewportState);
   });
 
@@ -168,20 +163,28 @@
 
 <svelte:head>
   <title>CV | {SITE_DATA.siteTitle}</title>
-  <meta name="description" content="Eugene Draitsev CV" />
-  <meta name="keywords" content={SITE_DATA.keyWords?.join(', ')} />
+  <meta name="description" content={SITE_DATA.siteDescription} />
+  <meta property="og:site_name" content={SITE_DATA.siteTitle} />
 </svelte:head>
 
-<nav
-  class="fixed theme-grayscale top-0 w-full z-10 bg-linear-to-br from-background/30 to-indigo-900/20 backdrop-blur-[1px]"
+<a
+  href="#main-content"
+  class="sr-only fixed top-2 left-2 z-50 rounded bg-base-100 px-3 py-2 text-identifier focus:not-sr-only"
 >
-  <div class="text-identifier max-w-325 mx-auto px-6 flex items-center justify-between py-1">
+  Skip to main content
+</a>
+
+<nav
+  aria-label="Primary"
+  class="theme-grayscale fixed top-0 z-10 w-full bg-linear-to-br from-background/30 to-indigo-900/20 backdrop-blur-[1px]"
+>
+  <div class="mx-auto flex max-w-325 items-center justify-between px-6 py-1 text-identifier">
     <div bind:this={tabsElement} class="nav-tabs relative flex gap-4 pb-1">
       {#each headerLinks as { label, href }, index (href)}
         <a
           bind:this={linkElements[index]}
           href={resolve(href)}
-          class="relative z-1 text-identifier hover:text-identifier/90 transition-colors duration-200"
+          class="relative z-1 text-identifier transition-colors duration-200 hover:text-identifier/90"
           aria-current={isHeaderLinkActive(href, normalizePathname(page.url.pathname))
             ? 'page'
             : undefined}
@@ -189,7 +192,7 @@
           {label}
         </a>
       {/each}
-      <span class="nav-active-indicator" style={activeIndicatorStyle}></span>
+      <span class="nav-active-indicator" style={activeIndicatorStyle} aria-hidden="true"></span>
     </div>
 
     <ThemeSwitcher />
@@ -200,7 +203,7 @@
   {#if galaxyAllowed && ThrelteApp}
     <ThrelteApp />
   {:else}
-    <div class="galaxy-placeholder theme-grayscale min-h-135 w-full" aria-hidden="true"></div>
+    <div class="galaxy-placeholder theme-grayscale w-full" aria-hidden="true"></div>
   {/if}
 </div>
 

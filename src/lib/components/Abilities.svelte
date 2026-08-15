@@ -1,45 +1,34 @@
 <script lang="ts">
-  import StarRating from '$lib/components/StarRating.svelte';
   import { SITE_DATA } from '$lib/constants';
 </script>
 
 <div>
   <h2 class="subtitle">Skills</h2>
-  <div class="grid grid-cols-1 sm:grid-cols-[300px_300px] gap-6">
-    {#each SITE_DATA.skills as skillSection}
-      <div>
-        <div>{skillSection.name}:</div>
-        <div class="mt-2"></div>
-
-        <span>{'{'}</span>
-        <div class="ml-4">
-          {#each skillSection.data as skill}
-            <div class="flex items-center">
-              <span class="text-constant">{skill.name}: </span>
-              <div class="flex ml-2">
-                <StarRating rating={skill.value * 2} />
-              </div>
-              <span class="text-keyword">,</span>
-            </div>
+  <p class="mb-6 max-w-3xl text-sm leading-6 text-identifier/75">
+    Grouped by how I use the technology rather than by subjective star ratings. Project stories
+    below show the evidence behind the labels.
+  </p>
+  <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+    {#each SITE_DATA.skills as skillSection (skillSection.name)}
+      <section class="rounded border border-base-300 p-4">
+        <h3 class="text-lg text-constant">{skillSection.name}</h3>
+        <p class="mt-2 text-sm text-identifier/70">{skillSection.description}</p>
+        <ul class="mt-4 flex flex-wrap gap-2" aria-label={skillSection.name}>
+          {#each skillSection.data as skill (skill)}
+            <li class="rounded border border-base-300 px-2 py-1 text-sm">{skill}</li>
           {/each}
-        </div>
-        <span>}</span>
-      </div>
+        </ul>
+      </section>
     {/each}
   </div>
 
   <h2 class="subtitle mt-6">Languages</h2>
-  <span>{'{'}</span>
-  <div class="ml-4">
-    {#each SITE_DATA.languages as language}
-      <div class="flex items-center">
-        <span class="text-constant">{language.name}: </span>
-        <div class="flex ml-2">
-          <StarRating rating={language.value * 2} />
-        </div>
-        <span class="text-keyword">,</span>
+  <dl class="grid gap-2 sm:max-w-xl">
+    {#each SITE_DATA.languages as language (language.name)}
+      <div class="flex flex-wrap justify-between gap-2 border-b border-base-300 py-2">
+        <dt class="text-constant">{language.name}</dt>
+        <dd class="text-sm text-identifier/75">{language.proficiency}</dd>
       </div>
     {/each}
-  </div>
-  <span>}</span>
+  </dl>
 </div>

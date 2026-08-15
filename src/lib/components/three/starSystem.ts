@@ -44,9 +44,9 @@ function hslToHex(h: number, s: number, l: number): number {
   const c = (1 - Math.abs(2 * l - 1)) * s;
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
   const m = l - c / 2;
-  let r = 0;
-  let g = 0;
-  let b = 0;
+  let r: number;
+  let g: number;
+  let b: number;
   if (h < 60) [r, g, b] = [c, x, 0];
   else if (h < 120) [r, g, b] = [x, c, 0];
   else if (h < 180) [r, g, b] = [0, c, x];
@@ -707,13 +707,14 @@ function pickBiomes(rng: Rng, archetype: PlanetArchetype): BiomeDef[] {
   }
 
   const layout = CLIMATE_LAYOUTS[seeds.length];
-  return seeds.map((seed, i) => ({
-    ...seed,
-    climate: [layout[i][0] + range(rng, -0.1, 0.1), layout[i][1] + range(rng, -0.1, 0.1)] as [
-      number,
-      number,
-    ],
-  }));
+  return seeds.map((seed, i) =>
+    Object.assign(seed, {
+      climate: [layout[i][0] + range(rng, -0.1, 0.1), layout[i][1] + range(rng, -0.1, 0.1)] as [
+        number,
+        number,
+      ],
+    }),
+  );
 }
 
 function buildSurface(archetype: PlanetArchetype, rng: Rng): SurfaceParams {

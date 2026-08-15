@@ -1,6 +1,7 @@
 export const SITE_DATA = {
   siteTitle: 'Eugene Draitsev',
-  siteDescription: 'Eugene Draitsev — Senior Full-Stack Engineer in Stockholm',
+  siteDescription:
+    'Eugene Draitsev — Senior Full-Stack and Platform Engineer in Stockholm, building production web, cloud, security and AI systems.',
   githubUsername: 'EugeneDraitsev',
   keyWords: [
     'Eugene Draitsev',
@@ -11,12 +12,10 @@ export const SITE_DATA = {
     'ai-agents',
     'webgl',
   ],
-  authorDescription: `Hi, I'm Eugene—a full-stack engineer who enjoys the awkward middle between a promising idea
-  and a system people can trust. I have been building production software since 2011, from commerce and
-  authentication flows to cloud platforms, AI agents and WebGL experiments. I am happiest when the problem
-  is still a little messy: shape the first useful version, make the trade-offs visible, ship it, then harden
-  what survives contact with real users. My current toolkit is centered on Svelte, React, TypeScript,
-  Kubernetes and AWS/GCP, with a growing amount of security, agentic systems and Three.js work.`,
+  authorDescription: `I enjoy the awkward middle between a promising idea and a system people can trust.
+  Since 2011 I have worked across commerce, identity, cloud platforms, AI agents and real-time graphics—shaping
+  the first useful version, making trade-offs visible, shipping it, then hardening what survives contact with
+  real users.`,
   profileHighlights: [
     'I work across the full delivery loop: discovery, scoping, architecture, implementation, rollout and the unglamorous fixes after launch.',
     'Current rabbit holes: security and passkeys, Kubernetes, AI agent reliability, tool execution, observability and real-time graphics.',
@@ -56,49 +55,52 @@ export const SITE_DATA = {
   experienceStartDate: '2011-12-01',
   details: {
     name: 'Eugene Draitsev',
-    birthDate: '1990-10-02',
-    position: 'Senior Full-Stack Engineer',
+    position: 'Senior Full-Stack / Platform Engineer',
     location: 'Stockholm, Sweden',
   },
   skills: [
     {
-      name: 'Programming Languages',
+      name: 'Primary production stack',
+      description: 'Tools I use for current delivery and architecture work.',
       data: [
-        { name: 'JavaScript', value: 5 },
-        { name: 'TypeScript', value: 5 },
-        { name: 'HTML', value: 5 },
-        { name: 'CSS', value: 5 },
-        { name: 'Rust', value: 3 },
-        { name: 'Java', value: 3.5 },
-        { name: 'Swift', value: 3 },
+        'TypeScript / JavaScript',
+        'Svelte / SvelteKit',
+        'React / Next.js',
+        'Node.js',
+        'AWS / GCP',
+        'Kubernetes / Docker',
+        'Security / WebAuthn',
       ],
     },
     {
-      name: 'Tools & Technologies',
+      name: 'Deep production experience',
+      description: 'Technologies used in shipped systems over multiple years.',
       data: [
-        { name: 'React / Next', value: 5 },
-        { name: 'Svelte / SvelteKit', value: 5 },
-        { name: 'React Native', value: 4.5 },
-        { name: 'AWS', value: 4 },
-        { name: 'Kubernetes', value: 4 },
-        { name: 'Node', value: 4.5 },
-        { name: 'AI Agents', value: 4 },
-        { name: 'Three.js / WebGL', value: 4.5 },
-        { name: 'Security/Auth', value: 4 },
-        { name: 'Observability', value: 4 },
-        { name: 'D3', value: 4.5 },
-        { name: 'GraphQL', value: 4.5 },
-        { name: 'Angular', value: 3.5 },
-        { name: 'Vue', value: 3.5 },
-        { name: 'SQL Databases', value: 3.5 },
-        { name: 'NoSQL Databases', value: 4.5 },
+        'React Native',
+        'GraphQL / REST',
+        'DynamoDB / Redis',
+        'SQL databases',
+        'D3 / data visualization',
+        'Observability',
+        'Serverless systems',
+        'E-commerce integrations',
       ],
+    },
+    {
+      name: 'Active explorations',
+      description: 'Areas where current projects are building additional depth.',
+      data: ['AI agent runtimes', 'Three.js / WebGL', 'Rust', 'Procedural generation'],
+    },
+    {
+      name: 'Earlier production work',
+      description: 'Technologies used professionally, but not central to my current stack.',
+      data: ['Java / Spring', 'Angular', 'Vue', 'Swift'],
     },
   ],
   languages: [
-    { name: 'Russian', value: 5 },
-    { name: 'English', value: 4.5 },
-    { name: 'Belarusian', value: 5 },
+    { name: 'Russian', proficiency: 'Native' },
+    { name: 'English', proficiency: 'Full professional proficiency' },
+    { name: 'Belarusian', proficiency: 'Native' },
   ],
   careers: [
     {

@@ -52,7 +52,6 @@
 
   function activateFooterShader(node: HTMLElement) {
     let observer: IntersectionObserver | undefined;
-    let visibilityPoll: number | undefined;
     let firstVisibilityCheck: number | undefined;
     let activated = false;
 
@@ -65,12 +64,6 @@
       observer?.disconnect();
       window.removeEventListener('scroll', checkFooterVisibility);
       window.removeEventListener('resize', checkFooterVisibility);
-      document.removeEventListener('scroll', checkFooterVisibility, true);
-
-      if (visibilityPoll) {
-        window.clearInterval(visibilityPoll);
-        visibilityPoll = undefined;
-      }
 
       if (firstVisibilityCheck) {
         window.clearTimeout(firstVisibilityCheck);
@@ -92,23 +85,17 @@
       }
     }
 
-    if ('IntersectionObserver' in window) {
-      observer = new IntersectionObserver(
-        (entries) => {
-          if (!entries.some((entry) => entry.isIntersecting)) return;
+    observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
 
-          activateShader();
-        },
-        { rootMargin: '0px', threshold: 0 },
-      );
+        activateShader();
+      },
+      { rootMargin: '0px', threshold: 0 },
+    );
 
-      observer.observe(node);
-    }
+    observer.observe(node);
 
-    window.addEventListener('scroll', checkFooterVisibility, { passive: true });
-    window.addEventListener('resize', checkFooterVisibility);
-    document.addEventListener('scroll', checkFooterVisibility, { capture: true, passive: true });
-    visibilityPoll = window.setInterval(checkFooterVisibility, 75);
     firstVisibilityCheck = window.setTimeout(checkFooterVisibility, 0);
     checkFooterVisibility();
 
@@ -135,9 +122,9 @@
     class="pointer-events-none relative z-10 mx-auto flex max-w-325 flex-col gap-5 px-4 pt-8 sm:px-6"
   >
     <div class="w-fit max-w-full">
-      <p class="text-sm uppercase text-keyword">End of file</p>
+      <p class="text-sm text-keyword uppercase">End of file</p>
       <nav class="mt-4 flex flex-wrap gap-2" aria-label="Footer links">
-        {#each links as link}
+        {#each links as link (link.href)}
           <a
             class={`footer-link pointer-events-auto inline-flex items-center gap-2 rounded border border-base-300 bg-base-100/55 px-3 py-2 text-sm text-identifier backdrop-blur-[1px] ${link.hoverClass}`}
             href={link.href}

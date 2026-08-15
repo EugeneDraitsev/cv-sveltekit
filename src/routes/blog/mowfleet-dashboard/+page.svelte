@@ -2,6 +2,23 @@
   import { resolve } from '$app/paths';
   import Icon from '$lib/components/Icon.svelte';
   import ZoomableImage from '$lib/components/ZoomableImage.svelte';
+  import { formatPostDate, getBlogPost, serializeJsonLd } from '$lib/blog';
+  import { SITE_DATA } from '$lib/constants';
+
+  const post = getBlogPost('mowfleet-dashboard');
+  const canonicalUrl = new URL(`/blog/${post.slug}`, SITE_DATA.siteUrl).href;
+  const socialImageUrl = new URL(post.image, SITE_DATA.siteUrl).href;
+  const postSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.description,
+    image: socialImageUrl,
+    datePublished: post.datePublished,
+    dateModified: post.dateModified,
+    mainEntityOfPage: canonicalUrl,
+    author: { '@type': 'Person', name: SITE_DATA.details.name, url: SITE_DATA.siteUrl },
+  };
 
   const facts = [
     'Designed and implemented the dashboard, backend services, data model and deployment architecture.',
@@ -11,7 +28,7 @@
     'Next.js dashboard with React, Tailwind, daisyUI, SWR, Chart.js, Google Maps and react-pdf.',
     'Serverless Framework backend on AWS Lambda, API Gateway, DynamoDB and S3 in eu-central-1.',
     'Husqvarna OAuth and Fleet Services APIs are the source of users, access groups, mower state, utilization and errors.',
-    'The integration includes a partly reverse-engineered Husqvarna web and Fleet Services surface.',
+    'The integration includes undocumented and legacy Husqvarna web and Fleet Services surfaces.',
     'Scheduled sync lambdas collect activity every 5 minutes, access groups hourly, and utilization/errors every 2 hours.',
     'Most support work is triggered by vendor API changes or new operational requirements.',
     'The application covers fleet analytics, zones, maps, mower state, activity history, settings and PDF reports.',
@@ -94,7 +111,7 @@
     },
     {
       title: 'Isolate vendor API volatility',
-      text: 'The reverse-engineered Husqvarna integration is confined to the sync and API layer. Fleet Services changes therefore do not require every chart and page to understand upstream response shapes.',
+      text: 'The undocumented Husqvarna integration surface is confined to the sync and API layer. Fleet Services changes therefore do not require every chart and page to understand upstream response shapes.',
     },
     {
       title: 'Design for unattended operation',
@@ -106,7 +123,7 @@
     'Investigating why Utilization Summary can stop showing activity while Zones Coverage still proves that robots were mowing.',
     'Explaining utilization calculations when customer reports reveal domain rules such as parts of a site being mowed twice per week.',
     'Checking support for Husqvarna 580 EPOS and 540 EPOS robots used in a MowFleet hybrid setup.',
-    'Scoping whether MCC can replace visibility that Husqvarna removed from Automower Connect for customer staff: charging, no loop signal and cutting-height warnings.',
+    'Scoping whether MCC can replace operational visibility no longer exposed to customer staff in Automower Connect: charging, no loop signal and cutting-height warnings.',
     'Helping future app work align with the existing backend data flow and MCC data model.',
   ];
 
@@ -124,9 +141,21 @@
     name="description"
     content="Architecture and implementation of MowFleet Control Center: a Next.js operations dashboard and serverless AWS pipeline for autonomous mower fleet data."
   />
+  <link rel="canonical" href={canonicalUrl} />
+  <meta property="og:title" content={post.title} />
+  <meta property="og:description" content={post.description} />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content={canonicalUrl} />
+  <meta property="og:image" content={socialImageUrl} />
+  <meta property="article:published_time" content={post.datePublished} />
+  <meta property="article:modified_time" content={post.dateModified} />
+  <meta name="twitter:card" content="summary_large_image" />
+  <svelte:element this={"script"} type="application/ld+json">
+    {serializeJsonLd(postSchema)}
+  </svelte:element>
 </svelte:head>
 
-<main class="overlapped blog-page">
+<main id="main-content" class="overlapped blog-page" tabindex="-1">
   <article class="relative mx-auto mt-[-72px] max-w-4xl px-3 pb-10 sm:px-4">
     <div class="card">
       <a
@@ -138,8 +167,12 @@
       </a>
 
       <div class="mt-6 mb-8">
-        <p class="mb-3 text-xs uppercase text-keyword sm:text-sm">
+        <p class="mb-3 text-xs text-keyword uppercase sm:text-sm">
           Production B2B system · Full-stack ownership
+        </p>
+        <p class="mb-3 text-xs text-identifier/60">
+          Published <time datetime={post.datePublished}>{formatPostDate(post.datePublished)}</time>
+          · Updated <time datetime={post.dateModified}>{formatPostDate(post.dateModified)}</time>
         </p>
         <h1 class="blog-title">MowFleet Control Center: operating an autonomous mower fleet</h1>
         <p class="blog-lead">
@@ -171,7 +204,7 @@
           vendor API shifts under the product.
         </p>
         <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {#each operatingRhythm as item}
+          {#each operatingRhythm as item (item.label)}
             <div class="rhythm-card">
               <strong class="text-xl text-number">{item.value}</strong>
               <span class="mt-1 text-xs text-identifier/70">{item.label}</span>
@@ -179,7 +212,7 @@
           {/each}
         </div>
         <div class="grid gap-3 md:grid-cols-2">
-          {#each facts as fact}
+          {#each facts as fact (fact)}
             <div class="border-l-2 border-keyword pl-4 text-sm">{fact}</div>
           {/each}
         </div>
@@ -188,11 +221,11 @@
       <section class="mb-10">
         <h2 class="subtitle">Architecture: keep the vendor at arm's length</h2>
         <p class="mb-5">
-          Husqvarna OAuth and a partly reverse-engineered Fleet Services surface feed scheduled
-          Lambda jobs. The jobs normalize external responses into DynamoDB tables, while GeoJSON
-          zone data is stored in S3. The dashboard reads MowFleet-owned contracts instead of vendor
-          response objects, limiting the impact of upstream changes. The architecture diagram is
-          generated from Mermaid source stored with the implementation.
+          Husqvarna OAuth and an undocumented Fleet Services surface feed scheduled Lambda jobs. The
+          jobs normalize external responses into DynamoDB tables, while GeoJSON zone data is stored
+          in S3. The dashboard reads MowFleet-owned contracts instead of vendor response objects,
+          limiting the impact of upstream changes. The architecture diagram is generated from
+          Mermaid source stored with the implementation.
         </p>
         <ZoomableImage
           src="/blog/mowfleet-dashboard/architecture-light.svg"
@@ -208,7 +241,7 @@
       <section class="mb-10">
         <h2 class="subtitle">What operators get</h2>
         <div class="grid gap-5 md:grid-cols-2">
-          {#each productAreas as area}
+          {#each productAreas as area (area.title)}
             <div class="border-t border-base-300 pt-4">
               <h3 class="text-lg text-constant">{area.title}</h3>
               <p class="mt-2 text-sm">{area.text}</p>
@@ -226,7 +259,7 @@
           recorded mowing sessions.
         </p>
         <div class="grid gap-5">
-          {#each screenshots as screenshot}
+          {#each screenshots as screenshot (screenshot.src)}
             <ZoomableImage
               src={screenshot.src}
               alt={screenshot.alt}
@@ -251,7 +284,7 @@
             From external fleet data to customer-facing operations
           </figcaption>
           <ol class="data-flow">
-            {#each ['Husqvarna OAuth', 'Fleet Services API', 'Scheduled Lambda sync', 'DynamoDB + S3', 'MCC API endpoints', 'Dashboard + reports'] as stage, index}
+            {#each ['Husqvarna OAuth', 'Fleet Services API', 'Scheduled Lambda sync', 'DynamoDB + S3', 'MCC API endpoints', 'Dashboard + reports'] as stage, index (stage)}
               <li class="flow-node">
                 <span class="text-[10px] text-keyword">0{index + 1}</span>
                 <span class="mt-1">{stage}</span>
@@ -269,7 +302,7 @@
           receives. Concretely:
         </p>
         <ul class="list-disc space-y-2 pl-5">
-          {#each deliverySignals as signal}
+          {#each deliverySignals as signal (signal)}
             <li>{signal}</li>
           {/each}
         </ul>
@@ -278,7 +311,7 @@
       <section class="mb-10">
         <h2 class="subtitle">Design decisions</h2>
         <div class="grid gap-5 md:grid-cols-2">
-          {#each engineeringDecisions as decision}
+          {#each engineeringDecisions as decision (decision.title)}
             <div class="border-t border-base-300 pt-4">
               <h3 class="text-lg text-constant">{decision.title}</h3>
               <p class="mt-2 text-sm">{decision.text}</p>
@@ -292,10 +325,10 @@
         <p class="mb-4">
           Support here is concrete: something observable stops matching reality and I go find out
           why. A sample of real cases — vendor API changes eating statistics, robot compatibility
-          checks, and visibility features Husqvarna quietly removed from their own product:
+          checks, and operational visibility no longer available in the upstream product:
         </p>
         <ul class="list-disc space-y-2 pl-5">
-          {#each supportSignals as signal}
+          {#each supportSignals as signal (signal)}
             <li>{signal}</li>
           {/each}
         </ul>
@@ -308,7 +341,7 @@
           so that's where the next effort goes:
         </p>
         <ul class="list-disc space-y-2 pl-5">
-          {#each nextSteps as step}
+          {#each nextSteps as step (step)}
             <li>{step}</li>
           {/each}
         </ul>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
+  import { SvelteMap } from 'svelte/reactivity';
 
   type Aspect = 'video' | 'process' | 'flow' | 'auto';
 
@@ -57,7 +58,7 @@
   let tapStartY = 0;
   let zoom = $state(MIN_ZOOM);
 
-  const activePointers = new Map<number, Point>();
+  const activePointers = new SvelteMap<number, Point>();
 
   const modalImageClass = $derived(
     {
@@ -353,7 +354,7 @@
       class="pointer-events-none relative z-10 grid h-full w-full place-items-center overflow-hidden rounded-lg"
     >
       <div
-        class="pointer-events-auto origin-center touch-none select-none transition-transform duration-100 ease-out"
+        class="pointer-events-auto origin-center touch-none transition-transform duration-100 ease-out select-none"
         class:cursor-grab={zoom > MIN_ZOOM && !isPanning}
         class:cursor-grabbing={zoom > MIN_ZOOM && isPanning}
         class:cursor-zoom-in={zoom <= MIN_ZOOM}

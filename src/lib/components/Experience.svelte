@@ -3,10 +3,11 @@
 
   const { careers, educations } = SITE_DATA;
   const deliveryLabels = ['partner launch', 'authorization', 'AI agents', 'commerce systems'];
-  const deliveryCards = SITE_DATA.deliveryHighlights.map((highlight, index) => ({
-    ...highlight,
-    label: deliveryLabels[index] ?? highlight.tags[0],
-  }));
+  const deliveryCards = SITE_DATA.deliveryHighlights.map((highlight, index) =>
+    Object.assign({}, highlight, {
+      label: deliveryLabels[index] ?? highlight.tags[0],
+    }),
+  );
 </script>
 
 <div class="overflow-hidden sm:rounded-lg">
@@ -21,20 +22,19 @@
     </div>
 
     <div class="grid gap-4 md:grid-cols-2">
-      {#each deliveryCards as highlight}
+      {#each deliveryCards as highlight (highlight.title)}
         <article class="delivery-card">
           <div class="mb-3 flex items-center gap-2">
             <span class="delivery-badge">{highlight.label}</span>
           </div>
 
-          <h3 class="text-constant text-lg leading-snug">{highlight.title}</h3>
+          <h3 class="text-lg leading-snug text-constant">{highlight.title}</h3>
 
           <p class="mt-3 text-sm leading-6">
             {highlight.text}
             {#if 'href' in highlight}
-              {' '}
               <a
-                class="text-declaration cursor-pointer underline"
+                class="ml-1 cursor-pointer text-declaration underline"
                 href={highlight.href}
                 target="_blank"
                 rel="noreferrer"
@@ -45,12 +45,12 @@
           </p>
 
           <p class="mt-4 text-sm leading-6">
-            <span class="text-keyword">Impact:</span>
+            <span class="text-keyword">Delivered:</span>
             {highlight.result}
           </p>
 
           <div class="mt-4 flex flex-wrap gap-2 text-xs">
-            {#each highlight.tags as tag}
+            {#each highlight.tags as tag (tag)}
               <span class="delivery-tag">{tag}</span>
             {/each}
           </div>
@@ -62,13 +62,13 @@
   <h2 class="subtitle">Careers</h2>
   <span>[</span>
   <div class="ml-2">
-    {#each careers as career}
+    {#each careers as career (career.company)}
       <div class="px-2">
         <span>{'{'}</span>
         <div class="flex flex-col items-stretch justify-stretch md:flex-row md:items-center">
-          <div class="w-15 h-15 mx-auto md:mx-5 mb-4">
+          <div class="mx-auto mb-4 h-15 w-15 md:mx-5">
             <img
-              alt="logo"
+              alt={`${career.company} logo`}
               loading="lazy"
               width="120"
               height="120"
@@ -81,17 +81,17 @@
             />
           </div>
           <div class="flex min-w-[250px] flex-col text-center text-sm md:text-left">
-            <span class="text-constant text-[16px]">{career.company}</span>
+            <span class="text-[16px] text-constant">{career.company}</span>
             <span class="text-declaration">{career.location}</span>
             <div>{career.position}</div>
             <div>{career.period}</div>
           </div>
-          <div class="pl-6 mt-4 md:mt-0 md:text-left">
+          <div class="mt-4 pl-6 md:mt-0 md:text-left">
             {career.description}
           </div>
         </div>
         <span>}</span>
-        <span class="text-keyword -ml-2">,</span>
+        <span class="-ml-2 text-keyword">,</span>
       </div>
     {/each}
   </div>
@@ -101,25 +101,25 @@
   <h2 class="subtitle">Education</h2>
   <span>[</span>
   <div class="ml-2">
-    {#each educations as education}
+    {#each educations as education (education.name)}
       <div class="px-2">
         <span>{'{'}</span>
-        <div class="flex flex-col items-stretch justify-stretch md:flex-row md:items-center gap-4">
-          <div class="w-15 h-15 mx-auto md:mx-5">
+        <div class="flex flex-col items-stretch justify-stretch gap-4 md:flex-row md:items-center">
+          <div class="mx-auto h-15 w-15 md:mx-5">
             <img
-              alt="logo"
+              alt={`${education.name} logo`}
               loading="lazy"
               width="120"
               height="120"
               decoding="async"
               data-nimg="1"
-              class="mb-2 w-15 rounded-full object-contain md:m-0 text-transparent"
+              class="mb-2 w-15 rounded-full object-contain text-transparent md:m-0"
               srcset="{education.logo} 1x, {education.logo} 2x"
               src={education.logo}
             />
           </div>
-          <div class="min-w-[250px] flex flex-col text-center text-sm md:text-left">
-            <span class="text-constant text-lg">{education.name}</span>
+          <div class="flex min-w-[250px] flex-col text-center text-sm md:text-left">
+            <span class="text-lg text-constant">{education.name}</span>
             <span class="text-declaration">{education.location}</span>
             <div class="mt-2">
               <div>{education.degree}</div>
@@ -129,7 +129,7 @@
           </div>
         </div>
         <span>}</span>
-        <span class="text-keyword -ml-2">,</span>
+        <span class="-ml-2 text-keyword">,</span>
       </div>
     {/each}
   </div>

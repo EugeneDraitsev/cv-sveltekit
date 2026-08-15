@@ -6,16 +6,19 @@
 
 <div class="flex gap-4">
   <button
-    class="cursor-pointer h-8 text-2xl"
-    aria-label="theme-switcher"
+    class="h-8 cursor-pointer text-2xl"
+    aria-label={themeStore.grayscale ? 'Show full color' : 'Use monochrome visuals'}
+    aria-pressed={themeStore.grayscale}
+    title={themeStore.grayscale ? 'Show full color' : 'Use monochrome visuals'}
     onclick={() => setGrayscale(!themeStore.grayscale)}
   >
     <Icon icon="ic:twotone-invert-colors" />
   </button>
 
   <button
-    class="cursor-pointer h-8 text-2xl"
-    aria-label="theme-switcher"
+    class="h-8 cursor-pointer text-2xl"
+    aria-label={themeStore.theme === 'light' ? 'Use dark theme' : 'Use light theme'}
+    title={themeStore.theme === 'light' ? 'Use dark theme' : 'Use light theme'}
     onclick={() => setTheme(themeStore.theme === 'light' ? 'dark' : 'light')}
   >
     {#if themeStore.theme === 'light'}

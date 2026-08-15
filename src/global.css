@@ -36,6 +36,7 @@
 
 html {
   scrollbar-gutter: auto;
+  --galaxy-height: 540px;
 }
 
 html.has-scrollbar {
@@ -43,19 +44,19 @@ html.has-scrollbar {
 }
 
 body {
-  @apply bg-base-100 text-identifier leading-[1.4];
+  @apply bg-base-100 leading-[1.4] text-identifier;
 }
 
 .card {
-  @apply bg-base-200 border-base-300 w-full rounded border p-6 shadow-lg;
+  @apply w-full rounded border border-base-300 bg-base-200 p-6 shadow-lg;
 }
 
 .title {
-  @apply text-identifier my-6 text-4xl;
+  @apply my-6 text-4xl text-identifier;
 }
 
 .subtitle {
-  @apply text-declaration mb-5 text-3xl;
+  @apply mb-5 text-3xl text-declaration;
 }
 
 .blog-page {
@@ -72,7 +73,7 @@ body {
 }
 
 .blog-title {
-  @apply text-declaration text-[1.8rem] leading-[1.18] sm:text-4xl sm:leading-tight;
+  @apply text-[1.8rem] leading-[1.18] text-declaration sm:text-4xl sm:leading-tight;
 }
 
 .blog-lead {
@@ -101,7 +102,7 @@ body {
 }
 
 .nav-active-indicator {
-  @apply bg-identifier pointer-events-none absolute bottom-0 left-0 h-px;
+  @apply pointer-events-none absolute bottom-0 left-0 h-px bg-identifier;
   transition:
     transform 220ms ease,
     width 220ms ease,
@@ -180,6 +181,7 @@ body {
    short idle fallback): the renderer's clear colour plus a faint nebular glow
    where the galaxy will appear, so the wait reads as intentional. */
 .galaxy-placeholder {
+  min-height: var(--galaxy-height);
   background:
     radial-gradient(
       ellipse 62% 44% at 50% 46%,
@@ -187,6 +189,12 @@ body {
       transparent 72%
     ),
     var(--color-base-100);
+}
+
+@media (max-width: 768px) {
+  html {
+    --galaxy-height: 440px;
+  }
 }
 
 [data-theme='light'] .galaxy-placeholder {

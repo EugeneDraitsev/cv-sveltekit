@@ -15,24 +15,36 @@
     return years;
   };
 
-  const formatDetails = (details: typeof SITE_DATA.details) => {
-    const { birthDate, ...restDetails } = details;
-
-    const age = getFullYearsSince(birthDate);
-
-    return {
-      ...restDetails,
-      age,
-    };
-  };
-
-  const details = formatDetails(SITE_DATA.details);
+  const details = SITE_DATA.details;
   const yearsOfExperience = getFullYearsSince(SITE_DATA.experienceStartDate);
   const profileHighlights = [
     `${yearsOfExperience}+ years building production web systems across frontend, backend, infrastructure and integrations.`,
     ...SITE_DATA.profileHighlights,
   ];
 </script>
+
+<header class="mb-8 border-b border-base-300 pb-7">
+  <p class="mb-2 text-xs tracking-wide text-keyword uppercase sm:text-sm">Portfolio & CV</p>
+  <h1 class="text-4xl leading-tight text-declaration sm:text-5xl">{SITE_DATA.details.name}</h1>
+  <p class="mt-3 text-lg text-constant sm:text-xl">{SITE_DATA.details.position}</p>
+  <p class="mt-1 text-sm text-identifier/75">{SITE_DATA.details.location}</p>
+  <div class="mt-5 flex flex-wrap gap-3 text-sm">
+    <a
+      class="rounded border border-declaration px-3 py-2 text-declaration transition-colors hover:bg-declaration/10"
+      href={SITE_DATA.pdf}
+      target="_blank"
+      rel="noreferrer"
+    >
+      Download CV
+    </a>
+    <a
+      class="rounded border border-base-300 px-3 py-2 text-constant transition-colors hover:bg-constant/10"
+      href="#projects"
+    >
+      Selected work
+    </a>
+  </div>
+</header>
 
 <div class="grid gap-5 md:mx-auto md:max-w-5xl md:grid-cols-2">
   <div>
@@ -42,7 +54,12 @@
     </p>
     <p class="my-6">
       Prefer the one-page version? My
-      <a class="text-declaration cursor-pointer underline" href={SITE_DATA.pdf} target="_blank">
+      <a
+        class="cursor-pointer text-declaration underline"
+        href={SITE_DATA.pdf}
+        target="_blank"
+        rel="noreferrer"
+      >
         detailed CV is available as a PDF
       </a>
     </p>
@@ -53,7 +70,7 @@
     <div class="flex flex-1 flex-col justify-start">
       <span>{'{'}</span>
       <div class="ml-4">
-        {#each Object.entries(details) as [key, value]}
+        {#each Object.entries(details) as [key, value] (key)}
           <div class="my-1">
             <span class="text-constant">{key}</span>:
             {#if typeof value === 'number'}
@@ -63,7 +80,7 @@
                 '{value}'
               </span>
             {/if}
-            <span class="text-keyword -ml-2">,</span>
+            <span class="-ml-2 text-keyword">,</span>
           </div>
         {/each}
       </div>
@@ -72,7 +89,7 @@
       <div class="mt-8">
         <h2 class="subtitle">Focused on</h2>
         <div class="space-y-3">
-          {#each profileHighlights as highlight}
+          {#each profileHighlights as highlight (highlight)}
             <p>{highlight}</p>
           {/each}
         </div>

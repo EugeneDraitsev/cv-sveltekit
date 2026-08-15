@@ -2,9 +2,25 @@
   import { resolve } from '$app/paths';
   import Icon from '$lib/components/Icon.svelte';
   import ZoomableImage from '$lib/components/ZoomableImage.svelte';
+  import { formatPostDate, getBlogPost, serializeJsonLd } from '$lib/blog';
+  import { SITE_DATA } from '$lib/constants';
 
   const repoUrl = 'https://github.com/EugeneDraitsev/telegram-bot-app';
   const uiUrl = 'https://github.com/EugeneDraitsev/telegram-bot-ui';
+  const post = getBlogPost('telegram-bot-app');
+  const canonicalUrl = new URL(`/blog/${post.slug}`, SITE_DATA.siteUrl).href;
+  const socialImageUrl = new URL(post.image, SITE_DATA.siteUrl).href;
+  const postSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.description,
+    image: socialImageUrl,
+    datePublished: post.datePublished,
+    dateModified: post.dateModified,
+    mainEntityOfPage: canonicalUrl,
+    author: { '@type': 'Person', name: SITE_DATA.details.name, url: SITE_DATA.siteUrl },
+  };
 
   const projectFacts = [
     'In continuous use since the first commit on July 16, 2015',
@@ -95,9 +111,21 @@
     name="description"
     content="Architecture of a long-running Telegram agent system with Lambda ingress, asynchronous workers, reply gating, scoped context, tools, failover and runtime metrics."
   />
+  <link rel="canonical" href={canonicalUrl} />
+  <meta property="og:title" content={post.title} />
+  <meta property="og:description" content={post.description} />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content={canonicalUrl} />
+  <meta property="og:image" content={socialImageUrl} />
+  <meta property="article:published_time" content={post.datePublished} />
+  <meta property="article:modified_time" content={post.dateModified} />
+  <meta name="twitter:card" content="summary_large_image" />
+  <svelte:element this={"script"} type="application/ld+json">
+    {serializeJsonLd(postSchema)}
+  </svelte:element>
 </svelte:head>
 
-<main class="overlapped blog-page">
+<main id="main-content" class="overlapped blog-page" tabindex="-1">
   <article class="relative mx-auto mt-[-72px] max-w-4xl px-3 pb-10 sm:px-4">
     <div class="card">
       <a
@@ -109,8 +137,12 @@
       </a>
 
       <div class="mt-6 mb-8">
-        <p class="mb-3 text-xs uppercase text-keyword sm:text-sm">
+        <p class="mb-3 text-xs text-keyword uppercase sm:text-sm">
           Long-running production side project · 2015–present
+        </p>
+        <p class="mb-3 text-xs text-identifier/60">
+          Published <time datetime={post.datePublished}>{formatPostDate(post.datePublished)}</time>
+          · Updated <time datetime={post.dateModified}>{formatPostDate(post.dateModified)}</time>
         </p>
         <h1 class="blog-title">
           Telegram agent architecture: from commands to asynchronous workers
@@ -127,6 +159,7 @@
             class="inline-flex items-center gap-2 text-constant underline"
             href={repoUrl}
             target="_blank"
+            rel="noreferrer"
           >
             <Icon icon="mdi:github" height="18" width="18" />
             telegram-bot-app
@@ -135,6 +168,7 @@
             class="inline-flex items-center gap-2 text-constant underline"
             href={uiUrl}
             target="_blank"
+            rel="noreferrer"
           >
             <Icon icon="mdi:github" height="18" width="18" />
             telegram-bot-ui
@@ -151,7 +185,7 @@
           those questions, not by the model.
         </p>
         <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {#each highlights as highlight}
+          {#each highlights as highlight (highlight.label)}
             <div class="highlight-card">
               <strong class="text-xl text-number">{highlight.value}</strong>
               <span class="mt-1 text-xs text-identifier/70">{highlight.label}</span>
@@ -159,7 +193,7 @@
           {/each}
         </div>
         <ul class="list-disc space-y-2 pl-5">
-          {#each projectSignals as signal}
+          {#each projectSignals as signal (signal)}
             <li>{signal}</li>
           {/each}
         </ul>
@@ -187,7 +221,7 @@
       <section class="mb-10">
         <h2 class="subtitle">What it runs on today</h2>
         <div class="grid gap-3 md:grid-cols-2">
-          {#each projectFacts as fact}
+          {#each projectFacts as fact (fact)}
             <div class="border-l-2 border-keyword pl-4 text-sm">{fact}</div>
           {/each}
         </div>
@@ -205,7 +239,7 @@
             Reply decision, context, tools and final delivery
           </figcaption>
           <ol class="agent-flow">
-            {#each ['Address checks', 'Reply gate', 'History + memory', 'Model routing', 'Tool execution', 'Telegram delivery'] as stage, index}
+            {#each ['Address checks', 'Reply gate', 'History + memory', 'Model routing', 'Tool execution', 'Telegram delivery'] as stage, index (stage)}
               <li class="diagram-node">
                 <span class="text-[10px] text-keyword">0{index + 1}</span>
                 <span class="mt-1">{stage}</span>
@@ -223,7 +257,7 @@
       <section class="mb-10">
         <h2 class="subtitle">How it got here</h2>
         <div class="grid gap-5">
-          {#each timeline as item, index}
+          {#each timeline as item, index (item.title)}
             <div class="grid gap-2 border-b border-base-300 pb-5 md:grid-cols-[80px_1fr]">
               <div class="text-number">0{index + 1}</div>
               <div>
@@ -245,7 +279,7 @@
       <section class="mb-10">
         <h2 class="subtitle">Decisions that keep it debuggable</h2>
         <div class="grid gap-5 md:grid-cols-2">
-          {#each engineeringDecisions as decision}
+          {#each engineeringDecisions as decision (decision.title)}
             <div class="border-t border-base-300 pt-4">
               <h3 class="text-lg text-constant">{decision.title}</h3>
               <p class="mt-2 text-sm">{decision.text}</p>
@@ -263,7 +297,7 @@
           can actually measure before deploying.
         </p>
         <ul class="list-disc space-y-2 pl-5">
-          {#each nextSteps as step}
+          {#each nextSteps as step (step)}
             <li>{step}</li>
           {/each}
         </ul>

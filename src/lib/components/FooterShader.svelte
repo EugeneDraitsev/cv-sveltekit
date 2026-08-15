@@ -524,11 +524,11 @@
     }
 
     $effect(() => {
-      themeStore.theme;
-      customGalaxyColors.inside;
-      customGalaxyColors.outside;
-      customNebulaColors.inside;
-      customNebulaColors.outside;
+      void themeStore.theme;
+      void customGalaxyColors.inside;
+      void customGalaxyColors.outside;
+      void customNebulaColors.inside;
+      void customNebulaColors.outside;
 
       untrack(() => {
         if (targetCanvas) {
