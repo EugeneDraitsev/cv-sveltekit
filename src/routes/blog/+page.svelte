@@ -6,11 +6,11 @@
       title: 'Telegram agent architecture: from commands to asynchronous workers',
       href: '/blog/telegram-bot-app',
       label: 'Personal build · since 2015',
-      image: '/blog/telegram-bot/architecture-light.svg',
+      image: '/blog/telegram-bot/architecture-overview-light.svg',
       imageMode: 'contain',
       description:
-        'Ten years of the same bot: how a currency-command script grew Lambda ingress, async workers, reply gating, tools, scoped memory and provider failover — without ever leaving its group chats.',
-      tags: ['Agents', 'AWS Lambda', 'Tools', 'Memory', 'Metrics'],
+        'Ten years of the same bot: how a currency-command script grew a routing-only webhook, FIFO queues, idempotent workers, a fail-closed authorization gate and reply gating — without ever leaving its group chats.',
+      tags: ['Agents', 'AWS Lambda', 'SQS', 'Idempotency', 'Tools'],
     },
     {
       title: 'Orb Knight: a 3D browser roguelite in 13 days',

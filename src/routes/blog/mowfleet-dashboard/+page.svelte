@@ -43,6 +43,15 @@
     { value: 'Low-touch', label: 'maintenance model' },
   ];
 
+  const dataPath = [
+    { name: 'Husqvarna OAuth', detail: 'interactive sign-in, tokens scoped per customer', owner: 'vendor' },
+    { name: 'Fleet Services API', detail: 'live reads for the few screens that need them', owner: 'vendor' },
+    { name: 'Scheduled Lambda sync', detail: 'pulls activity, utilization and errors on a timer', owner: 'MowFleet' },
+    { name: 'DynamoDB + S3', detail: 'normalized history and generated map tiles', owner: 'MowFleet' },
+    { name: 'MCC API endpoints', detail: 'query shapes the dashboard actually asks for', owner: 'MowFleet' },
+    { name: 'Dashboard + reports', detail: 'operator screens and the customer-facing PDF', owner: 'MowFleet' },
+  ];
+
   const screenshots = [
     {
       src: '/blog/mowfleet-dashboard/dashboard-overview.png',
@@ -162,7 +171,7 @@
       </div>
 
       <section class="mb-10">
-        <h2 class="subtitle">The constraint that shapes everything</h2>
+        <h2 class="section-heading">The constraint that shapes everything</h2>
         <p class="mb-4">
           Nobody works on MCC full-time — not me, not anyone at MowFleet. Every technical choice
           answers to that: managed services over clever infrastructure, boring failure modes over
@@ -170,23 +179,23 @@
           discovery, architecture, implementation and rollout, plus the support calls whenever a
           vendor API shifts under the product.
         </p>
-        <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <dl class="stat-strip mb-8">
           {#each operatingRhythm as item}
-            <div class="rhythm-card">
-              <strong class="text-xl text-number">{item.value}</strong>
-              <span class="mt-1 text-xs text-identifier/70">{item.label}</span>
+            <div class="stat">
+              <dt class="stat-value">{item.value}</dt>
+              <dd class="stat-label">{item.label}</dd>
             </div>
           {/each}
-        </div>
-        <div class="grid gap-3 md:grid-cols-2">
+        </dl>
+        <ul class="factlist">
           {#each facts as fact}
-            <div class="border-l-2 border-keyword pl-4 text-sm">{fact}</div>
+            <li>{fact}</li>
           {/each}
-        </div>
+        </ul>
       </section>
 
       <section class="mb-10">
-        <h2 class="subtitle">Architecture: keep the vendor at arm's length</h2>
+        <h2 class="section-heading">Architecture: keep the vendor at arm's length</h2>
         <p class="mb-5">
           Husqvarna OAuth and a partly reverse-engineered Fleet Services surface feed scheduled
           Lambda jobs. The jobs normalize external responses into DynamoDB tables, while GeoJSON
@@ -199,26 +208,27 @@
           darkSrc="/blog/mowfleet-dashboard/architecture-dark.svg"
           alt="MowFleet Control Center architecture diagram"
           aspect="flow"
-          figureClass="overflow-hidden rounded border border-base-300 bg-base-100 p-3"
+          figureClass="diagram"
           imageClass="w-full rounded bg-base-100"
           caption="Current high-level architecture, generated from Mermaid source checked into both MowFleet repos."
         />
       </section>
 
       <section class="mb-10">
-        <h2 class="subtitle">What operators get</h2>
-        <div class="grid gap-5 md:grid-cols-2">
-          {#each productAreas as area}
-            <div class="border-t border-base-300 pt-4">
-              <h3 class="text-lg text-constant">{area.title}</h3>
-              <p class="mt-2 text-sm">{area.text}</p>
-            </div>
+        <h2 class="section-heading">What operators get</h2>
+        <div class="rulelist">
+          {#each productAreas as area, index}
+            <article class="rule">
+              <span class="rule-index">{String(index + 1).padStart(2, '0')}</span>
+              <h3 class="rule-title">{area.title}</h3>
+              <p class="rule-text">{area.text}</p>
+            </article>
           {/each}
         </div>
       </section>
 
       <section class="mb-10">
-        <h2 class="subtitle">Operator workflows</h2>
+        <h2 class="section-heading">Operator workflows</h2>
         <p class="mb-5">
           Operators need to correlate mower state, zone-level activity and customer reporting data.
           The screens are intentionally information-dense and organized around investigations such
@@ -230,7 +240,7 @@
             <ZoomableImage
               src={screenshot.src}
               alt={screenshot.alt}
-              figureClass="overflow-hidden rounded border border-base-300 bg-base-100 p-3"
+              figureClass="diagram"
               imageClass="w-full rounded border border-base-300"
               caption={screenshot.caption}
             />
@@ -239,30 +249,30 @@
       </section>
 
       <section class="mb-10">
-        <h2 class="subtitle">Two kinds of reads</h2>
+        <h2 class="section-heading">Two kinds of reads</h2>
         <p class="mb-5">
           Interactive authentication and selected live reads go through Husqvarna directly.
           Historical activity, utilization and error data are collected by scheduled jobs and served
           from MowFleet-owned AWS stores. This separates user-facing query latency from the
           availability and response shape of the vendor API.
         </p>
-        <figure class="rounded border border-base-300 bg-base-100 p-4">
-          <figcaption class="mb-4 text-sm text-declaration">
-            From external fleet data to customer-facing operations
-          </figcaption>
-          <ol class="data-flow">
-            {#each ['Husqvarna OAuth', 'Fleet Services API', 'Scheduled Lambda sync', 'DynamoDB + S3', 'MCC API endpoints', 'Dashboard + reports'] as stage, index}
-              <li class="flow-node">
-                <span class="text-[10px] text-keyword">0{index + 1}</span>
-                <span class="mt-1">{stage}</span>
-              </li>
-            {/each}
-          </ol>
-        </figure>
+        <p class="mb-4 text-sm text-declaration">
+          From external fleet data to customer-facing operations
+        </p>
+        <ol class="trace">
+          {#each dataPath as step, index}
+            <li class="trace-step">
+              <span class="trace-index">{String(index + 1).padStart(2, '0')}</span>
+              <span class="trace-name">{step.name}</span>
+              <span class="trace-detail">{step.detail}</span>
+              <span class="trace-exit">{step.owner}</span>
+            </li>
+          {/each}
+        </ol>
       </section>
 
       <section class="mb-10">
-        <h2 class="subtitle">One pair of hands, the whole path</h2>
+        <h2 class="section-heading">One pair of hands, the whole path</h2>
         <p class="mb-4">
           There was no frontend team, backend team or ops team to split this across — the same
           delivery scope ran from product discovery through vendor ingestion to the PDF a customer
@@ -276,19 +286,20 @@
       </section>
 
       <section class="mb-10">
-        <h2 class="subtitle">Design decisions</h2>
-        <div class="grid gap-5 md:grid-cols-2">
-          {#each engineeringDecisions as decision}
-            <div class="border-t border-base-300 pt-4">
-              <h3 class="text-lg text-constant">{decision.title}</h3>
-              <p class="mt-2 text-sm">{decision.text}</p>
-            </div>
+        <h2 class="section-heading">Design decisions</h2>
+        <div class="rulelist">
+          {#each engineeringDecisions as decision, index}
+            <article class="rule">
+              <span class="rule-index">{String(index + 1).padStart(2, '0')}</span>
+              <h3 class="rule-title">{decision.title}</h3>
+              <p class="rule-text">{decision.text}</p>
+            </article>
           {/each}
         </div>
       </section>
 
       <section class="mb-10">
-        <h2 class="subtitle">Actual tickets from production</h2>
+        <h2 class="section-heading">Actual tickets from production</h2>
         <p class="mb-4">
           Support here is concrete: something observable stops matching reality and I go find out
           why. A sample of real cases — vendor API changes eating statistics, robot compatibility
@@ -302,7 +313,7 @@
       </section>
 
       <section>
-        <h2 class="subtitle">What I'd tackle next</h2>
+        <h2 class="section-heading">What I'd tackle next</h2>
         <p class="mb-4">
           Most of the remaining risk lives at the vendor boundary and inside the biggest sync jobs,
           so that's where the next effort goes:
@@ -318,55 +329,24 @@
 </main>
 
 <style>
-  .rhythm-card {
-    display: flex;
-    min-height: 5.5rem;
-    flex-direction: column;
-    justify-content: center;
-    border: 1px solid var(--color-base-300);
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--color-base-100) 55%, transparent);
-    padding: 0.9rem;
-  }
-
-  .data-flow {
+  .factlist {
     display: grid;
-    gap: 0.75rem;
+    gap: 0.55rem;
     list-style: none;
     padding: 0;
     font-size: 0.875rem;
   }
 
-  .flow-node {
-    border: 1px solid color-mix(in srgb, var(--color-base-300) 80%, var(--color-identifier));
-    border-radius: 6px;
-    padding: 0.75rem;
-    min-height: 3.25rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    background: color-mix(in srgb, var(--color-base-200) 92%, var(--color-background));
+  .factlist li {
+    border-left: 1px solid var(--color-base-300);
+    padding-left: 0.9rem;
+    color: color-mix(in srgb, var(--color-identifier) 82%, transparent);
   }
 
   @media (min-width: 768px) {
-    .data-flow {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-    }
-
-    .flow-node {
-      position: relative;
-    }
-
-    .flow-node:not(:last-child)::after {
-      position: absolute;
-      top: 50%;
-      right: -0.65rem;
-      z-index: 1;
-      width: 1.25rem;
-      border-top: 1px solid var(--color-keyword);
-      content: '';
+    .factlist {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.55rem 2rem;
     }
   }
 </style>
