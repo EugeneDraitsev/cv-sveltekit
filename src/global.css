@@ -101,13 +101,10 @@ body {
   contain-intrinsic-size: auto 1000px;
 }
 
-/* Long posts: everything past the opening section skips style, layout and paint
-   until it is scrolled near. `auto` remembers each real height after the first
-   render, so the scrollbar settles instead of jumping. */
-.blog-page section:nth-of-type(n + 2) {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 700px;
-}
+/* NOTE: do not put content-visibility on post sections. It implies
+   `contain: paint`, which makes the section a containing block, and the
+   zoomed-image overlay (position: fixed) then opens inside the section
+   instead of over the page. The image sizes below carry the page weight. */
 
 .nav-active-indicator {
   @apply pointer-events-none absolute bottom-0 left-0 h-px bg-identifier;

@@ -1,33 +1,36 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
+  import { BLOG_POSTS } from '$lib/blog';
   import type { GitHubRepository } from '$lib/types/github';
 
-  const featuredProjects = [
-    {
-      href: '/blog/gamedevjs-2026',
-      eyebrow: 'Game jam · AI-assisted build',
-      title: 'Orb Knight: shipping my first 3D game with AI agents',
-      text: 'A browser 3D action game built through tight agent and playtest loops. It placed 12th overall and 6th in Gameplay at Gamedev.js Jam 2026.',
-      signal: '#6 Gameplay · 37 ratings',
-      tags: ['SvelteKit', 'Three.js', 'Rapier', 'Codex'],
-    },
-    {
+  // Home-page framing for each post, keyed by slug. Built by walking
+  // BLOG_POSTS so these cards always list in the same order as the blog.
+  const cardCopy = {
+    'telegram-bot-app': {
       href: '/blog/telegram-bot-app',
       eyebrow: 'Long-running side project',
       title: 'The Telegram bot that grew up with the web',
       text: 'A 2015 chat utility that evolved into an asynchronous agent system with reply gating, tools, memory, fallbacks, metrics and a companion UI.',
       signal: '10+ years of real use',
-      tags: ['Agents', 'AWS Lambda', 'Tools', 'Metrics'],
     },
-    {
+    'gamedevjs-2026': {
+      href: '/blog/gamedevjs-2026',
+      eyebrow: 'Game jam · AI-assisted build',
+      title: 'Orb Knight: shipping my first 3D game with AI agents',
+      text: 'A browser 3D action game built through tight agent and playtest loops. It placed 12th overall and 6th in Gameplay at Gamedev.js Jam 2026.',
+      signal: '#6 Gameplay · 37 ratings',
+    },
+    'mowfleet-dashboard': {
       href: '/blog/mowfleet-dashboard',
       eyebrow: 'Production B2B product',
       title: 'MowFleet Control Center',
       text: 'A from-scratch dashboard and serverless backend that turn autonomous mower telemetry into zone coverage, operational insight and reports.',
       signal: 'Full-stack ownership · Low-touch ops',
-      tags: ['Next.js', 'AWS', 'DynamoDB', 'Fleet data'],
     },
-  ] as const;
+    // `as const` keeps each href a literal route, which resolve() requires.
+  } as const;
+
+  const featuredProjects = BLOG_POSTS.map((post) => ({ tags: post.tags, ...cardCopy[post.slug] }));
 
   const repositoryDateFormatter = new Intl.DateTimeFormat('en', {
     year: 'numeric',

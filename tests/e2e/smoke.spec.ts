@@ -58,11 +58,13 @@ test('controls and blog cards have accessible names', async ({ page }) => {
   ).toBeVisible();
 });
 
-test('the full Lighthouse report loads only on request', async ({ page }) => {
+test('the full Lighthouse report is embedded, but deferred', async ({ page }) => {
   await page.goto('/about');
-  await expect(page.getByTitle(/Lighthouse report captured/i)).toHaveCount(0);
-  await page.getByRole('button', { name: 'Load full report' }).click();
-  await expect(page.getByTitle(/Lighthouse report captured/i)).toBeVisible();
+  const report = page.getByTitle(/Lighthouse report captured/i);
+  await expect(report).toHaveAttribute('loading', 'lazy');
+
+  await report.scrollIntoViewIfNeeded();
+  await expect(report.contentFrame().locator('body')).toContainText('Performance');
 });
 
 test.describe('mobile first screen', () => {

@@ -1,15 +1,9 @@
 <script lang="ts">
   import { SITE_DATA } from '$lib/constants';
 
-  let reportVisible = $state(false);
-
   const canonicalUrl = new URL('about', SITE_DATA.siteUrl).href;
-  const lighthouseScores = [
-    { label: 'Performance', score: 100 },
-    { label: 'Accessibility', score: 100 },
-    { label: 'Best Practices', score: 100 },
-    { label: 'SEO', score: 100 },
-  ] as const;
+  const pageSpeedUrl =
+    'https://pagespeed.web.dev/analysis/https-eugene-draitsev-vercel-app/8q328u6yb7?form_factor=mobile';
 </script>
 
 <svelte:head>
@@ -116,51 +110,57 @@
       <section aria-labelledby="lighthouse-heading">
         <h2 id="lighthouse-heading" class="subtitle">Measured first-load performance</h2>
         <p class="mb-5 max-w-3xl">
-          A production mobile Lighthouse run captured on June 19, 2026 scored 100 in all four
-          categories. It is a useful regression signal for initial delivery, not a substitute for
-          runtime profiling or manual accessibility testing.
+          Google's own PageSpeed Insights run against production scores 100 in all four categories
+          on mobile, throttled to slow 4G on an emulated Moto G Power. It is a regression signal for
+          initial delivery, not a substitute for runtime profiling or manual accessibility testing.
         </p>
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {#each lighthouseScores as item (item.label)}
-            <div class="rounded border border-base-300 p-4 text-center">
-              <strong class="block text-3xl text-number">{item.score}</strong>
-              <span class="mt-1 block text-xs text-identifier/70">{item.label}</span>
-            </div>
-          {/each}
+
+        <a
+          class="block overflow-hidden rounded border border-base-300 bg-white"
+          href={pageSpeedUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <img
+            src="/pagespeed-mobile.webp"
+            alt="PageSpeed Insights scoring the production site 100 for Performance, Accessibility, Best Practices and SEO on mobile"
+            width="1200"
+            height="1020"
+            class="w-full"
+            loading="lazy"
+          />
+        </a>
+        <p class="mt-3 mb-8 text-sm">
+          <a class="text-constant underline" href={pageSpeedUrl} target="_blank" rel="noreferrer">
+            Open the live PageSpeed Insights report
+          </a>
+        </p>
+
+        <h3 class="mb-4 text-xl text-constant">The full Lighthouse report</h3>
+        <!-- The report is a 700 KB HTML document, so the iframe is lazy: it
+             sits here in full, but the bytes only arrive once you scroll to it. -->
+        <div
+          id="lighthouse-report"
+          class="h-[85dvh] min-h-120 overflow-hidden rounded border border-base-300"
+        >
+          <iframe
+            class="h-full w-full border-none bg-gray-100"
+            src="/lighthouse-report.html"
+            title="Lighthouse report captured June 19, 2026"
+            loading="lazy"
+          ></iframe>
         </div>
 
-        <div class="mt-6 flex flex-wrap gap-3 text-sm">
-          <button
-            type="button"
-            class="rounded border border-declaration px-3 py-2 text-declaration transition-colors hover:bg-declaration/10"
-            aria-expanded={reportVisible}
-            aria-controls="lighthouse-report"
-            onclick={() => (reportVisible = !reportVisible)}
-          >
-            {reportVisible ? 'Hide full report' : 'Load full report'}
-          </button>
+        <p class="mt-4 text-sm">
           <a
-            class="rounded border border-base-300 px-3 py-2 text-constant transition-colors hover:bg-constant/10"
-            href="/lighthouse-report.data"
+            class="text-constant underline"
+            href="/lighthouse-report.html"
             target="_blank"
             rel="noreferrer"
           >
-            Open report separately
+            Open the report in its own tab
           </a>
-        </div>
-
-        {#if reportVisible}
-          <div
-            id="lighthouse-report"
-            class="mt-6 h-[75dvh] min-h-120 overflow-hidden rounded border border-base-300"
-          >
-            <iframe
-              class="h-full w-full border-none bg-gray-100"
-              src="/lighthouse-report.data"
-              title="Lighthouse report captured June 19, 2026"
-            ></iframe>
-          </div>
-        {/if}
+        </p>
       </section>
     </div>
   </article>
