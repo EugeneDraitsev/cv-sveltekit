@@ -36,7 +36,7 @@
 
 <div class="grid gap-5 md:mx-auto md:max-w-5xl md:grid-cols-2">
   <div>
-    <h2 class="subtitle">About me</h2>
+    <h1 class="subtitle">About me</h1>
     <p class="my-8">
       {SITE_DATA.authorDescription}
     </p>

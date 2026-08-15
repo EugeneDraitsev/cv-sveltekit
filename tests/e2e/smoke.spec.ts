@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('direct pages expose useful titles and landmarks', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveTitle('Eugene Draitsev | Senior Full-Stack / Platform Engineer');
-  await expect(page.getByRole('heading', { level: 1, name: 'Eugene Draitsev' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
   await expect(page.getByRole('main')).toHaveAttribute('id', 'main-content');
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     'href',
@@ -68,13 +68,14 @@ test('the full Lighthouse report loads only on request', async ({ page }) => {
 test.describe('mobile first screen', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test('shows identity and a useful action without scrolling', async ({ page }) => {
+  test('opens on the profile, with the CV a tap away', async ({ page }) => {
     await page.goto('/');
-    const heading = page.getByRole('heading', { level: 1, name: 'Eugene Draitsev' });
-    const action = page.getByRole('link', { name: 'Download CV' });
+    const heading = page.getByRole('heading', { level: 1, name: 'About me' });
     await expect(heading).toBeVisible();
-    await expect(action).toBeVisible();
+    await expect(page.getByText('Eugene Draitsev').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Download CV' })).toBeVisible();
 
+    // The hero is decorative: the profile itself has to be on the first screen.
     const headingBox = await heading.boundingBox();
     expect(headingBox?.y).toBeLessThan(844);
   });
