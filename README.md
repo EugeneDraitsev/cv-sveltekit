@@ -106,6 +106,10 @@ know them:
 - **Use Bun everywhere.** `bun.lock` is committed and CI installs with
   `bun install --frozen-lockfile`. `package-lock.json` stays ignored — an npm lockfile
   generated on Windows misses the Linux native bindings for rolldown and breaks the build.
-- **Keep `adapter-auto`.** `@sveltejs/adapter-vercel` cannot finish a local build on Windows
-  because of symlink permissions in the functions output. `adapter-auto` does nothing locally
-  and resolves to the Vercel adapter in CI.
+- **Keep `adapter-auto` in the config, but keep `adapter-vercel` installed.** Pointing the
+  config straight at `@sveltejs/adapter-vercel` cannot finish a local build on Windows
+  because of symlink permissions in the functions output, so the config uses `adapter-auto`,
+  which does nothing locally and picks the Vercel adapter in CI. The Vercel adapter still has
+  to be a devDependency though: without it, `adapter-auto` shells out to `bun add` in the
+  middle of the build, that install re-resolves the whole tree, and a CJS consumer ends up on
+  the ESM-only `estree-walker@3` — `No "exports" main defined`, build dead.
