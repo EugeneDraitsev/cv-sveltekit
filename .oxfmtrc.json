@@ -19,6 +19,6 @@
     "output/**",
     "playwright-report/**",
     "test-results/**",
-    "static/lighthouse-report.data"
+    "static/**"
   ]
 }
