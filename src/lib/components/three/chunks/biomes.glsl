@@ -12,14 +12,15 @@ uniform vec2 uClimOffT;
 uniform vec2 uClimOffM;
 
 vec4 biomeWeights(vec2 p) {
-  float t = fbm3o(p * uClimateScale + uClimOffT);
-  float m = fbm3o(p * uClimateScale + uClimOffM);
+  float warp = snoise2(p * uClimateScale * 0.7 + vec2(17.4, -9.2)) * 0.3;
+  float t = fbm3o(p * uClimateScale + uClimOffT + vec2(warp, -warp));
+  float m = fbm3o(p * uClimateScale + uClimOffM + vec2(-warp, warp));
   vec4 w = vec4(0.0);
   for (int i = 0; i < 4; i++) {
     if (float(i) >= uBiomeCount) break;
     vec2 c = uBioClimate[i];
     float d2 = (t - c.x) * (t - c.x) + (m - c.y) * (m - c.y);
-    w[i] = exp(-d2 * 14.0);
+    w[i] = exp(-d2 * 22.0);
   }
   return w / max(w.x + w.y + w.z + w.w, 1e-5);
 }

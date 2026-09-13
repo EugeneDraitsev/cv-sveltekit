@@ -14,6 +14,9 @@
   import type { PerspectiveCamera } from 'three';
   import type { OrbitControls as ThreeOrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
   import { onDestroy, untrack } from 'svelte';
+  import { flightMemory } from './flightMemory';
+  import { sceneWarmup } from './sceneWarmup.svelte';
+  import { getSceneQuality } from './quality';
   import { T, useTask, useThrelte } from '@threlte/core';
   import { OrbitControls } from '@threlte/extras';
 
@@ -39,15 +42,16 @@
   import { getStarSystem } from '$lib/components/three/starSystem';
   import { showHud, hideHud, setHudScreenPosition } from '$lib/components/three/hud.svelte';
   import {
-    tweenCamera,
-    easeInCubic,
-    easeOutCubic,
+    createCameraFlight,
+    type CameraFlight,
     prefersReducedMotion,
     smoothstepJs,
   } from '$lib/components/three/cameraTween';
 
-  const { renderer } = useThrelte();
-  const cameraCtx = useThrelte().camera;
+  const { renderer, dpr, scene } = useThrelte();
+  let sceneCamera = $state<import('three').PerspectiveCamera>();
+  const warmup = sceneWarmup(renderer, scene, () => sceneCamera);
+  let cameraFlight: CameraFlight | undefined;
 
   // Local OrbitControls instance via bind:ref — the shared useOrbitControls()
   // registry gets wiped when scenes swap (the outgoing scene's unregister can
@@ -56,6 +60,7 @@
 
   const {
     animationActive = false,
+    worldActive = false,
     cameraFov = 20,
     cameraPosition = [-20, 24, 20] as [x: number, y: number, z: number],
     cameraDistance = 30,
@@ -67,13 +72,16 @@
     /** When set, the camera arrives back FROM this system (reverse dive). */
     returnFromIndex = null as number | null,
     /** Motion-locked transition veil: (opacity, colorHex) driven per frame. */
+    onDeparted = undefined as (() => void) | undefined,
+    onArrived = undefined as (() => void) | undefined,
     onVeil = undefined as ((opacity: number, colorHex: number) => void) | undefined,
     onSelectSystem = undefined as ((index: number) => void) | undefined,
   } = $props();
-  const pixelRatio = Math.min(window.devicePixelRatio, 2);
+  const quality = getSceneQuality();
+  const pixelRatio = Math.min(window.devicePixelRatio, quality.maxDpr);
 
   // we have not to use $state here, because we don't need to re-create the material on every change
-  let time = 0;
+  let time = flightMemory.galaxy?.time ?? 0;
 
   const geometry = $state(new BufferGeometry());
 
@@ -105,11 +113,10 @@
     geometry.setAttribute('aIsNebula', new BufferAttribute(isNebula, 1));
 
     renderer.setClearColor(themeStore.theme === 'dark' ? 0x121212 : 0xffffff, 1.0);
-    renderer.setPixelRatio(pixelRatio);
   });
 
   $effect(() => {
-    if (animationActive) {
+    if (animationActive && warmup.ready) {
       start();
     } else {
       stop();
@@ -139,6 +146,7 @@
     void regenVersion;
     systemIndices = selectSystemIndices();
     rebuildSystemMarkers();
+    updateSystemMarkers();
   });
 
   // ─── Visible system markers ────────────────────────────────────────────
@@ -221,11 +229,14 @@
   const { start, stop } = useTask(
     (delta) => {
       if (material) {
-        time += delta;
+        if (worldActive && warpTargetIndex == null && !returnActive) time += Math.min(delta, 0.05);
+        material.uniforms.uSize.value = particleSize * dpr.current;
+        systemMaterial.uniforms.uPixelRatio.value = dpr.current;
         material.uniforms.uTime.value = time;
       }
       systemMaterial.uniforms.uTime.value = time;
       updateSystemMarkers();
+      cameraFlight?.advance(delta);
       updateHudPosition();
     },
     { autoStart: false },
@@ -249,7 +260,7 @@
 
   function onPointerMove(e: PointerEvent) {
     const c = canvasEl;
-    const cam = cameraCtx.current as PerspectiveCamera | undefined;
+    const cam = sceneCamera;
     if (!c || !cam) return;
     if (e.pointerType === 'touch') return;
     if (!interactive || returnActive) {
@@ -282,7 +293,7 @@
       return;
     }
     const c = canvasEl;
-    const cam = cameraCtx.current as PerspectiveCamera | undefined;
+    const cam = sceneCamera;
     if (!c || !cam) {
       downCandidate = null;
       return;
@@ -363,7 +374,7 @@
   // per-frame while the galaxy spins and on pointermove while paused.
   function updateHudPosition() {
     if (hoveredIndex == null) return;
-    const cam = cameraCtx.current as PerspectiveCamera | undefined;
+    const cam = sceneCamera;
     if (!cam) return;
     getSystemWorldPosition(hoveredIndex, time, tmpVec);
     tmpVec.project(cam);
@@ -404,30 +415,6 @@
     warpGlowMaterial.dispose();
   });
 
-  /** Animate the glow billboard on its own rAF (runs even while paused). */
-  function animateGlow(
-    durationMs: number,
-    scaleFor: (e: number) => number,
-    ease: (t: number) => number,
-    onProgress?: (p: number) => void,
-  ): () => void {
-    const t0 = performance.now();
-    let raf: number | undefined;
-    const step = (now: number) => {
-      const p = Math.min(1, (now - t0) / durationMs);
-      warpGlowMesh.scale.setScalar(Math.max(0.001, scaleFor(ease(p))));
-      warpGlowMaterial.uniforms.uTime.value = now / 1000;
-      const cam = cameraCtx.current as PerspectiveCamera | undefined;
-      if (cam) warpGlowMesh.quaternion.copy(cam.quaternion);
-      onProgress?.(p);
-      if (p < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => {
-      if (raf !== undefined) cancelAnimationFrame(raf);
-    };
-  }
-
   // ─── Warp-out dive ─────────────────────────────────────────────────────
   // Accelerate the camera straight into the chosen star while its glow grows
   // to cover the frame; the orchestrator cuts scenes at the moment of
@@ -435,14 +422,21 @@
   const warpPos = new Vector3();
 
   $effect(() => {
-    if (warpTargetIndex == null) return;
-    const cam = cameraCtx.current as PerspectiveCamera | undefined;
+    if (warpTargetIndex == null || !warmup.ready) return;
+    const cam = sceneCamera;
     if (!cam) return;
 
     hoveredIndex = null;
     hideHud();
     canvasEl.style.cursor = '';
 
+    const ctrl = untrack(() => controls);
+    flightMemory.galaxy = {
+      time,
+      position: cam.position.toArray(),
+      target: ctrl?.target.toArray() ?? [0, 0, 0],
+      fov: cam.fov,
+    };
     getSystemWorldPosition(warpTargetIndex, time, warpPos);
     const dir = new Vector3().subVectors(warpPos, cam.position);
     const dist = dir.length() || 1;
@@ -450,36 +444,37 @@
     // Stop just short of the star so we never overshoot through the disk.
     const endPos = new Vector3().copy(warpPos).addScaledVector(dir, -1.2);
 
-    const cancel = tweenCamera(
-      cam,
-      untrack(() => controls),
-      {
-        position: [endPos.x, endPos.y, endPos.z],
-        target: [warpPos.x, warpPos.y, warpPos.z],
-        fov: cameraFov + 14,
-      },
-      1500,
-      undefined,
-      easeInCubic,
-    );
-
     const targetSystem = getStarSystem(warpTargetIndex);
     (warpGlowMaterial.uniforms.uColor.value as Color).set(targetSystem.starColor);
     warpGlowMaterial.uniforms.uSeed.value = (warpTargetIndex % 977) * 0.173;
     warpGlowMesh.position.copy(warpPos);
     warpGlowMesh.visible = true;
-    // The veil saturates over the last stretch of the dive, exactly as the
-    // in-scene glow reaches full frame — one continuous plunge into glare.
-    const stopGlow = animateGlow(
-      1500,
-      (e) => 0.3 + 5.4 * Math.pow(e, 1.5),
-      easeInCubic,
-      (p) => onVeil?.(smoothstepJs(0.78, 0.98, p), targetSystem.starColor),
+    const flight = createCameraFlight(
+      cam,
+      ctrl,
+      {
+        position: endPos.toArray(),
+        target: warpPos.toArray(),
+        fov: cameraFov + 14,
+        arc: 0.15,
+        bank: -0.04,
+      },
+      2.6,
+      {
+        handoff: true,
+        onProgress: (p, e) => {
+          warpGlowMesh.scale.setScalar(0.3 + 2.8 * e * e * e);
+          warpGlowMesh.quaternion.copy(cam.quaternion);
+          warpGlowMaterial.uniforms.uTime.value = p * 2.6;
+          onVeil?.(smoothstepJs(0.86, 1, p), targetSystem.starColor);
+        },
+        onComplete: onDeparted,
+      },
     );
-
+    cameraFlight = flight;
     return () => {
-      cancel();
-      stopGlow();
+      flight.cancel();
+      if (cameraFlight === flight) cameraFlight = undefined;
       warpGlowMesh.visible = false;
     };
   });
@@ -488,62 +483,69 @@
   // Mount right at the departed star inside its glare and pull back out to
   // the overview — the exact reverse of the warp-out dive.
   // Captured at mount — a return entry only ever starts life with the scene.
-  let returnActive = untrack(() => returnFromIndex) != null && !prefersReducedMotion();
+  let returnActive = $state(untrack(() => returnFromIndex) != null && !prefersReducedMotion());
   let returnStarted = false;
 
   $effect(() => {
-    if (returnFromIndex == null || returnStarted) return;
-    const cam = cameraCtx.current as PerspectiveCamera | undefined;
-    if (!cam) return;
+    if (returnFromIndex == null || returnStarted || !warmup.ready) return;
+    const cam = sceneCamera;
+    const returnControls = controls;
+    if (!cam || !returnControls) return;
     returnStarted = true;
     if (prefersReducedMotion()) return;
 
     getSystemWorldPosition(returnFromIndex, time, warpPos);
-    const overview = new Vector3(...cameraPosition);
+    const overview = new Vector3(...(flightMemory.galaxy?.position ?? cameraPosition));
     const dir = new Vector3().subVectors(overview, warpPos).normalize();
     cam.position.copy(warpPos).addScaledVector(dir, 1.4);
+    cam.lookAt(warpPos);
+    returnControls?.target.copy(warpPos);
 
     const returnSystem = getStarSystem(returnFromIndex);
     (warpGlowMaterial.uniforms.uColor.value as Color).set(returnSystem.starColor);
     warpGlowMaterial.uniforms.uSeed.value = (returnFromIndex % 977) * 0.173;
     warpGlowMesh.position.copy(warpPos);
     warpGlowMesh.visible = true;
-    // The veil dissolves with the pull-back — glare thinning as we recede.
-    const stopGlow = animateGlow(
-      1250,
-      (e) => 5.4 * (1 - e),
-      easeOutCubic,
-      (p) => onVeil?.(1 - smoothstepJs(0.03, 0.55, p), returnSystem.starColor),
-    );
-
-    const cancel = tweenCamera(
+    const flight = createCameraFlight(
       cam,
-      untrack(() => controls),
+      returnControls,
       {
-        position: cameraPosition,
-        target: [0, 0, 0],
+        position: overview.toArray(),
+        target: flightMemory.galaxy?.target ?? [0, 0, 0],
+        fov: flightMemory.galaxy?.fov ?? cameraFov,
+        arc: -0.1,
+        bank: 0.035,
       },
-      1500,
-      () => {
-        returnActive = false;
-        warpGlowMesh.visible = false;
+      2.7,
+      {
+        onProgress: (p, e) => {
+          warpGlowMesh.scale.setScalar(Math.max(0.001, 2.8 * (1 - e)));
+          warpGlowMesh.quaternion.copy(cam.quaternion);
+          warpGlowMaterial.uniforms.uTime.value = p * 2.7;
+          onVeil?.(1 - smoothstepJs(0.02, 0.2, p), returnSystem.starColor);
+        },
+        onComplete: () => {
+          returnActive = false;
+          warpGlowMesh.visible = false;
+          onArrived?.();
+        },
       },
-      easeOutCubic,
     );
-
+    cameraFlight = flight;
     return () => {
-      cancel();
-      stopGlow();
+      flight.cancel();
+      if (cameraFlight === flight) cameraFlight = undefined;
       warpGlowMesh.visible = false;
       returnActive = false;
     };
   });
 </script>
 
-<T.PerspectiveCamera makeDefault position={cameraPosition} fov={cameraFov}>
+<T.PerspectiveCamera bind:ref={sceneCamera} makeDefault position={cameraPosition} fov={cameraFov}>
   <OrbitControls
     bind:ref={controls}
-    enableDamping
+    enabled={animationActive && warmup.ready && warpTargetIndex == null && !returnActive}
+    enableDamping={animationActive && warmup.ready && warpTargetIndex == null && !returnActive}
     target.y={0}
     minDistance={Math.max(10, cameraDistance - 20)}
     maxDistance={cameraDistance + 40}

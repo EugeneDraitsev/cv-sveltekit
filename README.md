@@ -16,18 +16,22 @@ particle index, so everyone gets the same galaxy — there is just a lot of it.
 
 ## Controls
 
-| Action              | Desktop            | Touch       |
-| ------------------- | ------------------ | ----------- |
-| Enter a star system | click a star       | tap it      |
-| Land on a planet    | click it           | tap it      |
-| Look around         | drag               | drag        |
-| Fly                 | `WASD` / arrows    | joystick    |
-| Climb               | `Space`            | `⬆` button  |
-| Boost               | `Shift`            | `⚡` button |
-| Go back             | button, top center | same        |
+| Action              | Desktop             | Touch       |
+| ------------------- | ------------------- | ----------- |
+| Open the galaxy     | hover or Explore    | Explore     |
+| Enter a star system | click a star        | tap twice   |
+| Land on a planet    | click it            | tap twice   |
+| Look around         | drag                | drag        |
+| Fly                 | `WASD` / arrows     | joystick    |
+| Climb               | `Space`             | `⬆` button  |
+| Descend             | `C`                 | `⬇` button  |
+| Boost               | `Shift`             | `⚡` button |
+| Go back             | `Esc` or top button | top button  |
 
-The galaxy view has a Tweakpane panel (tune icon, bottom left) for spin, arm count, colors
-and particle parameters.
+The bottom dock provides Expand, Pause and Tune controls. Tune opens a Tweakpane panel for
+spin, arm count, colors and particle parameters. On a planet, a flight instrument shows the
+current biome, altitude above ground, speed and heading. Movement and drag look are damped;
+the touch joystick supports simultaneous climb/descent and boost.
 
 ## How it works
 
@@ -37,36 +41,53 @@ the system scene and the planet surface all read the same data.
 
 **Terrain height is written twice.** Once in GLSL for rendering, once in TypeScript for
 placing plants and keeping the camera above ground. Both use the same constants, octave
-counts and waterline math. Unit tests compare CPU samples against recorded values so the two
-cannot drift apart unnoticed.
+counts and waterline math. CPU contract tests cover noise and terrain continuity; changes to
+either implementation also need a GPU comparison. Climate blends dunes, ridges, terraces and
+rolling ground, with vegetation density and palettes blending across biome boundaries.
 
 **The ground is one grid that follows you.** It parks on whole grid cells under the camera
-and the noise offset is snapped to the same cells, so vertices always sample the same world
-positions. Feed it a continuous offset instead and the whole landscape shimmers.
+and samples world-anchored noise. The origin keeps the same base-cell snapping interval
+while coverage changes, so changing altitude cannot suddenly shift the entire grid.
 
-**Climbing zooms the grid out.** The same vertex budget covers more ground in power-of-two
-steps, and fog range grows with it. Without this you eventually see the edge of the grid
-hanging in the air, which is what the fog is there to prevent.
+**Climbing zooms the grid out.** Altitude selects a power-of-two coverage level with
+hysteresis; the grid and fog then morph toward it continuously, with the same vertex budget.
+This hides the grid boundary without a sudden jump in the landscape or haze.
 
-**Transitions follow the camera, not a timer.** The veil that covers a scene swap gets its
-opacity per frame from the outgoing camera move — diving into a star, dropping through
-atmosphere — and the incoming scene dissolves it as it arrives.
+**Journeys follow camera completion.** Curved approaches, small banking turns and atmospheric
+descent share the renderer's clock and ease to zero speed before navigation unlocks. The
+next scene loads before departure and warms its shaders under the transition veil. Landing
+follows a continuous path above the terrain, and outgoing flights bypass OrbitControls'
+distance clamp. Return flights restore the previous viewpoint. Reduced-motion visits start
+paused and skip the flights.
 
-**Three.js is not in the initial load.** It sits in a lazy chunk that loads after the first
-interaction, so someone who just reads the page never pays for WebGL parsing or particle
-generation. The page itself is prerendered HTML, icons are inline SVG instead of an icon
-runtime, and sections below the fold use `content-visibility: auto`.
+**Three.js is not in the initial load.** It loads on Explore or desktop hover inside the
+hero. Scrolling, navigation and reading the CV leave it unloaded. The page is prerendered
+HTML, icons are inline SVG, and sections below the fold use `content-visibility: auto`.
 
 ## Performance
 
-Production scores 100 across all four Lighthouse categories on both the mobile and desktop
-presets, with 0 ms total blocking time and no layout shift.
+Scores depend on the build, network and audit environment. The September 13, 2026 mobile
+audit of the existing production deployment scored 98 for Performance. The original local
+production build scored 99; the updated build scored 100 in the standard mobile preset,
+with FCP 1.22 s, LCP 1.53 s and no blocking time. Accessibility, Best Practices and SEO also
+scored 100. These are local lab measurements; the older report on the About page records
+the June 19 deployment.
 
-Worth knowing if you audit this locally: `vite preview` serves over HTTP/1.1, and
-Lighthouse's simulator serializes the modulepreload chain per connection, so mobile sits at
-99 there no matter what. Test against production or any HTTP/2 server over the build output.
-Lighthouse only covers initial delivery — runtime WebGL profiling and manual accessibility
-checks are separate.
+Blog and 3D styles load with their features, reducing the initial shared stylesheet from
+47.41 to 26.26 KB. Selective module preloads discover the route and entry points early while
+leaving connection capacity for the HTML. Star ratings use CSS clipping without measuring
+offscreen elements during hydration.
+
+The renderer starts at a capped DPR (1.25 on compact/constrained devices, 1.75 otherwise)
+and adapts resolution from sustained frame times. Terrain uses 112 or 192 grid segments,
+three height evaluations per vertex, and interpolated climate weights instead of repeating
+climate noise per fragment. Flora generation is spread across frames and instance matrices
+upload only when placement changes. Scene tasks stop while paused, off screen or in a
+hidden tab; on-demand rendering can still paint a static view.
+
+See [the performance notes](docs/performance.md) for measurements, validation and the
+Three.js / TypeGPU decision. Lighthouse covers initial delivery; these scores do not measure
+flight smoothness on a physical phone.
 
 ## Blog
 

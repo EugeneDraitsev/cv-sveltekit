@@ -14,13 +14,14 @@
     DoubleSide,
     Color,
     Vector3,
-    Quaternion,
-    Matrix4,
     NormalBlending,
   } from 'three';
   import type { PerspectiveCamera } from 'three';
   import type { OrbitControls as ThreeOrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
   import { onDestroy, untrack } from 'svelte';
+  import { flightMemory } from './flightMemory';
+  import { sceneWarmup } from './sceneWarmup.svelte';
+  import { getSceneQuality } from './quality';
   import { T, useTask, useThrelte } from '@threlte/core';
   import { OrbitControls } from '@threlte/extras';
 
@@ -38,18 +39,18 @@
   import { mulberry32 } from './rng';
   import { showHud, hideHud, setHudScreenPosition } from './hud.svelte';
   import {
-    tweenCamera,
-    easeInCubic,
-    easeOutCubic,
-    easeInOutCubic,
+    createCameraFlight,
+    type CameraFlight,
     prefersReducedMotion,
     smoothstepJs,
   } from './cameraTween';
   import { lightenHex } from './starSystem';
   import themeStore from '$lib/stores/theme.svelte';
 
-  const { renderer } = useThrelte();
-  const cameraCtx = useThrelte().camera;
+  const { renderer, dpr, scene } = useThrelte();
+  let sceneCamera = $state<import('three').PerspectiveCamera>();
+  const warmup = sceneWarmup(renderer, scene, () => sceneCamera);
+  let cameraFlight: CameraFlight | undefined;
 
   // Our own OrbitControls instance via bind:ref. Deliberately NOT the
   // useOrbitControls() registry: when the galaxy scene swaps out, its
@@ -61,6 +62,7 @@
 
   const {
     animationActive = false,
+    worldActive = false,
     system = undefined as unknown as StarSystemData,
     /**
      * 'warp' plays the drop-out-of-warp arrival, 'fromPlanet' pulls back from
@@ -74,11 +76,14 @@
     /** When true, the camera accelerates away from the system (back to galaxy). */
     departing = false,
     /** Motion-locked transition veil: (opacity, colorHex) driven per frame. */
+    onDeparted = undefined as (() => void) | undefined,
+    onArrived = undefined as (() => void) | undefined,
     onVeil = undefined as ((opacity: number, colorHex: number) => void) | undefined,
     onSelectPlanet = undefined as ((index: number) => void) | undefined,
   } = $props();
 
-  const pixelRatio = Math.min(window.devicePixelRatio, 2);
+  const quality = getSceneQuality();
+  const pixelRatio = Math.min(window.devicePixelRatio, quality.maxDpr);
   const isMobile = window.matchMedia('(max-width: 768px)').matches;
   let time = 0;
 
@@ -87,9 +92,22 @@
   // scene-graph build below.
   const sys: StarSystemData = untrack(() => system);
   const entryMode = untrack(() => entry);
+  const savedView = flightMemory.system?.seed === sys.seed ? flightMemory.system : undefined;
+  time = savedView?.time ?? 0;
+  function saveView(cam: PerspectiveCamera) {
+    flightMemory.system = {
+      seed: sys.seed,
+      time,
+      position: cam.position.toArray(),
+      target: controls?.target.toArray() ?? [0, 0, 0],
+      fov: cam.fov,
+    };
+  }
+  onDestroy(() => {
+    if (flightMemory.system?.seed === sys.seed) flightMemory.system.time = time;
+  });
 
   const tmpVec = new Vector3();
-  const tmpUp = new Vector3();
 
   // ─── Camera framing derived from the system's size ─────────────────────
   const outermost = sys.planets[sys.planets.length - 1].orbitRadius;
@@ -99,6 +117,7 @@
     isMobile ? 92 : 44,
   );
   const restPosition = (() => {
+    if (entryMode === 'fromPlanet' && savedView) return new Vector3(...savedView.position);
     const elevation = isMobile ? 0.58 : 0.42; // mobile needs a wider, more readable overview
     const azimuth = -0.6;
     return new Vector3(
@@ -130,7 +149,10 @@
       },
     }),
   );
-  const starMesh = new Mesh(track(new SphereGeometry(sys.starRadius, 48, 32)), starMaterial);
+  const starMesh = new Mesh(
+    track(new SphereGeometry(sys.starRadius, quality.bodySegments, 24)),
+    starMaterial,
+  );
   root.add(starMesh);
 
   const coronaMaterial = track(
@@ -153,7 +175,7 @@
   root.add(coronaMesh);
 
   // Shared unit sphere for planets and moons (scaled per body).
-  const bodyGeometry = track(new SphereGeometry(1, 40, 24));
+  const bodyGeometry = track(new SphereGeometry(1, quality.bodySegments, 20));
 
   interface MoonRecord {
     data: MoonData;
@@ -306,7 +328,7 @@
   // ─── Background starfield ──────────────────────────────────────────────
   const starfieldGeometry = track(new BufferGeometry());
   {
-    const count = 1600;
+    const count = quality.stars;
     const rng = mulberry32(sys.seed * 31 + 7);
     const positions = new Float32Array(count * 3);
     const scalesArr = new Float32Array(count);
@@ -352,7 +374,6 @@
   $effect(() => {
     const isDark = themeStore.theme === 'dark';
     renderer.setClearColor(isDark ? 0x05060e : 0xf7f8fc, 1);
-    renderer.setPixelRatio(pixelRatio);
 
     orbitLineMaterial.color.set(isDark ? 0xaab4cc : 0x465064);
     orbitLineMaterial.opacity = isDark ? 0.14 : 0.2;
@@ -383,213 +404,146 @@
 
   // ─── Entry: drop out of warp / pull back from a departed planet ────────
   const reduceMotion = prefersReducedMotion();
-  let entryTweenActive = entryMode !== 'return' && !reduceMotion;
+  let entryTweenActive = $state(entryMode !== 'return' && !reduceMotion);
   let entryDone = false;
 
-  /** Dissolve the transition veil on an rAF clock, matched to the entry move. */
-  function dissolveVeil(colorHex: number, durationMs: number): () => void {
-    const t0 = performance.now();
-    let raf: number | undefined;
-    const step = (now: number) => {
-      const p = Math.min(1, (now - t0) / durationMs);
-      onVeil?.(1 - easeOutCubic(p), colorHex);
-      if (p < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => {
-      if (raf !== undefined) cancelAnimationFrame(raf);
-    };
-  }
-
   $effect(() => {
-    if (entryDone) return;
-    const cam = cameraCtx.current as PerspectiveCamera | undefined;
-    if (!cam) return;
+    if (entryDone || !warmup.ready) return;
+    const cam = sceneCamera;
+    const ctrl = controls;
+    if (!cam || !ctrl) return;
     entryDone = true;
-    const ctrl = untrack(() => controls);
-
+    let veilColor = sys.starColor;
     if (entryMode === 'warp' && !reduceMotion) {
-      cam.position.copy(restPosition).multiplyScalar(2.7);
-      const cancel = tweenCamera(
-        cam,
-        ctrl,
-        {
-          position: restPosition.toArray() as [number, number, number],
-          target: [0, 0, 0],
-        },
-        1700,
-        () => (entryTweenActive = false),
-        easeOutCubic,
-      );
-      const stopVeil = dissolveVeil(sys.starColor, 750);
-      return () => {
-        cancel();
-        stopVeil();
-      };
-    }
-
-    if (entryMode === 'fromPlanet' && returnPlanetIndex != null && !reduceMotion) {
+      cam.position.copy(restPosition).multiplyScalar(3.4);
+    } else if (entryMode === 'fromPlanet' && returnPlanetIndex != null && !reduceMotion) {
       const record = planetRecords[returnPlanetIndex];
-      if (record) {
-        // Start right off the planet we just left, LOOKING AT IT — it fills
-        // the frame exactly like the climb-out did — then pull back to the
-        // rest framing while the view pans from the planet to the star.
-        getPlanetWorldPosition(record, tmpVec);
-        const away = restPosition.clone().sub(tmpVec).normalize();
-        cam.position
-          .copy(tmpVec)
-          .addScaledVector(away, record.data.radius * 1.7)
-          .add(new Vector3(0, record.data.radius * 0.55, 0));
-        cam.lookAt(tmpVec);
-        // Seed the tween's look-target with the planet so the camera starts
-        // on it and glides toward the star — not the other way around.
-        if (ctrl) ctrl.target.copy(tmpVec);
-        const cancel = tweenCamera(
-          cam,
-          ctrl,
-          {
-            position: restPosition.toArray() as [number, number, number],
-            target: [0, 0, 0],
-          },
-          1500,
-          () => (entryTweenActive = false),
-          easeInOutCubic,
-        );
-        const stopVeil = dissolveVeil(record.data.surface.fogColor, 800);
-        return () => {
-          cancel();
-          stopVeil();
-        };
-      }
-    }
-
-    entryTweenActive = false;
-    cam.position.copy(restPosition);
-    if (ctrl) {
+      getPlanetWorldPosition(record, tmpVec);
+      const away = restPosition.clone().sub(tmpVec).normalize();
+      cam.position
+        .copy(tmpVec)
+        .addScaledVector(away, record.data.radius * 1.7)
+        .add(new Vector3(0, record.data.radius * 0.55, 0));
+      cam.lookAt(tmpVec);
+      ctrl.target.copy(tmpVec);
+      veilColor = record.data.surface.fogColor;
+    } else {
+      entryTweenActive = false;
+      cam.position.copy(restPosition);
       ctrl.target.set(0, 0, 0);
       ctrl.update();
+      return;
     }
+    const flight = createCameraFlight(
+      cam,
+      ctrl,
+      {
+        position: restPosition.toArray(),
+        target: entryMode === 'fromPlanet' ? (savedView?.target ?? [0, 0, 0]) : [0, 0, 0],
+        fov: savedView?.fov ?? systemFov,
+        arc: entryMode === 'fromPlanet' ? -0.08 : 0.06,
+      },
+      2.6,
+      {
+        onProgress: (p) => onVeil?.(1 - smoothstepJs(0.02, 0.2, p), veilColor),
+        onComplete: () => {
+          entryTweenActive = false;
+          onArrived?.();
+        },
+      },
+    );
+    cameraFlight = flight;
+    return () => {
+      flight.cancel();
+      if (cameraFlight === flight) cameraFlight = undefined;
+    };
   });
 
-  // ─── Departure: accelerate AWAY from the system (back to the galaxy) ───
-  // The system shrinks behind us as we pull out; a star-tinted veil saturates
-  // only at the acceleration peak, and the galaxy side continues the same
-  // outward motion from the star — one continuous zoom-out.
+  // Pull out on the same frame clock as rendering, without a final orbit clamp.
   $effect(() => {
-    if (!departing) return;
-    const cam = cameraCtx.current as PerspectiveCamera | undefined;
+    if (!departing || !warmup.ready) return;
+    const cam = sceneCamera;
     if (!cam || reduceMotion) return;
-
     hoveredIndex = null;
     focusIndex = null;
     hideHud();
-
-    const DEPART_MS = 950;
+    saveView(cam);
     const end = cam.position
       .clone()
       .normalize()
-      .multiplyScalar(restDistance * 3.6)
-      .add(new Vector3(0, restDistance * 0.55, 0));
-    const cancel = tweenCamera(
+      .multiplyScalar(Math.max(cam.position.length() * 3.2, restDistance * 3.6))
+      .add(new Vector3(0, restDistance * 0.3, 0));
+    const flight = createCameraFlight(
       cam,
       untrack(() => controls),
       {
-        position: end.toArray() as [number, number, number],
+        position: end.toArray(),
         target: [0, 0, 0],
+        arc: 0.04,
+        bank: 0.018,
       },
-      DEPART_MS,
-      undefined,
-      easeInCubic,
+      2.8,
+      {
+        handoff: true,
+        onProgress: (p) => onVeil?.(smoothstepJs(0.86, 1, p), sys.starColor),
+        onComplete: onDeparted,
+      },
     );
-
-    // Veil tied to the recede progress — flashes at peak velocity.
-    const veilColor = lightenHex(sys.starColor, 0.15);
-    const t0 = performance.now();
-    let raf: number | undefined;
-    const step = (now: number) => {
-      const p = Math.min(1, (now - t0) / DEPART_MS);
-      onVeil?.(smoothstepJs(0.62, 0.96, p), veilColor);
-      if (p < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-
+    cameraFlight = flight;
     return () => {
-      cancel();
-      if (raf !== undefined) cancelAnimationFrame(raf);
+      flight.cancel();
+      if (cameraFlight === flight) cameraFlight = undefined;
     };
   });
 
-  // ─── Approach: glide toward a clicked planet ───────────────────────────
-  // Follows the live (still orbiting) planet each frame, so it can't be a
-  // fixed-endpoint tween; runs inside useTask instead.
-  interface ApproachState {
-    record: PlanetRecord;
-    fromPosition: Vector3;
-    fromQuaternion: Quaternion;
-    side: Vector3;
-    startDistance: number;
-    startTime: number;
-    duration: number;
-  }
-  let approach: ApproachState | null = null;
-  let restoreControls: (() => void) | undefined;
-
+  // Freeze orbital translation while approaching; both sides of the scale change
+  // meet at rest, with acceleration and deceleration instead of an abrupt kick.
   $effect(() => {
-    if (approachPlanetIndex == null) return;
+    if (approachPlanetIndex == null || !warmup.ready) return;
     const record = planetRecords[approachPlanetIndex];
-    const cam = cameraCtx.current as PerspectiveCamera | undefined;
+    const cam = sceneCamera;
     if (!record || !cam) return;
-
     hoveredIndex = null;
     focusIndex = null;
     hideHud();
-
-    // Silence OrbitControls for the glide: Threlte calls update() every frame
-    // while damping is on, and update() forces lookAt(target) — which would
-    // pin the view to the star instead of the planet we are flying to.
-    const ctrl = untrack(() => controls);
-    if (ctrl) {
-      const originalUpdate = ctrl.update.bind(ctrl);
-      ctrl.enabled = false;
-      ctrl.update = (() => true) as typeof ctrl.update;
-      restoreControls = () => {
-        ctrl.update = originalUpdate;
-        ctrl.enabled = true;
-        restoreControls = undefined;
-      };
-    }
-
+    saveView(cam);
     getPlanetWorldPosition(record, tmpVec);
-    const side = new Vector3()
-      .subVectors(tmpVec, cam.position)
-      .cross(new Vector3(0, 1, 0))
-      .normalize();
-
-    approach = {
-      record,
-      fromPosition: cam.position.clone(),
-      fromQuaternion: cam.quaternion.clone(),
-      side,
-      startDistance: cam.position.distanceTo(tmpVec),
-      startTime: time,
-      duration: 1.8,
-    };
-
+    const target = tmpVec.clone();
+    const end = cam.position
+      .clone()
+      .sub(target)
+      .normalize()
+      .multiplyScalar(record.data.radius * 1.035)
+      .add(target)
+      .add(new Vector3(0, record.data.radius * 0.12, 0));
+    const flight = createCameraFlight(
+      cam,
+      untrack(() => controls),
+      {
+        position: end.toArray(),
+        target: target.toArray(),
+        fov: 60,
+        arc: 0.1,
+        bank: -0.025,
+      },
+      3.1,
+      {
+        handoff: true,
+        onProgress: (p) => onVeil?.(smoothstepJs(0.86, 1, p), record.data.surface.fogColor),
+        onComplete: onDeparted,
+      },
+    );
+    cameraFlight = flight;
     return () => {
-      approach = null;
-      restoreControls?.();
+      flight.cancel();
+      if (cameraFlight === flight) cameraFlight = undefined;
     };
   });
 
-  const approachTarget = new Vector3();
-  const approachOffset = new Vector3();
-  const approachPos = new Vector3();
-  const approachLookMatrix = new Matrix4();
-  const approachLookQuat = new Quaternion();
-
   function updateCameraFocus(delta: number) {
     const ctrl = controls;
-    if (!ctrl || !ctrl.enabled || approach || entryTweenActive || departing) return;
+    if (!ctrl || !ctrl.enabled || approachPlanetIndex != null || entryTweenActive || departing)
+      return;
 
     const record = focusIndex != null ? planetRecords[focusIndex] : undefined;
     if (record && interactive) {
@@ -601,41 +555,6 @@
     const followSpeed = record ? 5.2 : 2.8;
     ctrl.target.lerp(focusTarget, Math.min(1, delta * followSpeed));
     ctrl.update();
-  }
-
-  function updateApproach() {
-    if (!approach) return;
-    const cam = cameraCtx.current as PerspectiveCamera | undefined;
-    if (!cam) return;
-    const { record, fromPosition, fromQuaternion, side, startDistance, startTime, duration } =
-      approach;
-    const t = Math.min((time - startTime) / duration, 1);
-    const e = easeInOutCubic(t);
-
-    getPlanetWorldPosition(record, approachTarget);
-    // Fly in until the planet fills the frame, then keep plunging until we
-    // skim the surface. The last stretch drives the transition veil toward
-    // the planet's surface fog color — the same color the flyover scene's
-    // haze starts from — so the cut is two identical frames: a real
-    // atmospheric entry, not a curtain.
-    approachOffset.copy(fromPosition).sub(approachTarget).normalize();
-    approachPos
-      .copy(approachTarget)
-      .addScaledVector(approachOffset, record.data.radius * 1.02)
-      .add(tmpUp.set(0, record.data.radius * 0.16, 0));
-
-    // Gentle arc instead of a straight rail.
-    cam.position
-      .lerpVectors(fromPosition, approachPos, e)
-      .addScaledVector(side, Math.sin(Math.PI * e) * startDistance * 0.12);
-
-    // Bank the view onto the target over the first stretch instead of
-    // snapping lookAt on the click frame.
-    approachLookMatrix.lookAt(cam.position, approachTarget, tmpUp.set(0, 1, 0));
-    approachLookQuat.setFromRotationMatrix(approachLookMatrix);
-    cam.quaternion.copy(fromQuaternion).slerp(approachLookQuat, smoothstepJs(0, 0.42, t));
-
-    onVeil?.(smoothstepJs(0.66, 0.97, t), record.data.surface.fogColor);
   }
 
   // ─── Per-frame updates ─────────────────────────────────────────────────
@@ -678,24 +597,26 @@
 
   const { start, stop } = useTask(
     (delta) => {
-      time += delta;
+      const dt = Math.min(delta, 0.05);
+      if (worldActive) time += dt;
+      starfieldMaterial.uniforms.uPixelRatio.value = dpr.current;
       starMaterial.uniforms.uTime.value = time;
       coronaMaterial.uniforms.uTime.value = time;
       starfieldMaterial.uniforms.uTime.value = time;
 
-      const cam = cameraCtx.current as PerspectiveCamera | undefined;
+      const cam = sceneCamera;
       if (cam) coronaMesh.quaternion.copy(cam.quaternion);
 
-      updateOrbits(delta);
-      updateCameraFocus(delta);
-      updateApproach();
+      updateOrbits(worldActive ? dt : 0);
+      updateCameraFocus(dt);
+      cameraFlight?.advance(dt);
       updateHudPosition();
     },
     { autoStart: false },
   );
 
   $effect(() => {
-    if (animationActive) {
+    if (animationActive && warmup.ready) {
       start();
     } else {
       stop();
@@ -722,15 +643,26 @@
   }
 
   function findHoveredPlanet(ndcX: number, ndcY: number): number | null {
-    const cam = cameraCtx.current as PerspectiveCamera | undefined;
+    const cam = sceneCamera;
     if (!cam) return null;
     let best: number | null = null;
-    let bestDist = 0.11;
+    let bestDist = 1;
     for (const record of planetRecords) {
       getPlanetWorldPosition(record, tmpVec);
+      const distance = Math.max(cam.position.distanceTo(tmpVec), record.data.radius);
+      const screenRadius =
+        (record.data.radius * cam.projectionMatrix.elements[5] * canvasEl.clientHeight) /
+        (2 * distance);
       tmpVec.project(cam);
       if (tmpVec.z < -1 || tmpVec.z > 1) continue;
-      const d = Math.hypot(tmpVec.x - ndcX, tmpVec.y - ndcY);
+      // Match the visible sphere and keep small planets at least a finger wide.
+      // Pixel distances also avoid stretched hit areas in portrait viewports.
+      const radius = Math.max(isMobile ? 24 : 16, screenRadius * 1.1);
+      const d =
+        Math.hypot(
+          ((tmpVec.x - ndcX) * canvasEl.clientWidth) / 2,
+          ((tmpVec.y - ndcY) * canvasEl.clientHeight) / 2,
+        ) / radius;
       if (d < bestDist) {
         bestDist = d;
         best = record.index;
@@ -846,7 +778,7 @@
 
   function updateHudPosition() {
     if (hoveredIndex == null) return;
-    const cam = cameraCtx.current as PerspectiveCamera | undefined;
+    const cam = sceneCamera;
     const record = planetRecords[hoveredIndex];
     if (!cam || !record) return;
     getPlanetWorldPosition(record, tmpVec);
@@ -857,10 +789,25 @@
   }
 </script>
 
-<T.PerspectiveCamera makeDefault position={restPosition.toArray()} fov={systemFov} near={0.05}>
+<T.PerspectiveCamera
+  bind:ref={sceneCamera}
+  makeDefault
+  position={restPosition.toArray()}
+  fov={systemFov}
+  near={0.05}
+>
   <OrbitControls
     bind:ref={controls}
-    enableDamping
+    enabled={animationActive &&
+      warmup.ready &&
+      !entryTweenActive &&
+      approachPlanetIndex == null &&
+      !departing}
+    enableDamping={animationActive &&
+      warmup.ready &&
+      !entryTweenActive &&
+      approachPlanetIndex == null &&
+      !departing}
     enablePan={false}
     rotateSpeed={isMobile ? 0.45 : 0.65}
     zoomSpeed={0.7}

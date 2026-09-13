@@ -8,6 +8,9 @@ uniform vec2 uSeedOffset;  // per-planet offset so no two worlds share terrain
 uniform float uTerrainScale;
 uniform float uHeightScale;
 uniform vec4 uBioHeightMul; // per-biome relief multipliers (packed)
+uniform vec4 uBioDunes;
+uniform vec4 uBioRidges;
+uniform vec4 uBioTerraces;
 uniform float uWaterLevel; // normalized 0..1; negative disables flooding
 uniform float uWaterKind;  // 0 none · 1 water · 2 lava · 3 ice
 uniform float uCloudMode;  // gas giants: rolling cloud tops
@@ -17,15 +20,21 @@ varying float vHeight;   // raw terrain height (pre-flood), world units
 varying vec3 vNormal;
 varying vec3 vWorldPos;
 varying vec2 vNoisePos;  // scrolled noise-space coords for biome sampling
+varying vec4 vBiomeWeights;
 
 float waterWorldHeight() {
   return (uWaterLevel - 0.5) * 1.6 * uHeightScale;
 }
 
-float rawHeight(vec2 p, float mul) {
-  float h = fbm5(p * uTerrainScale);
-  // Cloud mode: flatten the spectrum into soft, billowy swells.
-  h = mix(h, h * 0.5 + 0.3 * snoise2(p * uTerrainScale * 0.5), uCloudMode);
+float rawHeight(vec2 p, float mul, vec3 shape) {
+  vec2 q = p * uTerrainScale;
+  float base = fbm5(q);
+  float broad = snoise2(q * 0.5);
+  float h = base;
+  h += (sin(q.x * 3.0 + broad * 2.4) * 0.24 + broad * 0.18 - base) * shape.x;
+  h += (0.38 - abs(base) * 1.65 + broad * 0.2 - base) * shape.y;
+  h -= sin(base * 18.0) * 0.025 * shape.z;
+  h = mix(h, base * 0.5 + broad * 0.3, uCloudMode);
   return h * uHeightScale * mul;
 }
 
@@ -33,8 +42,7 @@ float rawHeight(vec2 p, float mul) {
 // traveling waves. Waves move ALONG THE WIND, independent of the terrain
 // scroll — liquids get their own motion instead of being painted onto the
 // streaming landscape.
-float surfaceHeight(vec2 p, float mul) {
-  float h = rawHeight(p, mul);
+float surfaceHeight(vec2 p, float h) {
   if (uWaterLevel >= 0.0) {
     float w = waterWorldHeight();
     if (h < w) {
@@ -68,10 +76,12 @@ void main() {
   // Per-biome relief: one climate lookup per vertex, the multiplier is
   // reused for the normal taps (noise.ts mirrors this for flora placement).
   vec4 bw = biomeWeights(scrolled);
+  vBiomeWeights = bw;
   float mul = dot(bw, uBioHeightMul);
+  vec3 shape = vec3(dot(bw, uBioDunes), dot(bw, uBioRidges), dot(bw, uBioTerraces));
 
-  float hRaw = rawHeight(scrolled, mul);
-  float h = surfaceHeight(scrolled, mul);
+  float hRaw = rawHeight(scrolled, mul, shape);
+  float h = surfaceHeight(scrolled, hRaw);
 
   vHeight = hRaw;
   vNoisePos = scrolled;
@@ -81,13 +91,14 @@ void main() {
   // Normals via finite differences of the *flattened* height, so water reads
   // as a level plane and shorelines shade correctly.
   float eps = 1.1;
-  float hL = surfaceHeight(scrolled + vec2(-eps, 0.0), mul);
-  float hR = surfaceHeight(scrolled + vec2(eps, 0.0), mul);
-  float hD = surfaceHeight(scrolled + vec2(0.0, -eps), mul);
-  float hU = surfaceHeight(scrolled + vec2(0.0, eps), mul);
+  vec2 px = scrolled + vec2(eps, 0.0);
+  vec2 py = scrolled + vec2(0.0, eps);
+  float hR = surfaceHeight(px, rawHeight(px, mul, shape));
+  float hU = surfaceHeight(py, rawHeight(py, mul, shape));
 
-  vec3 localNormal = normalize(vec3((hL - hR) / (2.0 * eps), (hD - hU) / (2.0 * eps), 1.0));
-  vNormal = normalize(normalMatrix * localNormal);
+  vec3 localNormal = normalize(vec3((h - hR) / eps, (h - hU) / eps, 1.0));
+  // Lighting, view direction and slope are all in world space.
+  vNormal = normalize(mat3(modelMatrix) * localNormal);
 
   vec4 worldPos = modelMatrix * vec4(displaced, 1.0);
   vWorldPos = worldPos.xyz;

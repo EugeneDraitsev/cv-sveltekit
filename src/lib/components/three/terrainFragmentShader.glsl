@@ -1,5 +1,4 @@
 #include ./chunks/simplex2d.glsl;
-#include ./chunks/biomes.glsl;
 
 uniform float uTime;
 uniform float uTerrainScale;
@@ -32,6 +31,7 @@ varying float vHeight;
 varying vec3 vNormal;
 varying vec3 vWorldPos;
 varying vec2 vNoisePos;
+varying vec4 vBiomeWeights;
 
 // Depth of the flooded column at this fragment (world units).
 float waterDepth() {
@@ -41,11 +41,12 @@ float waterDepth() {
 
 void main() {
   float nh = clamp(vHeight / (uHeightScale * 1.6) + 0.5, 0.0, 1.0);
-  float slope = 1.0 - vNormal.y;
+  vec3 normal = normalize(vNormal);
+  float slope = 1.0 - normal.y;
 
   // Blend the elevation palettes of up to 4 biomes by the climate weights —
   // Minecraft-style regions with soft borders, one set of bands per biome.
-  vec4 bw = biomeWeights(vNoisePos);
+  vec4 bw = vBiomeWeights / max(dot(vBiomeWeights, vec4(1.0)), 0.00001);
   vec3 low = uBioLow[0] * bw.x + uBioLow[1] * bw.y + uBioLow[2] * bw.z + uBioLow[3] * bw.w;
   vec3 mid = uBioMid[0] * bw.x + uBioMid[1] * bw.y + uBioMid[2] * bw.z + uBioMid[3] * bw.w;
   vec3 high = uBioHigh[0] * bw.x + uBioHigh[1] * bw.y + uBioHigh[2] * bw.z + uBioHigh[3] * bw.w;
@@ -94,7 +95,7 @@ void main() {
 
       // Grazing angles mirror the sky.
       vec3 viewDir = normalize(cameraPosition - vWorldPos);
-      float fres = pow(1.0 - clamp(dot(viewDir, vNormal), 0.0, 1.0), 3.0);
+      float fres = pow(1.0 - clamp(dot(viewDir, normal), 0.0, 1.0), 3.0);
       liquid = mix(liquid, uFogColor, fres * 0.5);
 
       // Twinkling sun glints stretched along the wind, strongest at grazing.
@@ -119,7 +120,7 @@ void main() {
       // Ice sheets: frozen solid — cracks stay locked to the landscape,
       // only a faint sheen sweeps across.
       float crack = abs(snoise2(vNoisePos * 0.28));
-      liquid = mix(liquid, liquid * 0.62, smoothstep(0.02, 0.0, crack));
+      liquid = mix(liquid, liquid * 0.62, 1.0 - smoothstep(0.0, 0.02, crack));
       liquid = mix(liquid, vec3(1.0), 0.12);
       float sheen = snoise2(vNoisePos * 0.5 - flow);
       liquid += vec3(0.05) * smoothstep(0.4, 0.9, sheen);
@@ -135,10 +136,10 @@ void main() {
 
   // Lighting: star-tinted lambert + hemispheric sky/ground ambient.
   vec3 lightDir = normalize(uLightDir);
-  float diffuse = max(dot(vNormal, lightDir), 0.0);
+  float diffuse = max(dot(normal, lightDir), 0.0);
   float diffuseStrength = mix(0.78, 0.45, uCloudMode);
   float ambientStrength = mix(0.55, 0.85, uCloudMode);
-  vec3 ambient = mix(vec3(0.16), uFogColor, vNormal.y * 0.5 + 0.5) * ambientStrength;
+  vec3 ambient = mix(vec3(0.16), uFogColor, normal.y * 0.5 + 0.5) * ambientStrength;
   vec3 lit = color * (ambient + uLightColor * diffuse * diffuseStrength);
 
   // Lava is emissive — ignore lighting and warm up nearby lowlands.

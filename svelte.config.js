@@ -15,7 +15,7 @@ const config = {
 
     // Inline the (small, tree-shaken) stylesheet into the HTML head so first paint
     // doesn't wait on a separate render-blocking CSS round-trip on slow connections.
-    inlineStyleThreshold: 40_960,
+    inlineStyleThreshold: 65_536,
   },
 };
 

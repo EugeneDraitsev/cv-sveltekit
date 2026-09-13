@@ -1,0 +1,35 @@
+@import '../../../theme.css';
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+@source './';
+
+/* Own stacking context. The warp overlay inside the hero sits at z-index 6;
+   without a context here it escapes to the root and paints over the post card,
+   which overlaps the hero by 72px. The fixed nav is at z-10 and stays above. */
+.threlte-app {
+  position: relative;
+  z-index: 0;
+  opacity: 0;
+}
+
+@keyframes threlte-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .threlte-app {
+    animation: threlte-fade-in 750ms ease-in;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .threlte-app {
+    animation: none;
+    opacity: 1;
+  }
+}

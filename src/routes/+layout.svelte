@@ -22,6 +22,8 @@
   const { children } = $props();
   let ThrelteApp = $state<Component<ComponentProps<typeof ThrelteAppType>>>();
   let galaxyLoadStarted = false;
+  let galaxyLoading = $state(false);
+  let galaxyError = $state(false);
   let galaxyRegion = $state<HTMLElement>();
   let galaxyHeroVisible = $state(true);
   let tabsElement = $state<HTMLElement>();
@@ -95,51 +97,38 @@
     return () => observer.disconnect();
   });
 
+  async function loadGalaxy() {
+    if (galaxyLoadStarted || !galaxyAllowed) return;
+    galaxyLoadStarted = true;
+    galaxyLoading = true;
+    galaxyError = false;
+    try {
+      const { default: App } = await import('$lib/components/three/ThrelteApp.svelte');
+      ThrelteApp = App;
+    } catch (error) {
+      galaxyLoadStarted = false;
+      galaxyError = true;
+      console.error('Unable to load the interactive galaxy', error);
+    } finally {
+      galaxyLoading = false;
+    }
+  }
+
   $effect(() => {
-    // The 3D galaxy is a heavy, decorative enhancement (Three.js parse + particle
-    // generation). Loading it eagerly blocks the main thread during initial load.
-    // Defer it until the visitor shows engagement. Passive readers keep the static
-    // backdrop and never pay the parsing or synchronous particle-generation cost.
-    let cancelled = false;
-
-    if (!galaxyAllowed) return;
-
-    const events = [
-      'pointerdown',
-      'mousemove',
-      'touchstart',
-      'wheel',
-      'keydown',
-      'scroll',
-    ] as const;
-
-    async function loadGalaxy() {
-      if (galaxyLoadStarted || cancelled) return;
-      galaxyLoadStarted = true;
-      teardown();
-      try {
-        const { default: App } = await import('$lib/components/three/ThrelteApp.svelte');
-        if (cancelled) {
-          galaxyLoadStarted = false;
-          return;
-        }
-        ThrelteApp = App;
-      } catch (error) {
-        galaxyLoadStarted = false;
-        console.error('Unable to load the interactive galaxy', error);
-      }
-    }
-
-    function teardown() {
-      events.forEach((event) => window.removeEventListener(event, loadGalaxy));
-    }
-
-    events.forEach((event) => window.addEventListener(event, loadGalaxy, { passive: true }));
-
-    return () => {
-      cancelled = true;
-      teardown();
+    if (!galaxyRegion || !galaxyAllowed) return;
+    const region = galaxyRegion;
+    // Desktop hover inside the hero is intent. Page scrolling, CV downloads,
+    // navigation and touch scrolling shouldn't parse a 3D engine.
+    const onEnter = (event: PointerEvent) => {
+      if (
+        !galaxyError &&
+        event.pointerType === 'mouse' &&
+        !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      )
+        void loadGalaxy();
     };
+    region.addEventListener('pointerenter', onEnter);
+    return () => region.removeEventListener('pointerenter', onEnter);
   });
 
   $effect(() => {
@@ -203,7 +192,31 @@
   {#if galaxyAllowed && ThrelteApp}
     <ThrelteApp />
   {:else}
-    <div class="galaxy-placeholder theme-grayscale w-full" aria-hidden="true"></div>
+    <div class="galaxy-placeholder theme-grayscale w-full">
+      <button
+        class="galaxy-launch"
+        onclick={() => (galaxyError ? location.reload() : loadGalaxy())}
+        disabled={galaxyLoading}
+      >
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
+          <ellipse
+            cx="12"
+            cy="12"
+            rx="10"
+            ry="4"
+            transform="rotate(-30 12 12)"
+            stroke="currentColor"
+            stroke-width="1.3"
+          />
+          <path d="m12 5 1.6 5.4L19 12l-5.4 1.6L12 19l-1.6-5.4L5 12l5.4-1.6Z" fill="currentColor" />
+        </svg>
+        {galaxyLoading
+          ? 'Opening the galaxy…'
+          : galaxyError
+            ? 'Reload to try the galaxy again'
+            : 'Explore the galaxy'}
+      </button>
+    </div>
   {/if}
 </div>
 
