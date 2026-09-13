@@ -120,17 +120,19 @@ export interface ClimateParams {
  * chunks/biomes.glsl exactly (same channels, gaussian falloff, normalization).
  */
 export function biomeWeights(x: number, y: number, params: ClimateParams): number[] {
+  const warp =
+    snoise2(x * params.climateScale * 0.7 + 17.4, y * params.climateScale * 0.7 - 9.2) * 0.3;
   const t = fbm3o(
-    x * params.climateScale + params.climOffTX,
-    y * params.climateScale + params.climOffTY,
+    x * params.climateScale + params.climOffTX + warp,
+    y * params.climateScale + params.climOffTY - warp,
   );
   const m = fbm3o(
-    x * params.climateScale + params.climOffMX,
-    y * params.climateScale + params.climOffMY,
+    x * params.climateScale + params.climOffMX - warp,
+    y * params.climateScale + params.climOffMY + warp,
   );
   const weights = params.centers.map(([ct, cm]) => {
     const d2 = (t - ct) * (t - ct) + (m - cm) * (m - cm);
-    return Math.exp(-d2 * 14);
+    return Math.exp(-d2 * 22);
   });
   const total = Math.max(
     weights.reduce((sum, w) => sum + w, 0),

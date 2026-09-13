@@ -12,14 +12,16 @@
   let knobX = $state(0);
   let knobY = $state(0);
   let stickPointer: number | null = null;
-  let visible = $state(false);
 
   onMount(() => {
     touchInput.active = true;
-    // Let the atmospheric-entry haze clear before the chrome fades in.
-    const timer = setTimeout(() => (visible = true), 700);
+    const releaseAll = () => {
+      releaseStick();
+      resetTouchInput();
+    };
+    window.addEventListener('blur', releaseAll);
     return () => {
-      clearTimeout(timer);
+      window.removeEventListener('blur', releaseAll);
       touchInput.active = false;
       resetTouchInput();
     };
@@ -78,7 +80,7 @@
     releaseStick();
   }
 
-  function holdButton(key: 'up' | 'boost') {
+  function holdButton(key: 'up' | 'down' | 'boost') {
     return (event: PointerEvent) => {
       touchInput[key] = true;
       (event.currentTarget as Element).setPointerCapture(event.pointerId);
@@ -86,7 +88,7 @@
     };
   }
 
-  function releaseButton(key: 'up' | 'boost') {
+  function releaseButton(key: 'up' | 'down' | 'boost') {
     return () => {
       touchInput[key] = false;
     };
@@ -95,7 +97,6 @@
 
 <div
   class="touch-controls"
-  class:visible
   role="group"
   aria-label="Touch flight controls"
   oncontextmenu={(e) => e.preventDefault()}
@@ -144,6 +145,20 @@
     >
       <Icon icon="mdi:arrow-up-bold" width="22" height="22" />
     </button>
+    <button
+      class="action-btn"
+      class:held={touchInput.down}
+      type="button"
+      aria-label="Fly down"
+      onpointerdown={holdButton('down')}
+      onpointerup={releaseButton('down')}
+      onpointercancel={releaseButton('down')}
+      onlostpointercapture={releaseButton('down')}
+    >
+      <span class="descend-icon" aria-hidden="true"
+        ><Icon icon="mdi:arrow-up-bold" width="22" height="22" /></span
+      >
+    </button>
   </div>
 </div>
 
@@ -153,18 +168,12 @@
     inset: 0;
     z-index: 5;
     pointer-events: none;
-    opacity: 0;
-    transition: opacity 400ms ease;
-  }
-
-  .touch-controls.visible {
-    opacity: 1;
   }
 
   .stick-pad {
     position: absolute;
     left: 1.1rem;
-    bottom: 5.6rem;
+    bottom: 10rem;
     width: 7rem;
     height: 7rem;
     display: grid;
@@ -198,17 +207,17 @@
   .action-cluster {
     position: absolute;
     right: 1.1rem;
-    bottom: 5.6rem;
+    bottom: 10rem;
     display: grid;
-    gap: 0.8rem;
+    gap: 0.45rem;
     pointer-events: none;
   }
 
   .action-btn {
     display: grid;
     place-items: center;
-    width: 3.4rem;
-    height: 3.4rem;
+    width: 3rem;
+    height: 3rem;
     border-radius: 999px;
     border: 1px solid color-mix(in srgb, var(--color-identifier) 32%, transparent);
     background: color-mix(in srgb, var(--color-base-100) 46%, transparent);
@@ -223,6 +232,14 @@
       color 120ms ease,
       border-color 120ms ease,
       transform 120ms ease;
+  }
+
+  .descend-icon {
+    transform: rotate(180deg);
+  }
+  .action-btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 4px;
   }
 
   .action-btn.held {

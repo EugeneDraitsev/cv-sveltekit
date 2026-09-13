@@ -1,5 +1,6 @@
 <script lang="ts">
   import { SITE_DATA } from '$lib/constants';
+  import '../blog/blog.css';
 
   const canonicalUrl = new URL('about', SITE_DATA.siteUrl).href;
   const pageSpeedUrl =
@@ -92,14 +93,15 @@
       <section aria-labelledby="lighthouse-heading">
         <h2 id="lighthouse-heading" class="subtitle">Measured first-load performance</h2>
         <p class="mb-5 max-w-3xl">
-          Google's own PageSpeed Insights run against production scores 100 in all four categories
-          on mobile, throttled to slow 4G on an emulated Moto G Power. It is a regression signal for
-          initial delivery, not a substitute for runtime profiling or manual accessibility testing.
+          The June 19, 2026 PageSpeed Insights report recorded 100 in all four categories on mobile,
+          throttled to slow 4G on an emulated Moto G Power. This is a historical snapshot: scores
+          change with deployments and test conditions. Initial-load audits complement runtime
+          profiling and manual accessibility testing.
         </p>
 
         <p class="mb-8 text-sm">
           <a class="text-constant underline" href={pageSpeedUrl} target="_blank" rel="noreferrer">
-            Open the live PageSpeed Insights report
+            Open the recorded PageSpeed Insights report
           </a>
         </p>
 

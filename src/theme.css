@@ -1,0 +1,18 @@
+@import 'tailwindcss/theme.css' layer(theme);
+
+@theme {
+  --default-font-family:
+    'Consolas', 'Menlo', 'Monaco', 'Courier New', 'Liberation Mono', 'Courier', monospace;
+  --color-constant: #d694f9;
+  --color-declaration: #ffc66d;
+  --color-string: #a4c591;
+  --color-identifier: #d1d1d1;
+  --color-keyword: #cc7832;
+  --color-number: #9fd6ff;
+  --color-background: #424242;
+  --color-base-100: #121212;
+  --color-base-200: #1e1e1e;
+  --color-base-300: #484848;
+  --color-primary: #ffc66d;
+  --color-secondary: #d694f9;
+}

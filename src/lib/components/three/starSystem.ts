@@ -96,6 +96,8 @@ export interface BiomeDef {
   peak: number;
   /** Relief multiplier — lets one biome be flats and its neighbor mountains. */
   heightMul: number;
+  /** 0 rolling hills, 1 dunes, 2 ridges, 3 terraces. Blends at biome borders. */
+  relief: number;
   flora: FloraKind;
   floraColors: [number, number];
   /** 0..1 spawn probability inside this biome. */
@@ -269,7 +271,7 @@ const ARCHETYPE_LABELS: Record<PlanetArchetype, string> = {
 
 // ─── Surface builders ──────────────────────────────────────────────────────
 
-type BiomeSeed = Omit<BiomeDef, 'climate'>;
+type BiomeSeed = Omit<BiomeDef, 'climate' | 'relief'>;
 
 /** Small per-planet tint so two planets never share exact biome colors. */
 function tint(rng: Rng, hex: number, amount = 0.1): number {
@@ -709,6 +711,19 @@ function pickBiomes(rng: Rng, archetype: PlanetArchetype): BiomeDef[] {
   const layout = CLIMATE_LAYOUTS[seeds.length];
   return seeds.map((seed, i) =>
     Object.assign(seed, {
+      relief: /dune|sand|erg/i.test(seed.name)
+        ? 1
+        : /mesa|badland|plateau|salt/i.test(seed.name)
+          ? 3
+          : /alpine|highland|glacier|crag|basalt|volcan|ridge/i.test(seed.name)
+            ? 2
+            : archetype === 'desert'
+              ? 1
+              : archetype === 'lava' || archetype === 'ice'
+                ? 2
+                : archetype === 'barren'
+                  ? 3
+                  : 0,
       climate: [layout[i][0] + range(rng, -0.1, 0.1), layout[i][1] + range(rng, -0.1, 0.1)] as [
         number,
         number,

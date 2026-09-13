@@ -1,21 +1,15 @@
-@import 'tailwindcss';
+@layer theme, base, components, utilities;
+@import './theme.css';
+@import 'tailwindcss/preflight.css' layer(base);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
 
-@theme {
-  --default-font-family:
-    'Consolas', 'Menlo', 'Monaco', 'Courier New', 'Liberation Mono', 'Courier', monospace;
-  --color-constant: #d694f9;
-  --color-declaration: #ffc66d;
-  --color-string: #a4c591;
-  --color-identifier: #d1d1d1;
-  --color-keyword: #cc7832;
-  --color-number: #9fd6ff;
-  --color-background: #424242;
-  --color-base-100: #121212;
-  --color-base-200: #1e1e1e;
-  --color-base-300: #484848;
-  --color-primary: #ffc66d;
-  --color-secondary: #d694f9;
-}
+/* The initial CV only needs shared components and its own routes. */
+@source './routes/+layout.svelte';
+@source './routes/+page.svelte';
+@source './routes/+error.svelte';
+@source './lib/components/*.svelte';
+@source not './lib/components/ZoomableImage.svelte';
+@source not './lib/components/WebGLSceneEmbed.svelte';
 
 [data-theme='light'] {
   --default-font-family:
@@ -57,35 +51,6 @@ body {
 
 .subtitle {
   @apply mb-5 text-3xl text-declaration;
-}
-
-.blog-page {
-  @apply text-[15px] sm:text-base;
-}
-
-.blog-page .card {
-  @apply p-4 sm:p-6;
-}
-
-.blog-page p,
-.blog-page li {
-  @apply leading-relaxed;
-}
-
-.blog-title {
-  @apply text-[1.8rem] leading-[1.18] text-declaration sm:text-4xl sm:leading-tight;
-}
-
-.blog-lead {
-  @apply mt-4 max-w-3xl text-base leading-relaxed sm:mt-5 sm:text-lg;
-}
-
-.blog-page .subtitle {
-  @apply text-2xl sm:text-3xl;
-}
-
-.blog-post-title {
-  @apply text-xl leading-snug sm:text-2xl sm:leading-tight;
 }
 
 [data-grayscale='true'] .theme-grayscale {
@@ -153,39 +118,9 @@ body {
   outline-offset: 3px;
 }
 
-/* Ensure the bottom overlay doesn't block OrbitControls interactions */
-.galaxy-controls {
-  pointer-events: none;
-}
-.galaxy-controls .flex {
-  pointer-events: auto;
-}
-
-@media (max-width: 1199px) {
-  .galaxy-controls {
-    @apply left-4 w-[calc(100%-2rem)];
-  }
-
-  .threlte-app:has(+ .overlapped) .galaxy-controls {
-    @apply bottom-18 h-10;
-    background-image: none;
-  }
-
-  .threlte-app:has(+ .overlapped) .galaxy-controls .flex {
-    @apply items-start py-1.5;
-  }
-}
-
-@media (min-width: 1200px) and (max-width: 1279px) {
-  .galaxy-controls .flex {
-    @apply px-4;
-  }
-}
-
-/* Hero backdrop shown until the 3D galaxy loads on interaction (or after a
-   short idle fallback): the renderer's clear colour plus a faint nebular glow
-   where the galaxy will appear, so the wait reads as intentional. */
+/* Hero backdrop shown until the 3D galaxy loads on interaction. */
 .galaxy-placeholder {
+  position: relative;
   min-height: var(--galaxy-height);
   background:
     radial-gradient(
@@ -194,6 +129,38 @@ body {
       transparent 72%
     ),
     var(--color-base-100);
+}
+
+.galaxy-launch {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  min-height: 48px;
+  width: max-content;
+  max-width: calc(100% - 2rem);
+  padding: 0.65rem 1.15rem;
+  border: 1px solid color-mix(in srgb, var(--color-identifier) 25%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-base-100) 82%, transparent);
+  color: var(--color-identifier);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.galaxy-launch:hover {
+  border-color: var(--color-primary);
+}
+.galaxy-launch:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+}
+.galaxy-launch:disabled {
+  cursor: progress;
 }
 
 @media (max-width: 768px) {
@@ -210,366 +177,4 @@ body {
       transparent 72%
     ),
     var(--color-base-100);
-}
-
-/* Own stacking context. The warp overlay inside the hero sits at z-index 6;
-   without a context here it escapes to the root and paints over the post card,
-   which overlaps the hero by 72px. The fixed nav is at z-10 and stays above. */
-.threlte-app {
-  position: relative;
-  z-index: 0;
-  opacity: 0;
-}
-
-@keyframes threlte-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .threlte-app {
-    animation: threlte-fade-in 750ms ease-in;
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .threlte-app {
-    animation: none;
-    opacity: 1;
-  }
-}
-
-/* ---------------------------------------------------------------------------
-   Blog post building blocks
-
-   One visual language across every post: aligned columns on hairlines rather
-   than boxed cards, and headings that read as comments to match the editor
-   palette the rest of the site uses. Global rather than per-page so the three
-   posts cannot drift apart again.
-   --------------------------------------------------------------------------- */
-
-.blog-page .section-heading {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  margin-bottom: 1.25rem;
-  color: var(--color-declaration);
-  font-size: 1.5rem;
-  line-height: 1.25;
-}
-
-.blog-page .section-heading::before {
-  content: '//';
-  color: color-mix(in srgb, var(--color-identifier) 38%, transparent);
-  font-size: 1.1rem;
-}
-
-@media (min-width: 640px) {
-  .blog-page .section-heading {
-    font-size: 1.875rem;
-  }
-}
-
-/* Figures: a quiet frame, never a heavy card. */
-.blog-page .diagram {
-  margin-top: 0.5rem;
-  border: 1px solid var(--color-base-300);
-  border-radius: 6px;
-  background: var(--color-base-100);
-  padding: 0.75rem;
-}
-
-/* Numbers on hairlines instead of stat boxes. */
-.blog-page .stat-strip {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 2.5rem;
-  border-top: 1px solid var(--color-base-300);
-}
-
-.blog-page .stat {
-  border-bottom: 1px solid var(--color-base-300);
-  padding: 1rem 0.25rem;
-}
-
-.blog-page .stat + .stat {
-  border-left: 1px solid var(--color-base-300);
-  padding-left: 1rem;
-}
-
-.blog-page .stat-value {
-  color: var(--color-number);
-  font-size: 1.65rem;
-  line-height: 1;
-}
-
-.blog-page .stat-label {
-  margin-top: 0.45rem;
-  color: color-mix(in srgb, var(--color-identifier) 62%, transparent);
-  font-size: 0.75rem;
-}
-
-@media (max-width: 639px) {
-  .blog-page .stat:nth-child(3) {
-    border-left: 0;
-    padding-left: 0.25rem;
-  }
-}
-
-@media (min-width: 640px) {
-  .blog-page .stat-strip {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-/* Execution trace: ordered stages, with the exits that can end a run. */
-.blog-page .trace {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  border-top: 1px solid var(--color-base-300);
-}
-
-.blog-page .trace-step {
-  display: grid;
-  grid-template-columns: 2.25rem 1fr;
-  align-items: baseline;
-  gap: 0.15rem 0.75rem;
-  border-bottom: 1px solid var(--color-base-300);
-  padding: 0.85rem 0.5rem 0.85rem 0;
-  transition: background-color 160ms ease;
-}
-
-.blog-page .trace-step:hover {
-  background: color-mix(in srgb, var(--color-base-100) 55%, transparent);
-}
-
-.blog-page .trace-index {
-  color: var(--color-keyword);
-  font-size: 0.7rem;
-}
-
-.blog-page .trace-name {
-  color: var(--color-identifier);
-}
-
-.blog-page .trace-detail {
-  grid-column: 2;
-  color: color-mix(in srgb, var(--color-identifier) 62%, transparent);
-  font-size: 0.85rem;
-}
-
-.blog-page .trace-exit {
-  grid-column: 2;
-  margin-top: 0.35rem;
-  color: var(--color-keyword);
-  font-size: 0.75rem;
-}
-
-.blog-page .trace-note {
-  margin-top: 1rem;
-  /* 55% muted this below the 4.5:1 contrast floor in both themes. */
-  color: color-mix(in srgb, var(--color-identifier) 78%, transparent);
-  font-size: 0.8rem;
-}
-
-@media (min-width: 768px) {
-  .blog-page .trace-step {
-    grid-template-columns: 2.25rem 11rem 1fr auto;
-    gap: 1rem;
-  }
-
-  .blog-page .trace-detail,
-  .blog-page .trace-exit {
-    grid-column: auto;
-    margin-top: 0;
-  }
-
-  .blog-page .trace-exit {
-    text-align: right;
-    white-space: nowrap;
-  }
-}
-
-/* Rules: the claim scans down the middle column, reasoning sits beside it. */
-.blog-page .rulelist {
-  border-top: 1px solid var(--color-base-300);
-}
-
-.blog-page .rule {
-  display: grid;
-  grid-template-columns: 2.25rem 1fr;
-  gap: 0.15rem 0.75rem;
-  border-bottom: 1px solid var(--color-base-300);
-  padding: 1.1rem 0.5rem 1.1rem 0;
-  transition: background-color 160ms ease;
-}
-
-.blog-page .rule:hover {
-  background: color-mix(in srgb, var(--color-base-100) 55%, transparent);
-}
-
-.blog-page .rule-index {
-  color: var(--color-keyword);
-  font-size: 0.7rem;
-  line-height: 1.6;
-}
-
-.blog-page .rule-title {
-  color: var(--color-string);
-  font-size: 0.95rem;
-}
-
-.blog-page .rule-text {
-  grid-column: 2;
-  margin-top: 0.5rem;
-  color: color-mix(in srgb, var(--color-identifier) 78%, transparent);
-  font-size: 0.875rem;
-}
-
-@media (min-width: 900px) {
-  .blog-page .rule {
-    grid-template-columns: 2.25rem 13rem 1fr;
-    gap: 1.25rem;
-    align-items: baseline;
-  }
-
-  .blog-page .rule-text {
-    grid-column: auto;
-    margin-top: 0;
-  }
-}
-
-/* Aligned key/value block, like a config file. */
-.blog-page .spec {
-  border-top: 1px solid var(--color-base-300);
-}
-
-.blog-page .spec-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.2rem;
-  border-bottom: 1px solid var(--color-base-300);
-  padding: 0.7rem 0;
-}
-
-.blog-page .spec-key {
-  color: var(--color-keyword);
-  font-size: 0.85rem;
-}
-
-.blog-page .spec-value {
-  font-size: 0.9rem;
-}
-
-@media (min-width: 640px) {
-  .blog-page .spec-row {
-    grid-template-columns: 8.5rem 1fr;
-    gap: 1.5rem;
-    align-items: baseline;
-  }
-}
-
-/* One continuous rail, markers sitting on it rather than beside it. */
-.blog-page .timeline {
-  position: relative;
-  list-style: none;
-  margin: 0;
-  padding-left: 1.5rem;
-}
-
-.blog-page .timeline::before {
-  position: absolute;
-  top: 0.6rem;
-  bottom: 0.6rem;
-  left: 0;
-  width: 1px;
-  background: var(--color-base-300);
-  content: '';
-}
-
-.blog-page .timeline-item {
-  position: relative;
-  padding-bottom: 1.75rem;
-}
-
-.blog-page .timeline-item:last-child {
-  padding-bottom: 0;
-}
-
-.blog-page .timeline-item::before {
-  position: absolute;
-  top: 0.5rem;
-  left: calc(-1.5rem - 2.5px);
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-keyword);
-  content: '';
-}
-
-.blog-page .timeline-item:last-child::before {
-  top: 0.45rem;
-  left: calc(-1.5rem - 3.5px);
-  width: 8px;
-  height: 8px;
-  background: var(--color-declaration);
-}
-
-.blog-page .timeline-title {
-  display: flex;
-  align-items: baseline;
-  gap: 0.65rem;
-  color: var(--color-constant);
-  font-size: 1.05rem;
-}
-
-.blog-page .timeline-index {
-  color: color-mix(in srgb, var(--color-identifier) 45%, transparent);
-  font-size: 0.7rem;
-}
-
-.blog-page .timeline-text {
-  margin-top: 0.4rem;
-  color: color-mix(in srgb, var(--color-identifier) 78%, transparent);
-  font-size: 0.9rem;
-}
-
-/* Collapsed archive block. */
-.blog-page .archive {
-  margin-top: 2.5rem;
-  border-top: 1px solid var(--color-base-300);
-  padding-top: 1.25rem;
-}
-
-.blog-page .archive-summary {
-  cursor: pointer;
-  color: color-mix(in srgb, var(--color-identifier) 70%, transparent);
-  font-size: 0.85rem;
-  list-style: none;
-  transition: color 160ms ease;
-}
-
-.blog-page .archive-summary::-webkit-details-marker {
-  display: none;
-}
-
-.blog-page .archive-summary::before {
-  display: inline-block;
-  width: 1.1rem;
-  color: var(--color-keyword);
-  content: '+';
-}
-
-.blog-page .archive[open] .archive-summary::before {
-  content: '−';
-}
-
-.blog-page .archive-summary:hover {
-  color: var(--color-identifier);
 }

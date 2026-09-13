@@ -1,7 +1,11 @@
 <script lang="ts">
+  import './three.css';
   import { Canvas } from '@threlte/core';
   import type { Component, ComponentProps } from 'svelte';
-  import { untrack } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
+  import RenderBudget from './RenderBudget.svelte';
+  import FlightInstrument from './FlightInstrument.svelte';
+  import { getSceneQuality } from './quality';
 
   import GalaxyControls from './GalaxyControls.svelte';
   import PlanetTouchControls from './PlanetTouchControls.svelte';
@@ -23,302 +27,204 @@
   import { colorToHex, createParamsSnapshot, DEFAULT_CAMERA } from '$lib/utils';
   import type { CameraParams, GalaxyParams, HeroMode } from '$lib/types/threlte.types';
 
-  // UI State — the scene only mounts after the visitor interacts, so play immediately.
-  let isPlaying = $state(true);
+  const reduceMotion = prefersReducedMotion();
+  const quality = getSceneQuality();
+  let isPlaying = $state(!reduceMotion);
   let isExpanded = $state(false);
   let isDebugOpen = $state(false);
   let rootElement = $state<HTMLElement>();
   let isSceneVisible = $state(true);
-
-  // ─── Hero journey state ────────────────────────────────────────────────
-  // galaxy overview → warp into a star system → land on one of its planets.
+  let pageVisible = $state(!document.hidden);
   let mode = $state<HeroMode>('overview');
   let phase = $state<'idle' | 'warping'>('idle');
-  const sceneActive = $derived(phase === 'warping' || (isPlaying && isSceneVisible));
+  let travelLabel = $state('');
+  let travelError = $state('');
+  const sceneActive = $derived(isSceneVisible && pageVisible && (phase === 'warping' || isPlaying));
   let currentSystem = $state<StarSystemData | null>(null);
   let currentPlanetIndex = $state<number | null>(null);
-  /** While set, the galaxy scene dives the camera toward this system. */
   let warpTargetIndex = $state<number | null>(null);
-  /** Set on return: the galaxy scene pulls back out of this system's star. */
   let returnFromIndex = $state<number | null>(null);
-  /** While set, the system scene glides the camera toward this planet. */
   let approachPlanetIndex = $state<number | null>(null);
-  /** How the system scene mounts: warp arrival / pull-back / at rest. */
   let systemEntry = $state<'warp' | 'return' | 'fromPlanet'>('warp');
-  /** Planet the system scene pulls back from (systemEntry === 'fromPlanet'). */
   let returnPlanetIndex = $state<number | null>(null);
-  /** System scene dives into its star before cutting back to the galaxy. */
   let systemDeparting = $state(false);
-  /** Planet scene: atmospheric-entry descent vs mounting mid-flight. */
   let planetEntry = $state<'descend' | 'rest'>('descend');
-  /** Planet scene climbs out before cutting back to the system. */
   let planetDeparting = $state(false);
-
   const currentPlanet = $derived(
     currentSystem && currentPlanetIndex != null ? currentSystem.planets[currentPlanetIndex] : null,
   );
-
-  // ─── Warp flash overlay ────────────────────────────────────────────────
-  // A radial flash tinted by the destination (star color / planet atmosphere)
-  // hides the scene swap so the two camera moves read as one continuous dive.
+  const touchQuery = window.matchMedia('(hover: none) and (pointer: coarse)');
+  let isTouch = $state(touchQuery.matches);
   let overlayOpacity = $state(0);
   let overlayBackground = $state('transparent');
-  let overlayDuration = $state(400);
-
-  const reduceMotion = prefersReducedMotion();
-  // Which flight chrome to show is a question about the input device, not the
-  // window size: a narrow desktop window still has a keyboard and a mouse, and
-  // it used to get the touch joystick. Ask for a coarse pointer without hover
-  // instead, and keep listening — plugging in a mouse changes the answer.
-  const touchQuery =
-    typeof window === 'undefined' ? null : window.matchMedia('(hover: none) and (pointer: coarse)');
-  let isTouch = $state(touchQuery?.matches ?? false);
-
-  $effect(() => {
-    if (!touchQuery) return;
-    const sync = () => (isTouch = touchQuery.matches);
-    sync();
-    touchQuery.addEventListener('change', sync);
-    return () => touchQuery.removeEventListener('change', sync);
-  });
-  let seq = 0;
-  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-  function overlayShow(colorHex: number, ms: number) {
-    const core = hexCss(lightenHex(colorHex, 0.6));
-    const mid = hexCss(colorHex);
-    const edge = hexCss(darkenHex(colorHex, 0.55));
-    overlayBackground = `radial-gradient(circle at 50% 42%, ${core} 0%, ${mid} 46%, ${edge} 100%)`;
-    overlayDuration = ms;
-    overlayOpacity = 1;
-  }
-
-  /**
-   * Cover the frame INSTANTLY. Used at the cut point of the seamless dives:
-   * by then the motion-locked veil has already saturated to the same color,
-   * so the snap is invisible — the overlay only bridges the swap and then
-   * dissolves over the incoming scene.
-   */
-  function overlaySnap(colorHex: number) {
-    overlayShow(colorHex, 0);
-  }
-
-  function overlayHide(ms: number) {
-    overlayDuration = ms;
-    overlayOpacity = 0;
-  }
-
-  // ─── Motion-locked veil ────────────────────────────────────────────────
-  // Outgoing scenes drive the overlay opacity per frame from their own
-  // flight progress (dive into glare, plunge into atmosphere, climb into
-  // haze), so the cover IS the motion — not a timed curtain.
   let veilColorCache: number | null = null;
 
   function driveVeil(opacity: number, colorHex: number) {
     if (phase !== 'warping') return;
     if (colorHex !== veilColorCache) {
       veilColorCache = colorHex;
-      const core = hexCss(lightenHex(colorHex, 0.6));
-      const mid = hexCss(colorHex);
-      const edge = hexCss(darkenHex(colorHex, 0.55));
-      overlayBackground = `radial-gradient(circle at 50% 42%, ${core} 0%, ${mid} 46%, ${edge} 100%)`;
+      overlayBackground = `radial-gradient(ellipse at center, ${hexCss(lightenHex(colorHex, 0.25))}, ${hexCss(darkenHex(colorHex, 0.35))})`;
     }
-    overlayDuration = 0;
     overlayOpacity = Math.min(1, Math.max(0, opacity));
   }
 
-  /**
-   * After a cut, the INCOMING scene dissolves the veil from its own entry
-   * motion. Wait it out, then sweep up any residue (e.g. the tab got
-   * backgrounded mid-transition) so the overlay can never stick.
-   */
-  async function settleVeil(my: number, ms: number): Promise<boolean> {
-    await sleep(ms);
-    if (my !== seq) return false;
-    if (overlayOpacity > 0.04) {
-      overlayHide(250);
-      await sleep(260);
-      if (my !== seq) return false;
-    }
-    return true;
+  // Each scene reports the actual end of its flight. A slow frame or a hidden
+  // tab cannot cut an unfinished move, and controls stay locked until arrival.
+  type Leg = 'departure' | 'arrival';
+  let pending: { leg: Leg; resolve: (finished: boolean) => void } | undefined;
+  let alive = true;
+  function waitForLeg(leg: Leg) {
+    return new Promise<boolean>((resolve) => {
+      pending = { leg, resolve };
+    });
   }
+  function finishLeg(leg: Leg) {
+    if (pending?.leg !== leg) return;
+    const done = pending.resolve;
+    pending = undefined;
+    done(true);
+  }
+  const onDeparted = () => finishLeg('departure');
+  const onArrived = () => finishLeg('arrival');
+  onDestroy(() => {
+    alive = false;
+    pending?.resolve(false);
+    pending = undefined;
+  });
 
-  async function travelToSystem(index: number) {
-    if (phase !== 'idle' || mode !== 'overview') return;
-    const my = ++seq;
-    const system = getStarSystem(index);
-    const loadSystemScene = ensureSystemScene();
+  async function journey(
+    label: string,
+    load: () => Promise<void>,
+    depart: () => void,
+    arrive: () => void,
+  ) {
     phase = 'warping';
+    travelLabel = label;
+    travelError = '';
     isDebugOpen = false;
     hideHud();
-    currentSystem = system;
-    returnFromIndex = null;
-    returnPlanetIndex = null;
-
-    if (reduceMotion) {
-      overlayShow(system.starColor, 200);
-      await sleep(210);
-      if (my !== seq) return;
-      await loadSystemScene;
-      if (my !== seq) return;
-      mode = 'system';
-      systemEntry = 'return';
-      await sleep(160);
-      if (my !== seq) return;
-      overlayHide(500);
-      await sleep(500);
-      if (my !== seq) return;
-      phase = 'idle';
-      return;
+    try {
+      // Fetch the next scene before takeoff; don't park the visitor in a flash
+      // while a slow connection downloads shaders and geometry code.
+      await load();
+      if (!alive) return;
+      if (!reduceMotion) {
+        const departure = waitForLeg('departure');
+        depart();
+        if (!(await departure)) return;
+      }
+      const arrival = reduceMotion ? Promise.resolve(true) : waitForLeg('arrival');
+      arrive();
+      if (!(await arrival) || !alive) return;
+    } catch (error) {
+      console.error('Unable to prepare the next scene', error);
+      travelError = 'Could not load this destination.';
+    } finally {
+      if (alive) {
+        overlayOpacity = 0;
+        warpTargetIndex = null;
+        approachPlanetIndex = null;
+        systemDeparting = false;
+        planetDeparting = false;
+        phase = 'idle';
+      }
     }
-
-    // Dive: the camera accelerates into the star while its glow swells to
-    // fill the frame; the scene drives the veil to 1 over the last stretch,
-    // and we cut at the moment of "impact" — already fully covered.
-    warpTargetIndex = index;
-    await sleep(1490);
-    if (my !== seq) return;
-
-    overlaySnap(system.starColor); // safety: guarantee full cover at the cut
-    await sleep(30);
-    if (my !== seq) return;
-    await loadSystemScene;
-    if (my !== seq) return;
-
-    mode = 'system';
-    systemEntry = 'warp';
-    warpTargetIndex = null;
-    // The system scene dissolves the glare from its own arrival motion.
-    if (!(await settleVeil(my, 950))) return;
-    phase = 'idle';
   }
 
-  async function travelToPlanet(planetIndex: number) {
+  function travelToSystem(index: number) {
+    if (phase !== 'idle' || mode !== 'overview') return;
+    const destination = getStarSystem(index);
+    void journey(
+      'Approaching ' + destination.name,
+      ensureSystemScene,
+      () => {
+        warpTargetIndex = index;
+      },
+      () => {
+        currentSystem = destination;
+        returnFromIndex = null;
+        returnPlanetIndex = null;
+        systemEntry = reduceMotion ? 'return' : 'warp';
+        mode = 'system';
+      },
+    );
+  }
+
+  function travelToPlanet(index: number) {
     if (phase !== 'idle' || mode !== 'system' || !currentSystem) return;
-    const planet = currentSystem.planets[planetIndex];
-    if (!planet) return;
-    const my = ++seq;
-    const loadPlanetScene = ensurePlanetScene();
-    phase = 'warping';
-    hideHud();
-    returnPlanetIndex = null;
-
-    if (reduceMotion) {
-      overlayShow(planet.atmosphereColor, 200);
-      await sleep(210);
-      if (my !== seq) return;
-      await loadPlanetScene;
-      if (my !== seq) return;
-      currentPlanetIndex = planetIndex;
-      planetEntry = 'rest';
-      mode = 'planet';
-      await sleep(160);
-      if (my !== seq) return;
-      overlayHide(500);
-      await sleep(500);
-      if (my !== seq) return;
-      phase = 'idle';
-      return;
-    }
-
-    // Glide until the planet fills the frame, then keep plunging: the scene
-    // drives the veil toward the planet's surface FOG color while the camera
-    // skims the sphere, and the flyover starts inside identical haze — an
-    // atmospheric entry with no visible seam.
-    approachPlanetIndex = planetIndex;
-    await sleep(1780);
-    if (my !== seq) return;
-
-    overlaySnap(planet.surface.fogColor); // safety: full cover at the cut
-    await sleep(30);
-    if (my !== seq) return;
-    await loadPlanetScene;
-    if (my !== seq) return;
-
-    currentPlanetIndex = planetIndex;
-    planetEntry = 'descend';
-    mode = 'planet';
-    approachPlanetIndex = null;
-    // The flyover dissolves the haze as the camera sinks to flight level.
-    if (!(await settleVeil(my, 1000))) return;
-    phase = 'idle';
+    const destination = currentSystem.planets[index];
+    if (!destination) return;
+    void journey(
+      'Descending to ' + destination.name,
+      ensurePlanetScene,
+      () => {
+        approachPlanetIndex = index;
+      },
+      () => {
+        currentPlanetIndex = index;
+        planetEntry = reduceMotion ? 'rest' : 'descend';
+        mode = 'planet';
+      },
+    );
   }
 
-  async function backToSystem() {
+  function backToSystem() {
     if (phase !== 'idle' || mode !== 'planet' || !currentSystem) return;
-    const my = ++seq;
-    const haze = currentPlanet?.surface.fogColor ?? 0x11131f;
-    const loadSystemScene = ensureSystemScene();
-    phase = 'warping';
-    hideHud();
-
-    if (!reduceMotion) {
-      planetDeparting = true; // climb back up into the haze (drives the veil)
-      await sleep(860);
-      if (my !== seq) return;
-    }
-
-    overlaySnap(haze);
-    await sleep(30);
-    if (my !== seq) return;
-    await loadSystemScene;
-    if (my !== seq) return;
-
-    mode = 'system';
-    systemEntry = reduceMotion ? 'return' : 'fromPlanet';
-    returnPlanetIndex = currentPlanetIndex;
-    currentPlanetIndex = null;
-    planetDeparting = false;
-    if (reduceMotion) {
-      await sleep(180);
-      if (my !== seq) return;
-      overlayHide(500);
-      await sleep(500);
-      if (my !== seq) return;
-      phase = 'idle';
-      return;
-    }
-    // The system scene dissolves the haze while pulling back from the planet.
-    if (!(await settleVeil(my, 1000))) return;
-    phase = 'idle';
+    void journey(
+      'Returning to orbit',
+      ensureSystemScene,
+      () => {
+        planetDeparting = true;
+      },
+      () => {
+        returnPlanetIndex = currentPlanetIndex;
+        currentPlanetIndex = null;
+        systemEntry = reduceMotion ? 'return' : 'fromPlanet';
+        mode = 'system';
+      },
+    );
   }
 
-  async function backToGalaxy() {
+  function backToGalaxy() {
     if (phase !== 'idle' || mode !== 'system' || !currentSystem) return;
-    const my = ++seq;
-    const star = currentSystem;
-    phase = 'warping';
-    hideHud();
-
-    if (!reduceMotion) {
-      systemDeparting = true; // accelerate away — system shrinks behind us
-      await sleep(920);
-      if (my !== seq) return;
-    }
-
-    overlaySnap(lightenHex(star.starColor, 0.15));
-    await sleep(30);
-    if (my !== seq) return;
-
-    returnFromIndex = reduceMotion ? null : star.seed;
-    mode = 'overview';
-    systemDeparting = false;
-    currentSystem = null;
-    currentPlanetIndex = null;
-    returnPlanetIndex = null;
-    if (reduceMotion) {
-      await sleep(180);
-      if (my !== seq) return;
-      overlayHide(500);
-      await sleep(500);
-      if (my !== seq) return;
-      phase = 'idle';
-      return;
-    }
-    // The galaxy scene dissolves the glare as it recedes from the star.
-    if (!(await settleVeil(my, 1000))) return;
-    phase = 'idle';
+    const seed = currentSystem.seed;
+    void journey(
+      'Returning to the galaxy',
+      () => Promise.resolve(),
+      () => {
+        systemDeparting = true;
+      },
+      () => {
+        returnFromIndex = reduceMotion ? null : seed;
+        currentSystem = null;
+        currentPlanetIndex = null;
+        mode = 'overview';
+      },
+    );
   }
+
+  function onJourneyKey(event: KeyboardEvent) {
+    if (event.code !== 'Escape' || phase !== 'idle') return;
+    if (isDebugOpen) isDebugOpen = false;
+    else if (mode === 'planet') backToSystem();
+    else if (mode === 'system') backToGalaxy();
+    else isExpanded = false;
+  }
+
+  $effect(() => {
+    const syncTouch = () => {
+      isTouch = touchQuery.matches;
+    };
+    const syncPage = () => {
+      pageVisible = !document.hidden;
+    };
+    touchQuery.addEventListener('change', syncTouch);
+    document.addEventListener('visibilitychange', syncPage);
+    return () => {
+      touchQuery.removeEventListener('change', syncTouch);
+      document.removeEventListener('visibilitychange', syncPage);
+    };
+  });
 
   // The debug panel pulls in svelte-tweakpane-ui (~heavy). Load it on demand only
   // when the visitor actually opens the controls, keeping it out of the main 3D chunk.
@@ -329,16 +235,26 @@
   let planetSceneLoad: Promise<void> | undefined;
 
   function ensureSystemScene() {
-    systemSceneLoad ??= import('./SystemScene.svelte').then((m) => {
-      SystemScene = m.default;
-    });
+    systemSceneLoad ??= import('./SystemScene.svelte')
+      .then((m) => {
+        SystemScene = m.default;
+      })
+      .catch((error) => {
+        systemSceneLoad = undefined;
+        throw error;
+      });
     return systemSceneLoad;
   }
 
   function ensurePlanetScene() {
-    planetSceneLoad ??= import('./PlanetScene.svelte').then((m) => {
-      PlanetScene = m.default;
-    });
+    planetSceneLoad ??= import('./PlanetScene.svelte')
+      .then((m) => {
+        PlanetScene = m.default;
+      })
+      .catch((error) => {
+        planetSceneLoad = undefined;
+        throw error;
+      });
     return planetSceneLoad;
   }
 
@@ -412,13 +328,18 @@
   }
 </script>
 
+<svelte:window onkeydown={onJourneyKey} />
+
 <div
+  data-mode={mode}
+  data-travelling={phase !== 'idle'}
   bind:this={rootElement}
   class="threlte-app theme-grayscale relative overflow-hidden transition-all duration-200"
   style:height={isExpanded ? '100dvh' : 'var(--galaxy-height)'}
 >
-  <Canvas>
-    {#if mode === 'planet' && currentSystem && currentPlanet}
+  <Canvas dpr={[0.75, quality.maxDpr]} shadows={false}>
+    <RenderBudget active={sceneActive} travelling={phase === 'warping'} />
+    {#if mode === 'planet' && currentSystem && currentPlanet && PlanetScene}
       <PlanetScene
         animationActive={sceneActive}
         system={currentSystem}
@@ -426,21 +347,27 @@
         entry={planetEntry}
         departing={planetDeparting}
         onVeil={driveVeil}
+        {onDeparted}
+        {onArrived}
       />
-    {:else if mode === 'system' && currentSystem}
+    {:else if mode === 'system' && currentSystem && SystemScene}
       <SystemScene
         animationActive={sceneActive}
+        worldActive={isPlaying && phase === 'idle'}
         system={currentSystem}
         entry={systemEntry}
         {returnPlanetIndex}
         {approachPlanetIndex}
         departing={systemDeparting}
         onVeil={driveVeil}
+        {onDeparted}
+        {onArrived}
         onSelectPlanet={travelToPlanet}
       />
     {:else}
       <Scene
         animationActive={sceneActive}
+        worldActive={isPlaying && phase === 'idle'}
         cameraFov={camera.fov}
         cameraPosition={[camera.positionX, camera.positionY, camera.positionZ]}
         cameraDistance={camera.distance}
@@ -450,12 +377,17 @@
         {warpTargetIndex}
         {returnFromIndex}
         onVeil={driveVeil}
+        {onDeparted}
+        {onArrived}
         onSelectSystem={travelToSystem}
       />
     {/if}
   </Canvas>
 
   <HeroHud />
+  {#if mode === 'planet' && phase === 'idle'}
+    <FlightInstrument />
+  {/if}
 
   {#if isDebugOpen && mode === 'overview' && DebugPanel}
     <DebugPanel
@@ -497,11 +429,11 @@
         <button
           class="hero-flight-help"
           type="button"
-          aria-label="Flight controls: WASD fly, Space up, Shift boost, drag look"
+          aria-label="Flight controls: WASD fly, Space up, C down, Shift boost, drag look, Escape back"
         >
           <span class="hero-flight-badge" aria-hidden="true">?</span>
           <span class="hero-flight-tip" role="tooltip">
-            WASD — fly&ensp;·&ensp;Space — up&ensp;·&ensp;Shift — boost&ensp;·&ensp;drag — look
+            WASD — fly · Space / C — up / down · Shift — boost · drag — look · Esc — back
           </span>
         </button>
       {/if}
@@ -509,7 +441,7 @@
   {/if}
 
   <!-- Touch flight controls: joystick + climb/boost, touch devices only. -->
-  {#if mode === 'planet' && isTouch}
+  {#if mode === 'planet' && isTouch && phase === 'idle'}
     <PlanetTouchControls />
   {/if}
 
@@ -519,14 +451,25 @@
     class:blocking={overlayOpacity > 0}
     style:opacity={overlayOpacity}
     style:background={overlayBackground}
-    style:transition-duration="{overlayDuration}ms"
     aria-hidden="true"
   ></div>
+
+  {#if phase === 'warping' || travelError}
+    <div class="journey-status" role="status">
+      {phase === 'warping' ? travelLabel : travelError}
+      {#if travelError}
+        <button class="journey-retry" onclick={() => location.reload()}>Reload to try again</button>
+      {/if}
+    </div>
+  {/if}
 
   <GalaxyControls
     expanded={isExpanded}
     animationActive={isPlaying}
     showSettings={mode === 'overview'}
+    settingsOpen={isDebugOpen}
+    busy={phase !== 'idle'}
+    onDark={mode !== 'overview'}
     onToggleExpanded={() => (isExpanded = !isExpanded)}
     onToggleAnimation={() => (isPlaying = !isPlaying)}
     onToggleControls={() => (isDebugOpen = !isDebugOpen)}
@@ -534,6 +477,33 @@
 </div>
 
 <style>
+  .journey-status {
+    position: absolute;
+    bottom: 9.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 7;
+    color: var(--color-identifier);
+    background: color-mix(in srgb, var(--color-base-100) 85%, transparent);
+    border-radius: 999px;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.75rem;
+    text-align: center;
+    pointer-events: none;
+  }
+  .journey-retry {
+    display: block;
+    margin-inline: auto;
+    min-height: 44px;
+    color: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .threlte-app[data-travelling='true'] :global(canvas) {
+    pointer-events: none;
+  }
+
   .hero-journey-overlay {
     position: absolute;
     top: 3.4rem;
@@ -551,6 +521,8 @@
      the pre-journey look of main. */
   .hero-journey-btn {
     pointer-events: auto;
+    min-height: 44px;
+    flex-shrink: 0;
     cursor: pointer;
     padding: 0.4rem 0.9rem;
     border-radius: 0.5rem;
@@ -604,8 +576,8 @@
     flex: 0 0 auto;
     display: grid;
     place-items: center;
-    width: 1.7rem;
-    height: 1.7rem;
+    width: 2.75rem;
+    height: 2.75rem;
     border-radius: 999px;
     border: 1px solid color-mix(in srgb, var(--color-identifier) 22%, transparent);
     background: color-mix(in srgb, var(--color-base-100) 60%, transparent);

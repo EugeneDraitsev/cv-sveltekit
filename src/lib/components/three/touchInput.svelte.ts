@@ -12,6 +12,7 @@ export const touchInput = $state({
   moveY: 0,
   /** Climb (Space equivalent). */
   up: false,
+  down: false,
   /** Boost (Shift equivalent). */
   boost: false,
 });
@@ -20,5 +21,6 @@ export function resetTouchInput() {
   touchInput.moveX = 0;
   touchInput.moveY = 0;
   touchInput.up = false;
+  touchInput.down = false;
   touchInput.boost = false;
 }

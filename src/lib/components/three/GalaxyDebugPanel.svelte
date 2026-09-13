@@ -15,14 +15,12 @@
   }: Props = $props();
 </script>
 
-<div
-  class="pane-container absolute top-4 right-4 z-10 w-75 overflow-auto rounded-lg bg-base-100/90 shadow-lg"
->
-  <Pane expanded>
+<div class="pane-container">
+  <Pane position="inline" title="Galaxy settings" expanded>
     <!-- Galaxy Structure -->
     <Folder title="Galaxy">
       <Folder title="Structure">
-        <Button label="Regenerate" on:click={onRegenerate} />
+        <Button title="Regenerate" on:click={onRegenerate} />
         <Slider
           label="Particles"
           bind:value={galaxyParams.count}
@@ -88,7 +86,7 @@
       <TPColor label="Galaxy Edge" bind:value={galaxyOutsideHex} on:change={onSetColors} />
       <TPColor label="Nebula Core" bind:value={nebulaInsideHex} on:change={onSetColors} />
       <TPColor label="Nebula Edge" bind:value={nebulaOutsideHex} on:change={onSetColors} />
-      <Button label="Reset" on:click={onResetColors} />
+      <Button title="Reset colors" on:click={onResetColors} />
     </Folder>
 
     <!-- Camera -->
@@ -105,8 +103,17 @@
 </div>
 
 <style>
-  :global(.pane-container > div) {
-    max-height: 80vh;
+  .pane-container {
+    position: absolute;
+    top: 3.5rem;
+    right: 1rem;
+    z-index: 9;
+    width: min(320px, calc(100% - 2rem));
+    max-height: calc(100% - 10rem);
     overflow: auto;
+    border: 1px solid var(--color-base-300);
+    border-radius: 12px;
+    background: var(--color-base-100);
+    box-shadow: 0 12px 32px #0004;
   }
 </style>
