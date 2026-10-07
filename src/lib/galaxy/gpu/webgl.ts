@@ -253,6 +253,8 @@ export class WebGlBackend implements Backend {
         await new Promise((resolve) => setTimeout(resolve, 4));
       }
     }
+    // A lost context fails every link with an empty log: say so plainly.
+    if (gl.isContextLost()) throw new Error(`${desc.label}: WebGL context lost`);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       const log = [gl.getShaderInfoLog(vs), gl.getShaderInfoLog(fs), gl.getProgramInfoLog(program)]
         .filter(Boolean)
