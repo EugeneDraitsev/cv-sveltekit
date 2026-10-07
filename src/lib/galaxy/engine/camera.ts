@@ -31,6 +31,25 @@ export function poseBasis(pose: Pose): Basis {
   return { forward, right, up: cross(right, forward) };
 }
 
+/** The pose an orbit rig with these parameters looks from. */
+export function orbitPose(
+  target: Vec3,
+  yaw: number,
+  pitch: number,
+  distance: number,
+  roll: number,
+  fov: number,
+): Pose {
+  const back = direction(yaw, pitch);
+  const basis = basisFromForward(scale(back, -1), [0, 1, 0], roll);
+  return {
+    eye: add(target, scale(back, distance)),
+    forward: basis.forward,
+    up: basis.up,
+    fov,
+  };
+}
+
 /** An orbit rig around a target: drag to rotate, wheel / pinch to zoom. */
 export class OrbitRig {
   target: Vec3 = [0, 0, 0];
@@ -90,14 +109,7 @@ export class OrbitRig {
   }
 
   pose(): Pose {
-    const back = direction(this.yaw, this.pitch);
-    const basis = basisFromForward(scale(back, -1), [0, 1, 0], this.roll);
-    return {
-      eye: add(this.target, scale(back, this.distance)),
-      forward: basis.forward,
-      up: basis.up,
-      fov: this.fov,
-    };
+    return orbitPose(this.target, this.yaw, this.pitch, this.distance, this.roll, this.fov);
   }
 
   /** Adopt an arbitrary pose (e.g. the end of a flight) as orbit parameters. */

@@ -78,7 +78,9 @@ fn biomeGround(row: i32, index: i32, t: f32, slope: f32, wet: f32, detail: f32, 
   let glow: vec3f = biomeColor(row, index, 7);
   let strength: f32 = biomeTexel(row, index, 3).w;
   if (strength > 0.0) {
-    var pattern: f32 = smoothstep(0.55, 0.85, 0.5 + detail);
+    // Patches of glow; once a pixel spans many of them, their average.
+    let glowAa: f32 = smoothstep(0.15, 0.6, length(fwidth(n * 900.0)));
+    var pattern: f32 = mix(smoothstep(0.55, 0.85, 0.5 + detail), 0.16, glowAa);
     if (material == 7) {
       // Glowing cracks; once a pixel spans several cracks, use their mean
       // brightness instead of sparkling.

@@ -101,3 +101,74 @@ export function basisFromForward(forward: Vec3, worldUp: Vec3, roll = 0): Basis 
     up: normalize(add(scale(u, c), scale(r, -s))),
   };
 }
+
+/** Unit quaternion `[x, y, z, w]`. */
+export type Quat = [number, number, number, number];
+
+/**
+ * The rotation that maps camera axes (right, up, back) onto a view basis.
+ * `up` only needs to be roughly perpendicular to `forward`.
+ */
+export function quatFromView(forward: Vec3, up: Vec3): Quat {
+  const f = normalize(forward);
+  let r = cross(f, up);
+  if (length(r) < 1e-9) r = perpendicular(f);
+  r = normalize(r);
+  const u = cross(r, f);
+  // Rotation matrix columns: right, up, back (= −forward).
+  const [m00, m10, m20] = r;
+  const [m01, m11, m21] = u;
+  const [m02, m12, m22] = [-f[0], -f[1], -f[2]];
+  const trace = m00 + m11 + m22;
+  let q: Quat;
+  if (trace > 0) {
+    const s = 0.5 / Math.sqrt(trace + 1);
+    q = [(m21 - m12) * s, (m02 - m20) * s, (m10 - m01) * s, 0.25 / s];
+  } else if (m00 > m11 && m00 > m22) {
+    const s = 2 * Math.sqrt(1 + m00 - m11 - m22);
+    q = [0.25 * s, (m01 + m10) / s, (m02 + m20) / s, (m21 - m12) / s];
+  } else if (m11 > m22) {
+    const s = 2 * Math.sqrt(1 + m11 - m00 - m22);
+    q = [(m01 + m10) / s, 0.25 * s, (m12 + m21) / s, (m02 - m20) / s];
+  } else {
+    const s = 2 * Math.sqrt(1 + m22 - m00 - m11);
+    q = [(m02 + m20) / s, (m12 + m21) / s, 0.25 * s, (m10 - m01) / s];
+  }
+  const n = Math.hypot(...q);
+  return [q[0] / n, q[1] / n, q[2] / n, q[3] / n];
+}
+
+/** Shortest-arc spherical interpolation between unit quaternions. */
+export function quatSlerp(a: Quat, b: Quat, t: number): Quat {
+  let d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+  const s = d < 0 ? -1 : 1;
+  d *= s;
+  let wa = 1 - t;
+  let wb = t * s;
+  if (d < 0.9995) {
+    const theta = Math.acos(d);
+    const sin = Math.sin(theta);
+    wa = Math.sin((1 - t) * theta) / sin;
+    wb = (Math.sin(t * theta) / sin) * s;
+  }
+  const q: Quat = [
+    a[0] * wa + b[0] * wb,
+    a[1] * wa + b[1] * wb,
+    a[2] * wa + b[2] * wb,
+    a[3] * wa + b[3] * wb,
+  ];
+  const n = Math.hypot(...q);
+  return [q[0] / n, q[1] / n, q[2] / n, q[3] / n];
+}
+
+/** Rotate `v` by unit quaternion `q`. */
+export function quatRotate(q: Quat, v: Vec3): Vec3 {
+  const u: Vec3 = [q[0], q[1], q[2]];
+  const t = scale(cross(u, v), 2);
+  return add(add(v, scale(t, q[3])), cross(u, t));
+}
+
+/** Forward and up of the view a quaternion describes. */
+export function quatView(q: Quat): { forward: Vec3; up: Vec3 } {
+  return { forward: quatRotate(q, [0, 0, -1]), up: quatRotate(q, [0, 1, 0]) };
+}

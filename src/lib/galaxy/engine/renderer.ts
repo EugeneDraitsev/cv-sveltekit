@@ -114,9 +114,18 @@ export class Renderer {
     b.endFrame();
   }
 
+  /**
+   * Planet surfaces render into 32-bit float targets (patch atlas, plant
+   * placement, distances); WebGL2 without EXT_color_buffer_float cannot.
+   */
+  get surfaceSupported() {
+    return this.backend.floatTargets;
+  }
+
   /** Compile the planet pipelines (in the background, before any landing). */
   ensurePlanet() {
     this.planetLoad ??= (async () => {
+      if (!this.surfaceSupported) throw new Error('Planet surfaces need float render targets');
       const layer = new PlanetLayer(this.backend, this.quality);
       await layer.init();
       layer.resize(this.width, this.height);

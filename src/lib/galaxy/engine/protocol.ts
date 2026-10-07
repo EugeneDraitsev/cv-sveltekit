@@ -87,6 +87,8 @@ export interface PlanetSummary {
   name: string;
   label: string;
   biomes: number;
+  /** Gas and ice giants: cloud tops only, nothing to walk on. */
+  giant: boolean;
 }
 
 export interface Instrument {
@@ -104,7 +106,11 @@ export interface Instrument {
 export type FromEngine =
   | { type: 'ready'; backend: 'webgpu' | 'webgl2'; info: string }
   | { type: 'firstFrame' }
-  | { type: 'error'; message: string }
+  /**
+   * "retry: 'webgl'" asks the host for a fresh canvas: a canvas that once held
+   * a WebGPU context can never give out a WebGL2 one.
+   */
+  | { type: 'error'; message: string; retry?: 'webgl' }
   | { type: 'hud'; hud: HudInfo }
   | {
       type: 'state';

@@ -275,7 +275,8 @@ fn renderSystem(rd: vec3f, limit: f32) -> vec4f {
       let hy: f32 = dpdy(h);
       let px: vec3f = dpdx(p);
       let py: vec3f = dpdy(p);
-      let detail: f32 = gnoise(n * 900.0);
+      // Fine colour variation only where a pixel resolves it.
+      let detail: f32 = gnoise(n * 900.0) * (1.0 - smoothstep(0.0002, 0.0006, footprint));
       if (h < 0.0 && planet.water > 0.5) {
         let depth: f32 = clamp(-h / max(planet.relief, 0.0001) * 3.0, 0.0, 1.0);
         albedo = mix(planetTexel(row, 3).rgb, planetTexel(row, 4).rgb, sqrt(depth));
@@ -324,7 +325,9 @@ fn renderSystem(rd: vec3f, limit: f32) -> vec4f {
     }
     let air: Air = loadAir(row);
     let night: f32 = 1.0 - smoothstep(0.0, 0.12, length(light));
-    var surface: vec3f = albedo * light * 1.6 + emission * night + albedo * 0.002;
+    // A faint fill (reflected starlight, the galaxy) keeps night sides from
+    // reading as holes in space.
+    var surface: vec3f = albedo * light * 1.6 + emission * night + albedo * vec3f(0.028, 0.032, 0.042);
     // Atmosphere in planet-local units.
     if (air.density > 0.0) {
       let ro: vec3f = -center / radius;
@@ -356,7 +359,7 @@ fn renderSystem(rd: vec3f, limit: f32) -> vec4f {
       let l: vec3f = toStar / dist;
       light = light + starLight(s) * max(dot(n, l), 0.0) * eclipse(p, l, dist, -1);
     }
-    color = (albedo * light * 1.5 + albedo * 0.002) * hit.coverage;
+    color = (albedo * light * 1.5 + albedo * vec3f(0.028, 0.032, 0.042)) * hit.coverage;
     alpha = hit.coverage;
   }
 

@@ -10,6 +10,9 @@ import {
   lerp,
   normalize,
   perpendicular,
+  quatFromView,
+  quatSlerp,
+  quatView,
   rotateAxis,
   scale,
   slerp,
@@ -311,9 +314,11 @@ function viewHeading(params: TerrainParams, meters: number, site: Vec3, sun: Vec
 }
 
 /**
- * A landing or take-off path between two body-frame poses. Altitude moves in
- * log space (so 30 000 km and 30 m feel alike), the ground track turns early
- * while high, and the gaze tilts from the planet to the horizon at the end.
+ * A landing path between two body-frame poses. Altitude moves in log space
+ * (so 30 000 km and 30 m feel alike), the ground track turns early while
+ * high, and the gaze tilts from the planet to the horizon at the end. The
+ * view turns as a quaternion: looking straight down with a radial `up` would
+ * otherwise make the roll spin.
  */
 export function planetFlightPose(
   from: Pose,
@@ -328,23 +333,46 @@ export function planetFlightPose(
   const rb = length(to.eye);
   const da = scale(from.eye, 1 / ra);
   const db = scale(to.eye, 1 / rb);
-  const descending = rb < ra;
   const altA = Math.max(ra - 1, 1e-7);
   const altB = Math.max(rb - 1, 1e-7);
   const alt = Math.exp(lerp(Math.log(altA), Math.log(altB), e));
-  const travel = descending ? ease(t / 0.72) : ease((t - 0.2) / 0.8);
-  const dir = slerp(da, db, travel);
+  // A glide slope: the ground still to cover shrinks with the altitude, so the
+  // gaze toward the site holds a steady angle instead of whipping around low.
+  const remaining = clamp((alt - altB) / Math.max(altA - altB, 1e-9), 0, 1);
+  const dir = slerp(db, da, remaining);
   const ground = groundAt(dir);
   const radius = Math.max(1 + alt, 1 + ground + (alt - Math.max(altB, 0)) * 0.02 + 6e-6);
   const eye = scale(dir, radius);
   const site = scale(db, 1 + Math.max(ground, 0));
-  const aim = normalize(descending ? sub(site, eye) : scale(eye, -1));
-  const early = slerp(normalize(from.forward), aim, ease(t / 0.35));
-  const forward = normalize(slerp(early, normalize(to.forward), ease((t - 0.55) / 0.45)));
-  const up0 = descending
-    ? normalize(slerp(normalize(from.up), dir, ease(t / 0.6)))
-    : normalize(from.up);
-  const upT = normalize(slerp(up0, normalize(to.up), ease((t - 0.5) / 0.5)));
-  const right = normalize(cross(forward, upT));
-  return { eye, forward, up: cross(right, forward), fov: lerp(from.fov, to.fov, e) };
+  // While high, look at the landing site with the arrival heading as screen-up,
+  // so the final pitch-up faces the view chosen for the landing.
+  const look = quatFromView(sub(site, eye), to.forward);
+  const early = quatSlerp(quatFromView(from.forward, from.up), look, ease(t / 0.35));
+  const view = quatView(quatSlerp(early, quatFromView(to.forward, to.up), ease((t - 0.55) / 0.45)));
+  return { eye, forward: view.forward, up: view.up, fov: lerp(from.fov, to.fov, e) };
+}
+
+/**
+ * Take-off from the surface to an orbit pose, in a frame that does not spin
+ * with the planet (origin at its centre, radius 1). The camera rises along
+ * the local vertical, turns once to its orbit framing, and ends exactly on
+ * `to` so the orbit rig can take over without a jump.
+ */
+export function ascentPose(from: Pose, to: Pose, t: number): Pose {
+  if (t <= 0) return from;
+  if (t >= 1) return to;
+  const e = ease(t);
+  const ra = length(from.eye);
+  const rb = length(to.eye);
+  const alt = Math.exp(lerp(Math.log(Math.max(ra - 1, 1e-7)), Math.log(rb - 1), e));
+  const dir = slerp(scale(from.eye, 1 / ra), scale(to.eye, 1 / rb), ease((t - 0.15) / 0.85));
+  const view = quatView(
+    quatSlerp(quatFromView(from.forward, from.up), quatFromView(to.forward, to.up), ease(t / 0.6)),
+  );
+  return {
+    eye: scale(dir, 1 + alt),
+    forward: view.forward,
+    up: view.up,
+    fov: lerp(from.fov, to.fov, e),
+  };
 }

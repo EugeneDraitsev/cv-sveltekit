@@ -2,19 +2,8 @@ import type { Backend } from '../gpu/backend';
 import { BlockData } from '../gpu/blocks';
 import { WebGlBackend } from '../gpu/webgl';
 import { GalaxyBlock, PlanetBlock, PostBlock, SystemBlock } from './blocks';
-import { OrbitRig, flightPose, poseBasis, type Pose } from './camera';
-import {
-  add,
-  clamp,
-  cross,
-  dot,
-  length,
-  normalize,
-  scale,
-  smoothstep,
-  sub,
-  type Vec3,
-} from './math';
+import { OrbitRig, flightPose, orbitPose, poseBasis, type Pose } from './camera';
+import { add, clamp, dot, length, normalize, scale, smoothstep, sub, type Vec3 } from './math';
 import {
   DEFAULT_SETTINGS,
   type FromEngine,
@@ -27,10 +16,11 @@ import {
 } from './protocol';
 import { pickQuality, renderSize, withPreset, type DeviceHints, type Quality } from './quality';
 import { Renderer } from './renderer';
-import { SystemState, fromBody, toBody, type PlanetState } from './systemState';
+import { SystemState, fromBody, toBody, type Orientation, type PlanetState } from './systemState';
 import {
   LANDING_EYE_HEIGHT,
   PlanetRig,
+  ascentPose,
   chooseLandingSite,
   emptyInput,
   planetFlightPose,
@@ -64,7 +54,25 @@ function starLight(star: { color: [number, number, number]; luminosity: number }
 }
 const FLIGHT_SECONDS = 3.2;
 const LANDING_SECONDS = 5.6;
+/** A body-frame pose in planet-centred axes that do not spin. */
+const poseFromBody = (o: Orientation, p: Pose): Pose => ({
+  eye: fromBody(o, p.eye),
+  forward: fromBody(o, p.forward),
+  up: fromBody(o, p.up),
+  fov: p.fov,
+});
+
+/** The inverse of poseFromBody. */
+const poseToBody = (o: Orientation, p: Pose): Pose => ({
+  eye: toBody(o, p.eye),
+  forward: toBody(o, p.forward),
+  up: toBody(o, p.up),
+  fov: p.fov,
+});
+
 const ASCENT_SECONDS = 4.6;
+/** Orbit distance after a take-off, in planet radii. */
+const ASCENT_RADII = 4.8;
 const WATER_KIND = { none: 0, water: 1, lava: 2, ice: 3, acid: 4 } as const;
 /** Galaxy units per system unit (a site's marker matches its sun's size). */
 const systemScale = (system: StarSystemData) => 0.024 / system.stars[0].radius;
@@ -84,6 +92,8 @@ interface Flight {
 export class Engine {
   private backend!: Backend;
   private renderer!: Renderer;
+  /** False until init has a working renderer. */
+  private running = false;
   private quality!: Quality;
   /** What the device pick chose; the Tune panel preset applies on top. */
   private deviceQuality!: Quality;
@@ -103,6 +113,8 @@ export class Engine {
   private systemTime = 0;
   private angle = 0;
   private timeLapse = false;
+  /** The planet surface pipelines could not be built on this GPU. */
+  private surfaceFailed = false;
   private sunSample: { time: number; sun: Vec3; rising: boolean } = {
     time: -1,
     sun: [0, 1, 0],
@@ -176,10 +188,12 @@ export class Engine {
     const onLost = (reason: string) => this.post({ type: 'error', message: reason });
     let backend: Backend | null = null;
     let renderer: Renderer | null = null;
+    let canvasTaken = false;
     if (message.renderer !== 'webgl' && 'gpu' in navigator) {
       try {
         const { WebGpuBackend } = await import('../gpu/webgpu');
         backend = await WebGpuBackend.create(message.canvas, onLost);
+        canvasTaken = true;
         this.deviceQuality = pickQuality({
           ...this.hints,
           software: backend.software || this.hints.software,
@@ -193,6 +207,11 @@ export class Engine {
         backend?.destroy();
         backend = null;
         renderer = null;
+        if (canvasTaken) {
+          // This canvas is WebGPU's for good; the host restarts on a new one.
+          this.post({ type: 'error', message: String(error), retry: 'webgl' });
+          return;
+        }
       }
     }
     if (!backend || !renderer) {
@@ -207,6 +226,7 @@ export class Engine {
     }
     this.backend = backend;
     this.renderer = renderer;
+    this.running = true;
     this.frameGalaxy(true);
     this.camera.pose = this.galaxyRig.pose();
     this.post({ type: 'ready', backend: backend.kind, info: backend.adapterInfo });
@@ -214,9 +234,14 @@ export class Engine {
     this.renderFrame();
     this.schedule();
     // Planet shaders compile in the background, long before any landing.
-    setTimeout(() => {
-      this.renderer.ensurePlanet().catch((error) => console.error('Planet renderer failed', error));
-    }, 1500);
+    if (this.renderer.surfaceSupported) {
+      setTimeout(() => {
+        this.renderer.ensurePlanet().catch((error: unknown) => {
+          console.error('Planet renderer failed', error);
+          this.surfaceFailed = true;
+        });
+      }, 1500);
+    }
   }
 
   /** Pull the camera back on tall/narrow viewports so the whole disk fits. */
@@ -232,6 +257,8 @@ export class Engine {
   }
 
   handle(message: ToEngine) {
+    // Nothing to drive if init handed the canvas back for a WebGL2 restart.
+    if (!this.running) return;
     switch (message.type) {
       case 'resize':
         this.cssWidth = message.width;
@@ -313,7 +340,7 @@ export class Engine {
       return;
     }
     if (this.mode === 'planet' && !this.flight) {
-      if (code === 'KeyF' && this.rig) {
+      if (code === 'KeyF' && this.rig && !this.planetState()?.data.giant) {
         this.rig.walking = !this.rig.walking;
         this.rig.velocity = [0, 0, 0];
       }
@@ -585,10 +612,22 @@ export class Engine {
     if (this.flight || this.mode !== 'system' || !this.state) return;
     const planet = this.state.planets[index];
     if (!planet) return;
+    if (!this.renderer.surfaceSupported || this.surfaceFailed) {
+      this.orbitPlanet(index);
+      return;
+    }
     const layer = this.renderer.planet;
     if (!layer) {
-      // Shaders still compiling: try again shortly.
-      void this.renderer.ensurePlanet().then(() => this.selectPlanet(index));
+      // Shaders still compiling: try again once they are ready, or settle for
+      // an orbit if this GPU cannot build them.
+      this.renderer.ensurePlanet().then(
+        () => this.selectPlanet(index),
+        (error: unknown) => {
+          console.error('Planet renderer failed', error);
+          this.surfaceFailed = true;
+          this.orbitPlanet(index);
+        },
+      );
       return;
     }
     this.planetIndex = index;
@@ -607,7 +646,9 @@ export class Engine {
     const from = this.sToP(this.camera.pose, planet);
     const { site, heading } = chooseLandingSite(planet.data, sun, normalize(from.eye));
     const ground = rig.ground(site);
-    const eye = scale(site, 1 + ground + LANDING_EYE_HEIGHT / planet.data.meters);
+    // Over a giant, arrive above the cloud deck rather than skimming it.
+    const eyeHeight = planet.data.giant ? 450 : LANDING_EYE_HEIGHT;
+    const eye = scale(site, 1 + ground + eyeHeight / planet.data.meters);
     const pitch = -0.1;
     const forward = normalize(add(scale(heading, Math.cos(pitch)), scale(site, Math.sin(pitch))));
     const to: Pose = { eye, forward, up: site, fov: 62 };
@@ -627,35 +668,76 @@ export class Engine {
 
   private ascend() {
     if (this.flight || this.mode !== 'planet' || !this.rig) return;
+    const index = this.planetIndex;
     const planet = this.planetState()!;
+    // Fly in a frame that keeps the planet's centre but not its spin, so the
+    // sky does not wheel around while climbing.
     const from = this.camera.pose;
-    const dir = normalize(from.eye);
-    const out = scale(dir, 4.8);
-    const to: Pose = {
-      eye: out,
-      forward: scale(dir, -1),
-      up: normalize(cross(cross(dir, from.forward), dir)),
+    const start = poseFromBody(planet.orientation, from);
+    // End on exactly the pose the orbit rig will hold, looking down on the
+    // take-off site from 4.8 radii.
+    const back = normalize(start.eye);
+    const orbit = {
+      yaw: Math.atan2(back[0], back[2]),
+      pitch: clamp(Math.asin(clamp(back[1], -1, 1)), -1.1, 1.1),
+      distance: ASCENT_RADII,
+      roll: 0,
       fov: 40,
     };
-    if (!Number.isFinite(to.up[0])) to.up = [0, 1, 0];
-    const rig = this.rig;
+    const end = orbitPose([0, 0, 0], orbit.yaw, orbit.pitch, orbit.distance, 0, orbit.fov);
+    const toBodyPose = (p: Pose) => poseToBody(this.state!.planets[index].orientation, p);
     this.mode = 'system';
     this.startFlight({
       frame: 'P',
       from,
-      to,
-      path: (t) => planetFlightPose(from, to, t, (n) => rig.ground(n)),
+      to: toBodyPose(end),
+      path: (t) => toBodyPose(ascentPose(start, end, t)),
       label: 'Returning to orbit',
       duration: ASCENT_SECONDS,
       done: () => {
-        const pose = this.pToS(to);
-        const index = this.planetIndex;
-        this.systemRig.adopt(pose, planet.position);
-        this.systemRig.minDistance = planet.radius * 1.6;
+        const current = this.state!.planets[index];
+        this.systemRig.minDistance = current.radius * 1.6;
+        this.systemRig.set(
+          { target: current.position, ...orbit, distance: orbit.distance * current.radius },
+          true,
+        );
         this.systemRig.follow = () => this.state!.planets[index].position;
-        this.camera = { frame: 'S', pose };
+        this.camera = { frame: 'S', pose: this.systemRig.pose() };
         this.planetIndex = -1;
         this.rig = null;
+      },
+    });
+  }
+
+  /** Without a surface renderer: fly into orbit around the planet instead of landing. */
+  private orbitPlanet(index: number) {
+    if (this.flight || this.mode !== 'system' || !this.state) return;
+    const planet = this.state.planets[index];
+    if (!planet) return;
+    const at = () => this.state!.planets[index].position;
+    const from = this.camera.pose;
+    const focusFrom: Vec3 = [...this.systemRig.target];
+    const toward = normalize(sub(from.eye, planet.position));
+    const orbit = {
+      yaw: Math.atan2(toward[0], toward[2]),
+      pitch: clamp(Math.asin(clamp(toward[1], -1, 1)), -0.6, 0.9),
+      distance: ASCENT_RADII * planet.radius,
+      roll: 0,
+      fov: 40,
+    };
+    const target = () => orbitPose(at(), orbit.yaw, orbit.pitch, orbit.distance, 0, orbit.fov);
+    this.startFlight({
+      frame: 'S',
+      from,
+      to: target(),
+      path: (t) => flightPose(from, target(), focusFrom, at(), t),
+      label: `Orbiting ${planet.data.name}`,
+      duration: FLIGHT_SECONDS,
+      done: () => {
+        this.systemRig.minDistance = planet.radius * 1.6;
+        this.systemRig.set({ target: at(), ...orbit }, true);
+        this.systemRig.follow = at;
+        this.camera = { frame: 'S', pose: this.systemRig.pose() };
       },
     });
   }
@@ -863,7 +945,12 @@ export class Engine {
         : null,
       planet:
         planet && (this.mode === 'planet' || this.flight?.frame === 'P')
-          ? { name: planet.data.name, label: planet.data.label, biomes: planet.data.biomes.length }
+          ? {
+              name: planet.data.name,
+              label: planet.data.label,
+              biomes: planet.data.biomes.length,
+              giant: planet.data.giant,
+            }
           : null,
     };
     const key = JSON.stringify(message);
@@ -1214,7 +1301,7 @@ export class Engine {
       .set('viewport', w, h, this.time, 0)
       .set('look', exposure, this.settings.bloom, lightMix, 0)
       .vec('paper', PAPER[this.theme], 0.36)
-      .vec('ink', INK, 0);
+      .vec('ink', INK, this.theme === 'dark' ? 1 : 0);
     this.renderer.render({
       galaxy: this.galaxyData,
       volume: daylight < 0.98,

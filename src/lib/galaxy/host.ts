@@ -14,6 +14,8 @@ export interface HostOptions {
   height: number;
   theme: Theme;
   reducedMotion: boolean;
+  /** Force WebGL2, e.g. on a fresh canvas after WebGPU failed on the first. */
+  renderer?: 'auto' | 'webgl';
   onMessage: (message: FromEngine) => void;
 }
 
@@ -42,7 +44,10 @@ export async function startGalaxy(options: HostOptions): Promise<GalaxyHost> {
     hints: deviceHints(),
     theme: options.theme,
     reducedMotion: options.reducedMotion,
-    renderer: params.get('renderer') === 'webgl' ? ('webgl' as const) : ('auto' as const),
+    renderer:
+      options.renderer === 'webgl' || params.get('renderer') === 'webgl'
+        ? ('webgl' as const)
+        : ('auto' as const),
   };
   const canTransfer =
     'transferControlToOffscreen' in options.canvas && typeof Worker !== 'undefined';

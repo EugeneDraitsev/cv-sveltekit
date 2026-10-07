@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import themeStore from '$lib/stores/theme.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import { startGalaxy, type GalaxyHost } from '../host';
@@ -24,6 +24,10 @@
   let root = $state<HTMLDivElement>();
   let canvas = $state<HTMLCanvasElement>();
   let host: GalaxyHost | null = null;
+  let disposed = false;
+  // Bumped to mount a brand-new canvas element for a WebGL2 restart.
+  let canvasKey = $state(0);
+  let restarted = false;
   let shown = $state(false);
   let failed = $state(false);
   let hud = $state<HudInfo | null>(null);
@@ -59,8 +63,13 @@
         backendName = message.backend;
         break;
       case 'error':
-        console.error('[galaxy]', message.message);
-        failed = true;
+        if (message.retry === 'webgl' && !restarted) {
+          console.warn('[galaxy] WebGPU failed, restarting on WebGL2:', message.message);
+          void restartOnWebgl();
+        } else {
+          console.error('[galaxy]', message.message);
+          failed = true;
+        }
         break;
       case 'hud':
         hud = message.hud;
@@ -161,16 +170,17 @@
     send({ type: 'settings', settings: patch });
   }
 
-  onMount(() => {
+  function launch(renderer: 'auto' | 'webgl') {
     if (!canvas || !root) return;
     const rect = root.getBoundingClientRect();
-    let disposed = false;
+    canvas.addEventListener('wheel', onWheel, { passive: false });
     startGalaxy({
       canvas,
       width: rect.width,
       height: rect.height,
       theme: themeStore.theme === 'light' ? 'light' : 'dark',
       reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
+      renderer,
       onMessage,
     })
       .then((h) => {
@@ -181,6 +191,25 @@
         console.error(error);
         failed = true;
       });
+  }
+
+  /**
+   * WebGPU failed after it had claimed the canvas, and a canvas never changes
+   * context type: start over with WebGL2 on a new canvas element.
+   */
+  async function restartOnWebgl() {
+    restarted = true;
+    host?.dispose();
+    host = null;
+    canvas?.removeEventListener('wheel', onWheel);
+    canvasKey += 1;
+    await tick();
+    if (!disposed) launch('webgl');
+  }
+
+  onMount(() => {
+    if (!canvas || !root) return;
+    launch('auto');
     const resize = new ResizeObserver(([entry]) => {
       const box = entry.contentRect;
       send({
@@ -200,7 +229,6 @@
     });
     visibility.observe(root);
     document.addEventListener('visibilitychange', updateVisibility);
-    canvas.addEventListener('wheel', onWheel, { passive: false });
     document.addEventListener('pointerdown', onDocumentPointer, true);
     const syncTouch = () => (touch = touchQuery.matches);
     touchQuery.addEventListener('change', syncTouch);
@@ -242,49 +270,60 @@
   data-mode={mode}
   data-travelling={travelling}
 >
-  <canvas
-    bind:this={canvas}
-    class="galaxy-canvas"
-    class:locked={mode === 'planet'}
-    style:cursor
-    aria-hidden="true"
-    onpointerdown={pointer('down')}
-    onpointermove={pointer('move')}
-    onpointerup={pointer('up')}
-    onpointercancel={pointer('cancel')}
-    onpointerleave={pointer('leave')}
-  ></canvas>
+  {#key canvasKey}
+    <canvas
+      bind:this={canvas}
+      class="galaxy-canvas"
+      class:locked={mode === 'planet'}
+      style:cursor
+      aria-hidden="true"
+      onpointerdown={pointer('down')}
+      onpointermove={pointer('move')}
+      onpointerup={pointer('up')}
+      onpointercancel={pointer('cancel')}
+      onpointerleave={pointer('leave')}
+    ></canvas>
+  {/key}
 
   <Hud {hud} onActivate={() => send({ type: 'command', action: 'activateHover' })} />
 
   {#if mode !== 'galaxy' && system}
-    <div class="crumbs" class:dim={travelling}>
+    <nav class="crumbs" class:dim={travelling} aria-label="Where you are">
       <button
         type="button"
-        class="back"
+        class="nav-back"
+        aria-label={mode === 'planet' ? 'Back to orbit' : 'Back to the galaxy'}
+        title={mode === 'planet' ? 'Back to orbit' : 'Back to the galaxy'}
         onclick={() => send({ type: 'command', action: 'back' })}
         disabled={travelling}
       >
-        <Icon icon="mdi:arrow-left" width="16" height="16" />
-        {mode === 'planet' ? 'Orbit' : 'Galaxy'}
+        <Icon icon="mdi:arrow-left" width="18" height="18" />
       </button>
-      <span class="chip">
-        {planet?.name ?? system.name}
-        <span class="dim-text">
-          · {planet
-            ? `${planet.label}${planet.biomes ? ` · ${planet.biomes} biomes` : ''}`
-            : system.subtitle}
+      <div class="trail">
+        <span class="path">
+          Galaxy<span class="sep" aria-hidden="true">/</span>{#if planet}{system.name}<span
+              class="sep"
+              aria-hidden="true">/</span
+            >{/if}
         </span>
-      </span>
+        <span class="here">
+          <b>{planet?.name ?? system.name}</b>
+          <small>
+            {planet
+              ? `${planet.label}${planet.biomes ? ` · ${planet.biomes} biomes` : ''}`
+              : system.subtitle}
+          </small>
+        </span>
+      </div>
       {#if mode === 'system' && !travelling}
         <button
           type="button"
-          class="back"
+          class="nav-action"
           aria-expanded={showPlanets}
           onclick={() => (showPlanets = !showPlanets)}
         >
           <Icon icon="mdi:orbit" width="16" height="16" />
-          Planets
+          <span>Planets</span>
         </button>
       {/if}
       {#if mode === 'planet' && !touch}
@@ -300,7 +339,7 @@
           </span>
         </button>
       {/if}
-    </div>
+    </nav>
   {/if}
 
   {#if showPlanets && system && mode === 'system'}
@@ -344,6 +383,7 @@
     {tuneOpen}
     busy={travelling}
     walking={instrument?.walking ?? false}
+    canWalk={!planet?.giant}
     timeLapse={instrument?.timeLapse ?? false}
     {onDark}
     onExpand={() => (expanded = !expanded)}
@@ -396,7 +436,11 @@
   .galaxy-app[data-travelling='true'] .galaxy-canvas {
     pointer-events: none;
   }
+  /* One glass bar: back, where you are, and what you can do here. */
   .crumbs {
+    --nav-ink: #e9ecf6;
+    --nav-accent: #ffd9a0;
+    --nav-edge: rgb(233 236 246 / 0.14);
     position: absolute;
     top: 3.4rem;
     left: 50%;
@@ -404,81 +448,128 @@
     z-index: 6;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.25rem;
     max-width: calc(100% - 2rem);
-    pointer-events: none;
+    padding: 0.3rem;
+    border-radius: 999px;
+    border: 1px solid var(--nav-edge);
+    background: rgb(10 12 20 / 0.58);
+    backdrop-filter: blur(16px) saturate(150%);
+    box-shadow:
+      0 12px 34px rgb(0 0 0 / 0.32),
+      inset 0 1px 0 rgb(255 255 255 / 0.07);
+    color: var(--nav-ink);
     transition: opacity 200ms ease;
   }
   .crumbs.dim {
-    opacity: 0.55;
+    opacity: 0.6;
   }
-  .back,
-  .chip {
-    pointer-events: auto;
+  .nav-back,
+  .nav-action,
+  .help {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    min-height: 44px;
-    padding: 0.4rem 0.85rem;
-    border-radius: 0.55rem;
-    border: 1px solid #dfe2ee44;
-    background: #0c0e16b3;
-    color: #e8ebf5;
-    font: inherit;
-    font-size: 0.82rem;
-    white-space: nowrap;
-    backdrop-filter: blur(8px);
-  }
-  .back {
-    cursor: pointer;
+    justify-content: center;
+    gap: 0.4rem;
     flex-shrink: 0;
+    height: 2.5rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    transition:
+      background-color 150ms ease,
+      color 150ms ease;
   }
-  .back:hover:not(:disabled),
-  .back[aria-expanded='true'] {
-    border-color: #ffd9a088;
+  .nav-back,
+  .help {
+    width: 2.5rem;
   }
-  .back:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 3px;
+  .nav-back {
+    background: rgb(255 255 255 / 0.07);
   }
-  .back:disabled {
-    opacity: 0.5;
+  .nav-action {
+    padding-inline: 0.85rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    border: 1px solid var(--nav-edge);
   }
-  .chip {
+  .nav-back:hover:not(:disabled),
+  .nav-action:hover,
+  .nav-action[aria-expanded='true'],
+  .help:hover {
+    background: rgb(255 255 255 / 0.12);
+    color: var(--nav-accent);
+  }
+  .nav-back:focus-visible,
+  .nav-action:focus-visible,
+  .help:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--nav-accent) 70%, transparent);
+    outline-offset: 2px;
+  }
+  .nav-back:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .trail {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
     min-width: 0;
+    padding-inline: 0.55rem 0.7rem;
+    white-space: nowrap;
+  }
+  .path {
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(233 236 246 / 0.5);
+  }
+  .sep {
+    margin-inline: 0.45rem;
+    color: rgb(233 236 246 / 0.28);
+  }
+  .here {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55rem;
+    min-width: 0;
+  }
+  .here b {
+    font-size: 0.92rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    color: var(--nav-accent);
+  }
+  .here small {
     overflow: hidden;
     text-overflow: ellipsis;
-    color: #ffd9a0;
-    letter-spacing: 0.04em;
-  }
-  .dim-text {
-    color: #e8ebf5aa;
+    font-size: 0.72rem;
+    color: rgb(233 236 246 / 0.62);
   }
   .help {
     position: relative;
-    pointer-events: auto;
-    display: grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 999px;
-    border: 1px solid #dfe2ee44;
-    background: #0c0e16b3;
-    color: #e8ebf5cc;
+    color: rgb(233 236 246 / 0.75);
     cursor: help;
   }
   .tip {
     position: absolute;
-    top: calc(100% + 0.45rem);
-    right: 0;
+    top: calc(100% + 0.6rem);
+    right: -0.3rem;
     width: max-content;
     max-width: min(30rem, calc(100vw - 2rem));
-    padding: 0.4rem 0.8rem;
-    border-radius: 0.6rem;
-    background: #0c0e16e6;
-    color: #e8ebf5;
+    padding: 0.5rem 0.85rem;
+    border-radius: 0.7rem;
+    border: 1px solid var(--nav-edge);
+    background: rgb(10 12 20 / 0.86);
+    backdrop-filter: blur(12px);
+    color: var(--nav-ink);
     font-size: 0.72rem;
+    line-height: 1.5;
     white-space: normal;
+    text-align: left;
     opacity: 0;
     visibility: hidden;
     transition: opacity 140ms ease;
@@ -490,44 +581,52 @@
   }
   .planet-list {
     position: absolute;
-    top: 6.8rem;
+    top: 7rem;
     left: 50%;
     transform: translateX(-50%);
     z-index: 6;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.4rem;
-    width: min(46rem, calc(100% - 2rem));
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+    gap: 0.3rem;
+    width: min(40rem, calc(100% - 2rem));
     margin: 0;
-    padding: 0;
+    padding: 0.4rem;
+    border-radius: 1rem;
+    border: 1px solid rgb(233 236 246 / 0.14);
+    background: rgb(10 12 20 / 0.62);
+    backdrop-filter: blur(16px) saturate(150%);
+    box-shadow: 0 12px 34px rgb(0 0 0 / 0.32);
     list-style: none;
   }
   .planet-list button {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    width: 100%;
     min-height: 44px;
-    padding: 0.35rem 0.75rem;
-    border-radius: 0.55rem;
-    border: 1px solid #dfe2ee33;
-    background: #0c0e16cc;
-    color: #e8ebf5;
+    padding: 0.4rem 0.7rem;
+    border: 0;
+    border-radius: 0.65rem;
+    background: transparent;
+    color: #e9ecf6;
     font: inherit;
     font-size: 0.72rem;
+    text-align: left;
     cursor: pointer;
-    backdrop-filter: blur(8px);
+    transition: background-color 150ms ease;
   }
   .planet-list button:hover,
   .planet-list button:focus-visible {
-    border-color: #ffd9a088;
+    background: rgb(255 255 255 / 0.09);
+    outline: none;
   }
   .planet-list b {
     color: #ffd9a0;
     font-weight: 600;
+    letter-spacing: 0.04em;
   }
   .planet-list span {
-    opacity: 0.75;
+    color: rgb(233 236 246 / 0.62);
   }
   .status {
     position: absolute;
@@ -536,14 +635,16 @@
     transform: translateX(-50%);
     z-index: 7;
     margin: 0;
-    padding: 0.4rem 0.9rem;
+    padding: 0.45rem 1rem;
     border-radius: 999px;
-    background: #0c0e16b3;
-    color: #e8ebf5;
-    font-size: 0.75rem;
-    letter-spacing: 0.04em;
+    border: 1px solid rgb(233 236 246 / 0.14);
+    background: rgb(10 12 20 / 0.58);
+    backdrop-filter: blur(16px);
+    color: #e9ecf6;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     pointer-events: none;
-    backdrop-filter: blur(8px);
   }
   .galaxy-error {
     position: absolute;
@@ -556,11 +657,27 @@
   @media (max-width: 640px) {
     .crumbs {
       top: 3rem;
+      gap: 0.15rem;
     }
-    .back,
-    .chip {
-      font-size: 0.75rem;
-      padding-inline: 0.6rem;
+    .path {
+      display: none;
+    }
+    .here {
+      flex-direction: column;
+      gap: 0;
+    }
+    .here b {
+      font-size: 0.82rem;
+    }
+    .here small {
+      font-size: 0.66rem;
+    }
+    .nav-action span {
+      display: none;
+    }
+    .nav-action {
+      width: 2.5rem;
+      padding: 0;
     }
   }
 </style>

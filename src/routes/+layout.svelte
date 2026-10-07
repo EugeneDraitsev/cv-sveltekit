@@ -22,6 +22,7 @@
   const { children } = $props();
   let GalaxyHero = $state<Component<ComponentProps<typeof GalaxyHeroType>>>();
   let galaxyLoadStarted = false;
+  let galaxyAttempts = 0;
   let galaxyRegion = $state<HTMLElement>();
   let galaxyHeroVisible = $state(true);
   let tabsElement = $state<HTMLElement>();
@@ -111,6 +112,17 @@
     } catch (error) {
       galaxyLoadStarted = false;
       console.error('Unable to load the interactive galaxy', error);
+      // A dropped connection or a stale chunk after a deploy: try again a bit
+      // later, or as soon as the browser is back online, a few times at most.
+      galaxyAttempts += 1;
+      if (galaxyAttempts > 3) return;
+      const retry = () => {
+        window.removeEventListener('online', retry);
+        clearTimeout(timer);
+        void loadGalaxy();
+      };
+      const timer = setTimeout(retry, 2000 * 2 ** galaxyAttempts);
+      window.addEventListener('online', retry);
     }
   }
 

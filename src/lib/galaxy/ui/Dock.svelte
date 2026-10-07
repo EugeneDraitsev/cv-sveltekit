@@ -9,6 +9,7 @@
     tuneOpen,
     busy,
     walking,
+    canWalk = true,
     timeLapse,
     onDark,
     onExpand,
@@ -23,6 +24,8 @@
     tuneOpen: boolean;
     busy: boolean;
     walking: boolean;
+    /** False over a giant: there is no ground to walk on. */
+    canWalk?: boolean;
     timeLapse: boolean;
     onDark: boolean;
     onExpand: () => void;
@@ -47,17 +50,19 @@
     </button>
     {#if mode === 'planet'}
       <span class="separator" aria-hidden="true"></span>
-      <button
-        type="button"
-        onclick={onWalk}
-        disabled={busy}
-        aria-pressed={walking}
-        aria-label={walking ? 'Switch to flying' : 'Switch to walking'}
-        title={walking ? 'Fly (F)' : 'Walk (F)'}
-      >
-        <Icon icon={walking ? 'mdi:airplane' : 'mdi:walk'} width="20" height="20" />
-        <span>{walking ? 'Fly' : 'Walk'}</span>
-      </button>
+      {#if canWalk}
+        <button
+          type="button"
+          onclick={onWalk}
+          disabled={busy}
+          aria-pressed={walking}
+          aria-label={walking ? 'Switch to flying' : 'Switch to walking'}
+          title={walking ? 'Fly (F)' : 'Walk (F)'}
+        >
+          <Icon icon={walking ? 'mdi:airplane' : 'mdi:walk'} width="20" height="20" />
+          <span>{walking ? 'Fly' : 'Walk'}</span>
+        </button>
+      {/if}
       <button
         type="button"
         onclick={onTimeLapse}

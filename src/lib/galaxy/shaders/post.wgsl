@@ -52,6 +52,10 @@ fn composite(uv: vec2f, pixel: vec2f) -> vec4f {
   let centered: vec2f = uv - vec2f(0.5);
   let vignette: f32 = 1.0 - dot(centered, centered) * post.paper.w * (1.0 - lightMix);
   col = col * vignette;
+  // Dark theme: the deepest black is the page colour itself, so the hero has
+  // no seam against the page around it (paper is sRGB, col is linear).
+  let lifted: vec3f = pow(post.paper.rgb, vec3f(2.2)) * post.ink.w * (1.0 - lightMix);
+  col = lifted + col * (vec3f(1.0) - lifted);
   var display: vec3f = pow(max(col, vec3f(0.0)), vec3f(1.0 / 2.2));
   // Triangular dither hides banding in the dark gradients.
   let n: f32 = hash21(pixel + vec2f(fract(post.viewport.z) * 61.0)) + hash21(pixel.yx + vec2f(17.3)) - 1.0;

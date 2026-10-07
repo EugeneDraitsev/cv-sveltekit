@@ -175,12 +175,17 @@ fn fs(fsIn: Varyings) -> FragOut {
   let row: i32 = i32(pl.info.x);
   let planet: Planet = loadPlanet(row);
   let n: vec3f = normalize(fsIn.n);
-  let h: f32 = fsIn.data.x;
   let climate: vec2f = fsIn.data.yz;
   let dist: f32 = length(fsIn.rel);
   let viewDir: vec3f = fsIn.rel / max(dist, 0.0000001);
   let air: Air = loadAir(row);
   let meters: f32 = planetTexel(row, 2).y * 100000.0;
+  // Seas are drawn at sea level, so a triangle climbing a coastal cliff blends
+  // a negative (sea floor) height up its face. Only what really lies at sea
+  // level is liquid; the rest of the face is rock at its true height.
+  let geomH: f32 = length(pl.eye.xyz + fsIn.rel) - 1.0;
+  let wet: bool = planet.water > 0.5 && fsIn.data.x < 0.0;
+  let h: f32 = select(fsIn.data.x, max(fsIn.data.x, geomH), wet && geomH > 0.6 / meters);
   let distM: f32 = dist * meters;
   let surfaceP: vec3f = n * (1.0 + max(h, 0.0));
   let sun: vec3f = pl.sun0.xyz;
@@ -202,7 +207,24 @@ fn fs(fsIn: Varyings) -> FragOut {
   let bounce: vec3f = (sunLight * max(dot(n, sun), 0.0) + sunLight1 * max(dot(n, pl.sun1.xyz), 0.0)) * 0.05;
   let ambient: vec3f = skyAmbient(n, sun, pl.sun0Color.rgb, air) + night + bounce;
   var color: vec3f = vec3f(0.0);
-  if (h < 0.0 && planet.water > 0.5) {
+  if (planet.giant > 0.5) {
+    // A giant has no ground: this is the top of its cloud deck. Planet-scale
+    // bands set the colour; billows a few hundred metres to kilometres
+    // across give it texture, fading with the pixel footprint.
+    let footprintM: f32 = dist * meters * 2.0 * pl.eye.w / pl.viewport.y;
+    let pm: vec3f = n * meters;
+    let drift: vec3f = vec3f(pl.viewport.z * 4.0, 0.0, 0.0);
+    let billow: f32 = fbm(pm * 0.0006 + drift * 0.0006, 4) * (1.0 - smoothstep(300.0, 900.0, footprintM));
+    let tuft: f32 = fbm(pm * 0.006 + drift * 0.006, 3) * (1.0 - smoothstep(30.0, 90.0, footprintM));
+    var albedo: vec3f = gasColor(row, planet, n, pl.viewport.z);
+    albedo = albedo * (0.82 + billow * 0.35 + tuft * 0.12);
+    var normal: vec3f = normalize(fsIn.normal);
+    normal = bump(normal, fsIn.rel, (billow * 40.0 + tuft * 6.0) / meters);
+    // Clouds scatter light through themselves: a soft, wrapped falloff.
+    let wrap: f32 = clamp((dot(normal, sun) + 0.4) / 1.4, 0.0, 1.0);
+    let wrap1: f32 = clamp((dot(normal, pl.sun1.xyz) + 0.4) / 1.4, 0.0, 1.0);
+    color = albedo * ((sunLight * wrap + sunLight1 * wrap1) * 0.9 + ambient * 1.6);
+  } else if (h < 0.0 && wet) {
     let shade: f32 = sunShadow(fsIn.rel, max(dot(n, sun), 0.0));
     color = shadeLiquid(row, planet, n, h, viewDir, dist, sun, (sunLight + sunLight1) * (0.35 + 0.65 * shade), ambient);
   } else {
