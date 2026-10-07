@@ -177,7 +177,8 @@ function reliefShape(
         if (r < 1.6) {
           const bowl = (r * r - 1) * 0.55;
           const rim = Math.exp(-Math.pow((r - 1) / 0.22, 2)) * 0.35;
-          h += (Math.min(bowl, 0) + rim) * amp * smoothstep(1.6, 1.2, r) * (id >= 0.35 ? 1 : 0);
+          h +=
+            (Math.min(bowl, 0) + rim) * amp * (1 - smoothstep(1.2, 1.6, r)) * (id >= 0.35 ? 1 : 0);
         }
         s *= 2.6;
         amp *= 0.45;
@@ -192,7 +193,7 @@ function reliefShape(
     case 8: {
       const [r, id] = cellular(px * 0.3, py * 0.3, pz * 0.3);
       const cone = Math.max(0, 1 - r * 1.25) * (0.5 + id);
-      const caldera = smoothstep(0.18, 0.05, r) * 0.45 * id;
+      const caldera = (1 - smoothstep(0.05, 0.18, r)) * 0.45 * id;
       const flows = fbm(px * 1.1, py * 1.1, pz * 1.1, octaves - 1) * 0.35;
       return 0.2 + cone * cone * 1.6 - caldera + flows;
     }

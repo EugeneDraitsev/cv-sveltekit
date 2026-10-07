@@ -155,7 +155,7 @@ fn reliefShape(style: i32, n: vec3f, freq: f32, offset: vec3f, octaves: i32) -> 
       if (r < 1.6) {
         let bowl: f32 = (r * r - 1.0) * 0.55;
         let rim: f32 = exp(-pow((r - 1.0) / 0.22, 2.0)) * 0.35;
-        h = h + (min(bowl, 0.0) + rim) * amp * smoothstep(1.6, 1.2, r) * step(0.35, cell.y);
+        h = h + (min(bowl, 0.0) + rim) * amp * (1.0 - smoothstep(1.2, 1.6, r)) * step(0.35, cell.y);
       }
       scale = scale * 2.6;
       amp = amp * 0.45;
@@ -172,7 +172,7 @@ fn reliefShape(style: i32, n: vec3f, freq: f32, offset: vec3f, octaves: i32) -> 
     let cell: vec2f = cellular(p * 0.3);
     let r: f32 = cell.x;
     let cone: f32 = max(0.0, 1.0 - r * 1.25) * (0.5 + cell.y);
-    let caldera: f32 = smoothstep(0.18, 0.05, r) * 0.45 * cell.y;
+    let caldera: f32 = (1.0 - smoothstep(0.05, 0.18, r)) * 0.45 * cell.y;
     let flows: f32 = fbm(p * 1.1, octaves - 1) * 0.35;
     return 0.2 + cone * cone * 1.6 - caldera + flows;
   }

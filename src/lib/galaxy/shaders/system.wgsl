@@ -74,7 +74,7 @@ fn ringDensity(r: f32, ring: vec4f, seed: f32) -> f32 {
   }
   let bands: f32 = 0.55 + 0.45 * gnoise(vec3f(x * 38.0, seed, 0.0)) + 0.25 * gnoise(vec3f(x * 140.0, seed * 1.7, 2.0));
   let gap: f32 = 1.0 - exp(-pow((x - 0.62) / 0.03, 2.0)) * 0.9;
-  let edge: f32 = smoothstep(0.0, 0.04, x) * smoothstep(1.0, 0.94, x);
+  let edge: f32 = smoothstep(0.0, 0.04, x) * (1.0 - smoothstep(0.94, 1.0, x));
   return clamp(bands * gap * edge, 0.0, 1.0) * ring.w;
 }
 
@@ -158,7 +158,7 @@ fn moonColor(m: i32, n: vec3f) -> vec3f {
   var shade: f32 = 0.75 + fbm(p, 4) * 0.4;
   let crater: vec2f = cellular(p * 0.9);
   let r: f32 = crater.x / (0.25 + crater.y * 0.25);
-  shade = shade - smoothstep(1.0, 0.6, r) * 0.18 * step(0.3, crater.y) + exp(-pow((r - 1.0) / 0.15, 2.0)) * 0.1;
+  shade = shade - (1.0 - smoothstep(0.6, 1.0, r)) * 0.18 * step(0.3, crater.y) + exp(-pow((r - 1.0) / 0.15, 2.0)) * 0.1;
   let maria: f32 = smoothstep(0.1, 0.3, fbm(p * 0.4 + vec3f(3.0), 3));
   var c: vec3f = base * shade * (1.0 - maria * 0.35);
   if (seed.w > 1.5 && seed.w < 2.5) {

@@ -55,7 +55,7 @@ fn biomeGround(row: i32, index: i32, t: f32, slope: f32, wet: f32, detail: f32, 
   // Snow on cold biomes, and on high ground anywhere temperate. Without an
   // atmosphere nothing falls: only a thin frost settles on the coldest ground.
   let snowfall: f32 = smoothstep(0.0, 0.05, air);
-  var snow: f32 = smoothstep(info.z + 0.04, info.z - 0.04, climate.x) * mix(0.45, 1.0, snowfall);
+  var snow: f32 = (1.0 - smoothstep(info.z - 0.04, info.z + 0.04, climate.x)) * mix(0.45, 1.0, snowfall);
   snow = max(snow, smoothstep(0.78, 0.95, t + (0.45 - climate.x) * 0.6 + detail * 0.1) * step(climate.x, 0.75) * snowfall);
   snow = snow * (1.0 - smoothstep(0.45, 0.75, slope));
   if (material == 4 || material == 5) {
@@ -87,7 +87,7 @@ fn biomeGround(row: i32, index: i32, t: f32, slope: f32, wet: f32, detail: f32, 
       let q: vec3f = n * 900.0;
       let crackAa: f32 = smoothstep(0.15, 0.6, length(fwidth(q)));
       let cracks: f32 = mix(pow(1.0 - abs(gnoise(q)), 14.0), 0.07, crackAa);
-      pattern = cracks * (1.0 - cliff * 0.5) + smoothstep(0.1, 0.0, t) * 0.4;
+      pattern = cracks * (1.0 - cliff * 0.5) + (1.0 - smoothstep(0.0, 0.1, t)) * 0.4;
     }
     m.emission = glow * strength * pattern;
   }

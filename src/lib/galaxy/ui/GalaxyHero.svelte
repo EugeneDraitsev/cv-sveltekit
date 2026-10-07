@@ -25,6 +25,8 @@
   let canvas = $state<HTMLCanvasElement>();
   let host: GalaxyHost | null = null;
   let disposed = false;
+  // Whether the hero is on screen (the IntersectionObserver keeps it current).
+  let intersecting = true;
   // Bumped to mount a brand-new canvas element for a WebGL2 restart.
   let canvasKey = $state(0);
   let restarted = false;
@@ -218,6 +220,20 @@
     send({ type: 'settings', settings: patch });
   }
 
+  /**
+   * Messages sent before the host existed (theme, pause, Tune, resizes while
+   * the engine chunk was still loading) were dropped: bring it up to date.
+   */
+  function syncHost() {
+    if (!host || !root) return;
+    const box = root.getBoundingClientRect();
+    host.send({ type: 'resize', width: box.width, height: box.height, dpr: devicePixelRatio || 1 });
+    host.send({ type: 'visibility', visible: intersecting && !document.hidden });
+    host.send({ type: 'theme', theme: themeStore.theme === 'light' ? 'light' : 'dark' });
+    host.send({ type: 'playing', playing });
+    host.send({ type: 'settings', settings: { ...settings } });
+  }
+
   function launch(renderer: 'auto' | 'webgl') {
     if (!canvas || !root) return;
     const rect = root.getBoundingClientRect();
@@ -232,8 +248,12 @@
       onMessage,
     })
       .then((h) => {
-        if (disposed) h.dispose();
-        else host = h;
+        if (disposed) {
+          h.dispose();
+          return;
+        }
+        host = h;
+        syncHost();
       })
       .catch((error) => {
         console.error(error);
@@ -268,7 +288,6 @@
       });
     });
     resize.observe(root);
-    let intersecting = true;
     const updateVisibility = () =>
       send({ type: 'visibility', visible: intersecting && !document.hidden });
     const visibility = new IntersectionObserver(([entry]) => {

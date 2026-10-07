@@ -67,3 +67,25 @@ describe('every pipeline', () => {
     },
   );
 });
+
+describe('shader sources', () => {
+  // WGSL leaves smoothstep undefined when low >= high, so a falling edge must
+  // be written as 1 - smoothstep(low, high, x) to match the CPU twin everywhere.
+  const sources = import.meta.glob('../shaders/*.wgsl', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  });
+
+  it('never call smoothstep with reversed literal edges', () => {
+    const reversed: string[] = [];
+    for (const [file, code] of Object.entries(sources)) {
+      for (const m of (code as string).matchAll(
+        /smoothstep\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,/g,
+      )) {
+        if (Number(m[1]) >= Number(m[2])) reversed.push(`${file}: ${m[0]}`);
+      }
+    }
+    expect(reversed).toEqual([]);
+  });
+});
