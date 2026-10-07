@@ -99,6 +99,12 @@ export async function startGalaxy(options: HostOptions): Promise<GalaxyHost> {
   return {
     threaded: false,
     send: (message) => (ready ? engine.handle(message) : pending.push(message)),
-    dispose: () => engine.dispose(),
+    dispose: () => {
+      engine.dispose();
+      // The debug handle must not keep a disposed engine (and its GPU
+      // resources and canvas) alive.
+      const debug = window as unknown as { galaxyEngine?: unknown };
+      if (debug.galaxyEngine === engine) delete debug.galaxyEngine;
+    },
   };
 }

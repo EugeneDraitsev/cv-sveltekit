@@ -77,7 +77,9 @@
   });
   const touchQuery = matchMedia('(hover: none) and (pointer: coarse)');
   let touch = $state(touchQuery.matches);
-  let engaged = false;
+  // The visitor is working the scene (pointer or focus inside it): drags and
+  // wheel steer the camera instead of scrolling the page.
+  let engaged = $state(false);
 
   const onDark = $derived(mode !== 'galaxy');
 
@@ -436,7 +438,7 @@
     <canvas
       bind:this={canvas}
       class="galaxy-canvas"
-      class:locked={mode === 'planet'}
+      class:locked={mode === 'planet' || expanded || engaged}
       style:cursor
       aria-hidden="true"
       onpointerdown={pointer('down')}
