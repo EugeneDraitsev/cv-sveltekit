@@ -87,7 +87,9 @@ export class PlanetLayer {
     this.atlasSize = compact ? 768 : 1280;
     this.perRow = Math.floor(this.atlasSize / this.slotSize);
     const slots = this.perRow * this.perRow;
-    this.maxPatches = Math.min(slots - 64, 900);
+    // Every leaf owns an atlas slot, so there can never be more leaves than
+    // slots: size the instance buffers for all of them, never truncate.
+    this.maxPatches = slots;
     this.tree = new Quadtree({
       resolution: this.resolution,
       slots,
@@ -264,7 +266,7 @@ export class PlanetLayer {
       jd[o + 6] = this.row;
       jd[o + 7] = this.octaves(n.level);
     });
-    const leaves = this.tree.leaves.slice(0, this.maxPatches);
+    const leaves = this.tree.leaves;
     leaves.forEach((n, i) => this.writePatch(this.patchData, i, n, eye));
     this.leafCount = leaves.length;
     if (this.jobs.length)

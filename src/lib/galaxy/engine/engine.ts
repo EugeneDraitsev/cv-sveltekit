@@ -139,6 +139,8 @@ export class Engine {
   /** A one-off frame is owed (theme, settings, resize) while nothing animates. */
   private redraw = false;
   private disposed = false;
+  /** Delayed compile of the planet pipelines; cancelled on dispose. */
+  private warmUp: ReturnType<typeof setTimeout> | undefined;
   private surfaceBudgetUntil = 0;
   /** Orbit-line opacity, eased toward its target instead of switching. */
   private orbitInk = 0;
@@ -265,7 +267,8 @@ export class Engine {
     this.schedule();
     // Planet shaders compile in the background, long before any landing.
     if (this.renderer.surfaceSupported) {
-      setTimeout(() => {
+      this.warmUp = setTimeout(() => {
+        if (this.disposed) return;
         this.renderer.ensurePlanet().catch((error: unknown) => {
           console.error('Planet renderer failed', error);
           this.surfaceFailed = true;
@@ -1429,6 +1432,7 @@ export class Engine {
   /** Debug: compare GPU patch heights with the CPU twin for a few leaves. */
   dispose() {
     this.disposed = true;
+    clearTimeout(this.warmUp);
     this.visible = false;
     this.running = false;
     this.renderer?.destroy();
