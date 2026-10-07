@@ -34,6 +34,22 @@
   let startAttempts = 0;
   let lastRenderer: 'auto' | 'webgl' = 'auto';
   let shown = $state(false);
+  // Start-up progress from the engine; null while its chunk still downloads.
+  let progress = $state<{ value: number; label: string } | null>(null);
+  // What the bar shows: real progress plus a slow creep toward the end of the
+  // current stage, so long driver compiles do not look frozen.
+  let shownProgress = $state(0);
+  const stageCeiling = $derived(
+    !progress ? 0.28 : progress.value < 0.3 ? 0.3 : progress.value < 0.95 ? 0.92 : 1,
+  );
+  $effect(() => {
+    if (shown) return;
+    const timer = setInterval(() => {
+      const floor = progress?.value ?? 0;
+      shownProgress = Math.max(floor, shownProgress + (stageCeiling - shownProgress) * 0.035);
+    }, 120);
+    return () => clearInterval(timer);
+  });
   let failed = $state(false);
   let hud = $state<HudInfo | null>(null);
   let cursor = $state('grab');
@@ -73,6 +89,11 @@
     switch (message.type) {
       case 'firstFrame':
         shown = true;
+        progress = { value: 1, label: 'Ready' };
+        break;
+      case 'progress':
+        // Never step backwards (a restart reports from the beginning again).
+        if (!progress || message.value >= progress.value) progress = message;
         break;
       case 'ready':
         backendName = message.backend;
@@ -385,6 +406,22 @@
   onfocusout={onFocusOut}
 >
   <div class="galaxy-backdrop" aria-hidden="true"></div>
+  {#if !failed}
+    <div
+      class="galaxy-loader"
+      data-indeterminate={progress || shownProgress > 0 ? undefined : ''}
+      style:--progress={shown ? 1 : shownProgress}
+      aria-hidden="true"
+    >
+      <span class="galaxy-loader-bar"></span>
+      <span class="galaxy-loader-text">
+        <span>{progress?.label ?? 'Loading the renderer'}</span>
+        {#if shownProgress > 0}
+          <span class="galaxy-loader-pct">{Math.round((shown ? 1 : shownProgress) * 100)}%</span>
+        {/if}
+      </span>
+    </div>
+  {/if}
   {#key canvasKey}
     <canvas
       bind:this={canvas}

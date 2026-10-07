@@ -237,6 +237,100 @@ body {
   mask-image: none;
 }
 
+/* Start-up progress under the silhouette: a hairline bar and a short label.
+   Small text only, so it never competes for LCP. Without a value the bar
+   sweeps (the renderer chunk is still downloading). */
+.galaxy-loader {
+  --loader-ink: rgb(233 236 246 / 0.62);
+  --loader-track: rgb(233 236 246 / 0.12);
+  position: absolute;
+  left: 50%;
+  top: calc(46% + 4.6rem);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  transform: translateX(-50%);
+  color: var(--loader-ink);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 0 6px var(--color-base-100);
+  pointer-events: none;
+  transition:
+    opacity 600ms ease,
+    visibility 0s linear 600ms;
+}
+
+/* A readout row as wide as the bar: the label starts at its left edge and
+   the percentage sits in a fixed box at its right, so changing text never
+   moves where any text starts (that would count as layout shift). */
+.galaxy-loader-text {
+  display: flex;
+  justify-content: space-between;
+  width: 15rem;
+}
+
+.galaxy-loader-pct {
+  width: 4ch;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+.galaxy-loader-bar {
+  position: relative;
+  width: 15rem;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--loader-track);
+}
+
+.galaxy-loader-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffd9a0, #a9b8ff);
+  transform: scaleX(var(--progress, 0));
+  transform-origin: left center;
+  transition: transform 400ms ease;
+}
+
+.galaxy-loader[data-indeterminate] .galaxy-loader-bar::after {
+  width: 40%;
+  transform: translateX(-100%);
+  transition: none;
+  animation: galaxy-loader-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes galaxy-loader-sweep {
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .galaxy-loader[data-indeterminate] .galaxy-loader-bar::after {
+    animation: none;
+    width: 100%;
+    transform: none;
+    opacity: 0.35;
+  }
+}
+
+.galaxy-app.shown .galaxy-loader {
+  opacity: 0;
+  visibility: hidden;
+}
+
+[data-theme='light'] .galaxy-loader {
+  --loader-ink: rgb(43 45 48 / 0.6);
+  --loader-track: rgb(43 45 48 / 0.12);
+}
+
 @media (max-width: 768px) {
   html {
     --galaxy-height: 440px;

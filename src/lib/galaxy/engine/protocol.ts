@@ -108,6 +108,8 @@ export interface Instrument {
 export type FromEngine =
   | { type: 'ready'; backend: 'webgpu' | 'webgl2'; info: string }
   | { type: 'firstFrame' }
+  /** Start-up progress (0..1) with a short label for the loading indicator. */
+  | { type: 'progress'; value: number; label: string }
   /**
    * "retry: 'webgl'" asks the host for a fresh canvas: a canvas that once held
    * a WebGPU context can never give out a WebGL2 one. "retry: 'restart'"

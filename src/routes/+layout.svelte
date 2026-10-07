@@ -23,6 +23,8 @@
   let GalaxyHero = $state<Component<ComponentProps<typeof GalaxyHeroType>>>();
   let galaxyLoadStarted = false;
   let galaxyAttempts = 0;
+  // Every retry failed: stop promising a galaxy.
+  let galaxyGaveUp = $state(false);
   let galaxyRegion = $state<HTMLElement>();
   let galaxyHeroVisible = $state(true);
   let tabsElement = $state<HTMLElement>();
@@ -115,7 +117,10 @@
       // A dropped connection or a stale chunk after a deploy: try again a bit
       // later, or as soon as the browser is back online, a few times at most.
       galaxyAttempts += 1;
-      if (galaxyAttempts > 3) return;
+      if (galaxyAttempts > 3) {
+        galaxyGaveUp = true;
+        return;
+      }
       const retry = () => {
         window.removeEventListener('online', retry);
         clearTimeout(timer);
@@ -211,6 +216,12 @@
   {:else}
     <div class="galaxy-placeholder w-full" aria-hidden="true">
       <div class="galaxy-backdrop"></div>
+      {#if !galaxyGaveUp}
+        <div class="galaxy-loader" data-indeterminate>
+          <span class="galaxy-loader-bar"></span>
+          <span class="galaxy-loader-text"><span>Loading the galaxy</span></span>
+        </div>
+      {/if}
     </div>
   {/if}
 </div>

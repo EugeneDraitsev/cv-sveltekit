@@ -82,18 +82,33 @@ export class Renderer {
     });
   }
 
-  async init() {
+  /**
+   * Compile the space pipelines and bake the galaxy. Progress is reported as
+   * the share of shader source compiled so far, a fair proxy for driver time.
+   */
+  async init(onProgress?: (fraction: number) => void) {
     const b = this.backend;
-    const [bake, galaxy, stars, systems, sky, system, bloom, composite] = await Promise.all([
-      b.createPipeline(bakeVolumeProgram()),
-      b.createPipeline(galaxySkyProgram()),
-      b.createPipeline(galaxyStarsProgram()),
-      b.createPipeline(systemStarsProgram()),
-      b.createPipeline(skyStarsProgram()),
-      b.createPipeline(systemProgram()),
-      b.createPipeline(bloomProgram()),
-      b.createPipeline(compositeProgram()),
-    ]);
+    const programs = [
+      bakeVolumeProgram(),
+      galaxySkyProgram(),
+      galaxyStarsProgram(),
+      systemStarsProgram(),
+      skyStarsProgram(),
+      systemProgram(),
+      bloomProgram(),
+      compositeProgram(),
+    ];
+    const total = programs.reduce((sum, desc) => sum + desc.code.length, 0);
+    let done = 0;
+    const [bake, galaxy, stars, systems, sky, system, bloom, composite] = await Promise.all(
+      programs.map((desc) =>
+        b.createPipeline(desc).then((pipeline) => {
+          done += desc.code.length;
+          onProgress?.(done / total);
+          return pipeline;
+        }),
+      ),
+    );
     this.pipelines = { galaxy, stars, systems, sky, system, bloom, composite };
     this.volume = b.createTexture({
       width: this.atlasSize[0],

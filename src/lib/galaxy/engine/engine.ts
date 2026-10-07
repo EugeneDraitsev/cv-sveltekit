@@ -215,6 +215,11 @@ export class Engine {
     this.cssHeight = message.height;
     this.dpr = message.dpr;
     const onLost = (reason: string) => this.post({ type: 'error', message: reason });
+    const progress = (value: number, label: string) =>
+      this.post({ type: 'progress', value, label });
+    // Shader compilation is most of the wait: it spans 30–90 %.
+    const compiled = (fraction: number) => progress(0.3 + 0.6 * fraction, 'Compiling shaders');
+    progress(0.15, 'Waking the GPU');
     let backend: Backend | null = null;
     let renderer: Renderer | null = null;
     let canvasTaken = false;
@@ -233,7 +238,8 @@ export class Engine {
         });
         this.quality = withPreset(this.deviceQuality, this.settings.quality);
         renderer = new Renderer(backend, this.deviceQuality);
-        await renderer.init();
+        progress(0.3, 'Compiling shaders');
+        await renderer.init(compiled);
         if (this.abandoned(backend, renderer)) return;
       } catch (error) {
         if (this.abandoned(backend, renderer)) return;
@@ -257,7 +263,8 @@ export class Engine {
       });
       this.quality = withPreset(this.deviceQuality, this.settings.quality);
       renderer = new Renderer(backend, this.deviceQuality);
-      await renderer.init();
+      progress(0.3, 'Compiling shaders');
+      await renderer.init(compiled);
       if (this.abandoned(backend, renderer)) return;
     }
     this.backend = backend;
@@ -266,6 +273,7 @@ export class Engine {
     this.frameGalaxy(true);
     this.camera.pose = this.galaxyRig.pose();
     this.post({ type: 'ready', backend: backend.kind, info: backend.adapterInfo });
+    this.post({ type: 'progress', value: 0.95, label: 'Lighting the stars' });
     this.publishState();
     this.renderFrame();
     this.schedule();
