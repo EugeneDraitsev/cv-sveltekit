@@ -54,11 +54,20 @@ export async function startGalaxy(options: HostOptions): Promise<GalaxyHost> {
   if (canTransfer && params.get('thread') !== 'main') {
     const worker = new Worker(new URL('./engine/worker.ts', import.meta.url), { type: 'module' });
     const offscreen = options.canvas.transferControlToOffscreen();
-    worker.addEventListener('message', (event: MessageEvent<FromEngine>) =>
-      options.onMessage(event.data),
-    );
+    // Until the engine reports in, a worker error means it never started (a
+    // failed or stale chunk fetch): the canvas went with it, so ask the hero
+    // to retry on a fresh one.
+    let started = false;
+    worker.addEventListener('message', (event: MessageEvent<FromEngine>) => {
+      if (event.data.type === 'ready') started = true;
+      options.onMessage(event.data);
+    });
     worker.addEventListener('error', (event) =>
-      options.onMessage({ type: 'error', message: event.message || 'Renderer failed' }),
+      options.onMessage({
+        type: 'error',
+        message: event.message || 'Renderer failed',
+        retry: started ? undefined : 'restart',
+      }),
     );
     worker.postMessage({ type: 'init', canvas: offscreen, ...base } satisfies ToEngine, [
       offscreen,

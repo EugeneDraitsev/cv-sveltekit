@@ -110,9 +110,11 @@ export type FromEngine =
   | { type: 'firstFrame' }
   /**
    * "retry: 'webgl'" asks the host for a fresh canvas: a canvas that once held
-   * a WebGPU context can never give out a WebGL2 one.
+   * a WebGPU context can never give out a WebGL2 one. "retry: 'restart'"
+   * means the worker never started (its canvas went with it): try again on a
+   * new canvas later.
    */
-  | { type: 'error'; message: string; retry?: 'webgl' }
+  | { type: 'error'; message: string; retry?: 'webgl' | 'restart' }
   | { type: 'hud'; hud: HudInfo }
   | { type: 'catalog'; systems: { name: string; subtitle: string }[] }
   | {

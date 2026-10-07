@@ -30,6 +30,9 @@
   // Bumped to mount a brand-new canvas element for a WebGL2 restart.
   let canvasKey = $state(0);
   let restarted = false;
+  // Worker start-up retries (failed or stale chunk fetches).
+  let startAttempts = 0;
+  let lastRenderer: 'auto' | 'webgl' = 'auto';
   let shown = $state(false);
   let failed = $state(false);
   let hud = $state<HudInfo | null>(null);
@@ -81,6 +84,9 @@
         if (message.retry === 'webgl' && !restarted) {
           console.warn('[galaxy] WebGPU failed, restarting on WebGL2:', message.message);
           void restartOnWebgl();
+        } else if (message.retry === 'restart' && startAttempts < 3) {
+          console.warn('[galaxy] Renderer did not start, retrying:', message.message);
+          scheduleRestart();
         } else {
           console.error('[galaxy]', message.message);
           failed = true;
@@ -250,6 +256,7 @@
 
   function launch(renderer: 'auto' | 'webgl') {
     if (!canvas || !root) return;
+    lastRenderer = renderer;
     const rect = root.getBoundingClientRect();
     canvas.addEventListener('wheel', onWheel, { passive: false });
     startGalaxy({
@@ -281,13 +288,32 @@
    */
   async function restartOnWebgl() {
     restarted = true;
+    await remount('webgl');
+  }
+
+  /** Drop the host and its (transferred) canvas, then start on a new one. */
+  async function remount(renderer: 'auto' | 'webgl') {
     failed = false;
     host?.dispose();
     host = null;
     canvas?.removeEventListener('wheel', onWheel);
     canvasKey += 1;
     await tick();
-    if (!disposed) launch('webgl');
+    if (!disposed) launch(renderer);
+  }
+
+  /** Retry a worker that never started: after a pause, or once back online. */
+  function scheduleRestart() {
+    startAttempts += 1;
+    host?.dispose();
+    host = null;
+    const retry = () => {
+      window.removeEventListener('online', retry);
+      clearTimeout(timer);
+      if (!disposed) void remount(lastRenderer);
+    };
+    const timer = setTimeout(retry, 1500 * 2 ** startAttempts);
+    window.addEventListener('online', retry);
   }
 
   onMount(() => {
