@@ -58,6 +58,7 @@ export class Renderer {
   private markerBuffer: GpuBuffer | null = null;
   private markerCount = 0;
   planet: PlanetLayer | null = null;
+  private destroyed = false;
   private planetLoad: Promise<PlanetLayer> | null = null;
   readonly volumeDims: [number, number, number, number];
   readonly atlasSize: [number, number];
@@ -132,6 +133,8 @@ export class Renderer {
       if (!this.surfaceSupported) throw new Error('Planet surfaces need float render targets');
       const layer = new PlanetLayer(this.backend, this.quality);
       await layer.init();
+      // Disposed while the pipelines compiled: allocate nothing more.
+      if (this.destroyed) throw new Error('Renderer was destroyed');
       layer.resize(this.width, this.height);
       this.planet = layer;
       return layer;
@@ -273,6 +276,7 @@ export class Renderer {
   }
 
   destroy() {
+    this.destroyed = true;
     this.backend.destroy();
   }
 }

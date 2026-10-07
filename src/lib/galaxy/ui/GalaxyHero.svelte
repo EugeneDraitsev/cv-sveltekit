@@ -73,6 +73,9 @@
         break;
       case 'ready':
         backendName = message.backend;
+        // A backend that came up (e.g. WebGL2 after a WebGPU failure)
+        // supersedes any error reported on the way.
+        failed = false;
         break;
       case 'error':
         if (message.retry === 'webgl' && !restarted) {
@@ -211,6 +214,17 @@
     for (const code of held) release(code);
   }
 
+  // Keyboard users engage the scene by moving focus into it (the Systems and
+  // Planets lists, the dock) and disengage by tabbing out of it.
+  function onFocusIn() {
+    engaged = true;
+  }
+
+  function onFocusOut(event: FocusEvent) {
+    const next = event.relatedTarget as Node | null;
+    if (root && next && !root.contains(next)) engaged = false;
+  }
+
   function onDocumentPointer(event: PointerEvent) {
     if (root && !root.contains(event.target as Node)) engaged = false;
   }
@@ -267,6 +281,7 @@
    */
   async function restartOnWebgl() {
     restarted = true;
+    failed = false;
     host?.dispose();
     host = null;
     canvas?.removeEventListener('wheel', onWheel);
@@ -340,6 +355,8 @@
   data-backend={backendName}
   data-mode={mode}
   data-travelling={travelling}
+  onfocusin={onFocusIn}
+  onfocusout={onFocusOut}
 >
   {#key canvasKey}
     <canvas

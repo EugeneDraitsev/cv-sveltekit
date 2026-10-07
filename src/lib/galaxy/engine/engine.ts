@@ -274,6 +274,7 @@ export class Engine {
       this.warmUp = setTimeout(() => {
         if (this.disposed) return;
         this.renderer.ensurePlanet().catch((error: unknown) => {
+          if (this.disposed) return;
           console.error('Planet renderer failed', error);
           this.surfaceFailed = true;
         });
@@ -669,6 +670,7 @@ export class Engine {
       this.renderer.ensurePlanet().then(
         () => this.selectPlanet(index),
         (error: unknown) => {
+          if (this.disposed) return;
           console.error('Planet renderer failed', error);
           this.surfaceFailed = true;
           this.orbitPlanet(index);
