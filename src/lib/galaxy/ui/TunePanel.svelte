@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import type { Settings } from '../engine/protocol';
 
   const {
@@ -7,6 +8,13 @@
     onClose,
   }: { settings: Settings; onChange: (patch: Partial<Settings>) => void; onClose: () => void } =
     $props();
+
+  let panel = $state<HTMLDivElement>();
+  // The dialog sits before the dock in DOM order: take focus so keyboard
+  // users land on the controls instead of tabbing out of the hero.
+  onMount(() => {
+    panel?.querySelector<HTMLElement>('input, select')?.focus({ preventScroll: true });
+  });
 
   const sliders: { key: keyof Settings; label: string; min: number; max: number; step: number }[] =
     [
@@ -19,7 +27,7 @@
     ];
 </script>
 
-<div class="tune" role="dialog" aria-label="Galaxy settings">
+<div bind:this={panel} class="tune" role="dialog" aria-label="Galaxy settings">
   <div class="head">
     <span>Galaxy</span>
     <button type="button" onclick={onClose} aria-label="Close settings">×</button>

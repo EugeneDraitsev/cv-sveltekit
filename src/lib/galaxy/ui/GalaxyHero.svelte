@@ -207,6 +207,10 @@
       if (held.has(event.code)) release(event.code);
       return;
     }
+    if (event.code === 'Escape' && tuneOpen) {
+      closeTune();
+      return;
+    }
     if (event.code === 'Escape' && showSystems) {
       showSystems = false;
       root?.querySelector<HTMLElement>('[aria-label="Star systems"][aria-expanded]')?.focus();
@@ -254,6 +258,12 @@
 
   function onDocumentPointer(event: PointerEvent) {
     if (root && !root.contains(event.target as Node)) engaged = false;
+  }
+
+  /** Close the Tune dialog and hand focus back to its dock button. */
+  function closeTune() {
+    tuneOpen = false;
+    root?.querySelector<HTMLElement>('button[aria-label="Galaxy settings"]')?.focus();
   }
 
   function updateSettings(patch: Partial<Settings>) {
@@ -552,7 +562,7 @@
   {/if}
 
   {#if tuneOpen && mode === 'galaxy'}
-    <TunePanel {settings} onChange={updateSettings} onClose={() => (tuneOpen = false)} />
+    <TunePanel {settings} onChange={updateSettings} onClose={closeTune} />
   {/if}
 
   <Dock
