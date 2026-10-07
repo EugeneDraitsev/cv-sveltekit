@@ -248,7 +248,8 @@ export class WebGlBackend implements Backend {
     // Poll the driver instead of blocking the thread on a synchronous status query.
     if (this.parallel) {
       const status = this.parallel.COMPLETION_STATUS_KHR;
-      while (!gl.getProgramParameter(program, status)) {
+      // A lost context never reports completion: stop polling instead.
+      while (!gl.isContextLost() && !gl.getProgramParameter(program, status)) {
         // oxlint-disable-next-line no-await-in-loop -- polling one program, nothing to parallelise
         await new Promise((resolve) => setTimeout(resolve, 4));
       }
