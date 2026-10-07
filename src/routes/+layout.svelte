@@ -182,7 +182,7 @@
 
 <nav
   aria-label="Primary"
-  class="theme-grayscale fixed top-0 z-10 w-full bg-linear-to-br from-background/30 to-indigo-900/20 backdrop-blur-[1px]"
+  class="fixed top-0 z-10 w-full bg-linear-to-br from-background/30 to-indigo-900/20 backdrop-blur-[1px]"
 >
   <div class="mx-auto flex max-w-325 items-center justify-between px-6 py-1 text-identifier">
     <div bind:this={tabsElement} class="nav-tabs relative flex gap-4 pb-1">
@@ -209,7 +209,7 @@
   {#if galaxyAllowed && GalaxyHero}
     <GalaxyHero />
   {:else}
-    <div class="galaxy-placeholder theme-grayscale w-full" aria-hidden="true"></div>
+    <div class="galaxy-placeholder w-full" aria-hidden="true"></div>
   {/if}
 </div>
 

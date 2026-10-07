@@ -109,7 +109,7 @@
 
 <footer
   use:activateFooterShader
-  class="footer-galaxy theme-grayscale relative overflow-hidden border-t border-base-300"
+  class="footer-galaxy relative overflow-hidden border-t border-base-300"
 >
   <div class="absolute inset-0 z-0">
     {#if FooterShader}

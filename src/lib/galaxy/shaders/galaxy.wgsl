@@ -55,17 +55,110 @@ fn coreDensity(p: vec3f) -> vec3f {
     + vec3f(1.1, 0.73, 0.42) * exp(-dot(c, c)) * 0.070;
 }
 
-// Faint intergalactic clouds far behind the disk, fixed to the sky.
+// ─── The sky behind the galaxy, fixed to the world ─────────────────────────
+
+// Cube-face coordinates of a direction: xy in -1..1, z = face id (0..5).
+fn skyFace(rd: vec3f) -> vec3f {
+  let a: vec3f = abs(rd);
+  if (a.x >= a.y && a.x >= a.z) {
+    return vec3f(rd.z / a.x, rd.y / a.x, select(1.0, 0.0, rd.x > 0.0));
+  }
+  if (a.y >= a.z) {
+    return vec3f(rd.x / a.y, rd.z / a.y, select(3.0, 2.0, rd.y > 0.0));
+  }
+  return vec3f(rd.x / a.z, rd.y / a.z, select(5.0, 4.0, rd.z > 0.0));
+}
+
+// One layer of stars: at most one per cell of an n × n grid on each cube face,
+// drawn as a pixel-sized Gaussian whose total light does not depend on the
+// render resolution. `density` is the fraction of cells holding a star.
+fn starLayer(face: vec3f, n: f32, seed: f32, density: f32, flux: f32, pixel: f32) -> vec3f {
+  let g: vec2f = (face.xy * 0.5 + vec2f(0.5)) * n;
+  let cell: vec2f = floor(g);
+  let h: vec3f = hash33(vec3f(cell, face.z * 131.0 + seed));
+  if (h.z > density) {
+    return vec3f(0.0);
+  }
+  let h2: vec3f = hash33(vec3f(cell.yx + vec2f(seed), face.z + 17.0));
+  let offset: vec2f = (g - cell) - (vec2f(0.3) + h2.xy * 0.4);
+  // Angle per face unit shrinks toward the face edges (d atan x / dx).
+  let radians: f32 = length(offset) * (2.0 / n) / (1.0 + dot(face.xy, face.xy));
+  let sigma: f32 = pixel * 0.65;
+  let b: f32 = flux * (0.12 + pow(h2.z, 7.0));
+  let color: vec3f = kelvinColor(2800.0 + hash31(vec3f(cell, seed + 3.0)) * 9500.0);
+  return color * (b * exp(-(radians * radians) / (sigma * sigma)));
+}
+
+// Distant galaxies: sparse, tiny and faint; ellipticals and inclined spirals.
+fn farGalaxies(face: vec3f, pixel: f32) -> vec3f {
+  let n: f32 = 9.0;
+  let g: vec2f = (face.xy * 0.5 + vec2f(0.5)) * n;
+  let cell: vec2f = floor(g);
+  let h: vec3f = hash33(vec3f(cell, face.z * 57.0 + 401.0));
+  if (h.z > 0.6) {
+    return vec3f(0.0);
+  }
+  let h2: vec3f = hash33(vec3f(cell.yx, face.z + 913.0));
+  let scale: f32 = (2.0 / n) / (1.0 + dot(face.xy, face.xy));
+  let d: vec2f = ((g - cell) - (vec2f(0.3) + h.xy * 0.4)) * scale;
+  let size: f32 = mix(0.005, 0.022, pow(h2.x, 2.5));
+  let angle: f32 = h2.y * TAU;
+  let q: f32 = mix(0.22, 1.0, h2.z);
+  let ca: f32 = cos(angle);
+  let sa: f32 = sin(angle);
+  let local: vec2f = vec2f(ca * d.x + sa * d.y, -sa * d.x + ca * d.y);
+  // Never sharper than a pixel or two: tiny galaxies read as soft smudges.
+  let soft: f32 = max(size, pixel * 1.6);
+  let r: f32 = length(vec2f(local.x, local.y / q)) / soft;
+  if (r > 4.0) {
+    return vec3f(0.0);
+  }
+  let spiral: bool = hash31(vec3f(cell, face.z + 77.0)) > 0.45;
+  let bulge: f32 = exp(-r * r * 9.0);
+  var disk: f32 = exp(-r * 2.4);
+  var color: vec3f = vec3f(1.0, 0.86, 0.66);
+  if (spiral) {
+    let phi: f32 = atan2(local.y / q, local.x);
+    let arms: f32 = 0.55 + 0.45 * sin(2.0 * phi - 5.5 * log(r + 0.08));
+    disk = disk * mix(1.0, arms, smoothstep(0.15, 0.6, r)) * 0.8;
+    color = mix(vec3f(0.62, 0.74, 1.0), vec3f(1.0, 0.85, 0.62), bulge);
+  }
+  let peak: f32 = 0.11 * mix(0.35, 1.0, h.x) * (size / soft) * (size / soft);
+  return color * (disk + bulge * 1.4) * peak;
+}
+
+// Faint emission clouds (hydrogen red, oxygen teal) threaded with dark dust,
+// fixed to the sky far behind the disk. Returns colour and a dust factor.
+fn skyClouds(rd: vec3f) -> vec4f {
+  let a: f32 = exp(-(1.0 - dot(rd, normalize(vec3f(-0.78, -0.18, -0.6)))) * 5.0);
+  let b: f32 = exp(-(1.0 - dot(rd, normalize(vec3f(0.05, -0.62, -0.78)))) * 6.0);
+  let c: f32 = exp(-(1.0 - dot(rd, normalize(vec3f(0.62, 0.38, 0.69)))) * 4.0);
+  let field: f32 = a + b * 0.8 + c * 0.6;
+  let warp: vec3f = vec3f(fbm3(rd * 3.0 + vec3f(1.3)), fbm3(rd * 3.0 + vec3f(7.1)), fbm3(rd * 3.0 + vec3f(4.7)));
+  let q: vec3f = rd * 5.5 + warp * 1.6;
+  let gas: f32 = smoothstep(0.42, 0.82, fbm3(q));
+  let fine: f32 = fbm3(q * 4.0 + vec3f(2.0));
+  let knots: f32 = fine * fine * 2.2;
+  let oxygen: f32 = smoothstep(0.45, 0.75, fbm3(q * 1.7 + vec3f(9.2)));
+  // Dust: soft dark clouds with wispy edges, darkest where the gas is.
+  let soot: f32 = smoothstep(0.5, 0.72, fbm3(q * 1.6 + warp * 0.8 + vec3f(5.5)));
+  let dust: f32 = 1.0 - soot * 0.6 * smoothstep(0.05, 0.4, field);
+  let tint: vec3f = mix(vec3f(0.78, 0.2, 0.36), vec3f(0.18, 0.52, 0.62), oxygen * 0.75);
+  let glow: vec3f = tint * gas * (0.25 + knots) * field * 0.13 * galaxy.look.z;
+  return vec4f(glow, dust);
+}
+
+// Everything behind the disk: clouds, distant galaxies and two layers of stars.
 fn deepSky(rd: vec3f) -> vec3f {
-  let a: f32 = exp(-(1.0 - dot(rd, normalize(vec3f(0.62, 0.38, 0.69)))) * 40.0);
-  let b: f32 = exp(-(1.0 - dot(rd, normalize(vec3f(-0.71, -0.33, 0.62)))) * 37.0);
-  let n: f32 = fbm3(rd * 8.0 + vec3f(2.6, 7.1, 1.2));
-  let detail: f32 = fbm3(rd * 35.0 + vec3f(n * 2.0));
-  let ridges: f32 = pow(max(0.0, 1.0 - abs(n * 2.0 - 0.94)), 8.0);
-  let cloud: f32 = smoothstep(0.42, 0.66, n) * (0.1 + detail * detail * 1.7);
-  let rim: f32 = ridges * smoothstep(0.42, 0.70, detail);
-  let tint: vec3f = mix(vec3f(0.20, 0.046, 0.38), vec3f(0.025, 0.29, 0.43), smoothstep(0.37, 0.65, detail));
-  return vec3f(0.00012, 0.00020, 0.00040) + tint * (cloud * 0.17 + rim * 0.10) * (a + b) * galaxy.look.z;
+  let pixel: f32 = 2.0 * galaxy.eye.w / galaxy.viewport.y;
+  let face: vec3f = skyFace(rd);
+  let clouds: vec4f = skyClouds(rd);
+  var stars: vec3f = starLayer(face, 260.0, 11.0, 0.7, 0.03, pixel);
+  stars = stars + starLayer(face, 110.0, 23.0, 0.55, 0.12, pixel);
+  stars = stars + starLayer(face, 34.0, 29.0, 0.6, 0.6, pixel);
+  let field: f32 = galaxy.adapt.y;
+  let base: vec3f = vec3f(0.00012, 0.00020, 0.00040);
+  return base + (clouds.rgb + (stars + farGalaxies(face, pixel)) * field) * clouds.w;
 }
 
 // Integrate gas, dust and bulge light along a ray in galaxy space.

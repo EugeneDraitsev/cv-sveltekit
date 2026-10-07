@@ -1349,7 +1349,7 @@ export class Engine {
         presence * (1 - daylight),
       )
       .set('focus', focus[0], focus[1], focus[2], this.site ? presence : 0)
-      .set('adapt', (1 - presence * 0.94) * (1 - daylight), 0, 0, 0);
+      .set('adapt', (1 - presence * 0.94) * (1 - daylight), 1 - lightMix * 0.6, 0, 0);
     // Exposure follows the sun itself (airless worlds have a black sky but a
     // harshly lit ground) and opens up at night like dark-adapted eyes.
     // Surface exposure fades back to the space value with altitude, so the

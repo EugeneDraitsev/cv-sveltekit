@@ -59,7 +59,6 @@ test('client navigation restores route-specific titles', async ({ page }) => {
 
 test('controls and blog cards have accessible names', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('button', { name: /monochrome|full color/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /dark theme|light theme/i })).toBeVisible();
 
   await page.goto('/blog');

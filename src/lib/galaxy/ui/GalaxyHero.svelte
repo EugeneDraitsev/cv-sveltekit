@@ -296,7 +296,7 @@
 
 <div
   bind:this={root}
-  class="galaxy-app theme-grayscale"
+  class="galaxy-app"
   class:shown
   class:expanded
   data-backend={backendName}

@@ -53,10 +53,6 @@ body {
   @apply mb-5 text-3xl text-declaration;
 }
 
-[data-grayscale='true'] .theme-grayscale {
-  @apply grayscale;
-}
-
 /* Below-the-fold sections skip style/layout/paint until scrolled near — cuts
    the pre-first-paint main-thread work without changing what's in the HTML.
    The intrinsic size is a placeholder; `auto` memoizes the real height after
