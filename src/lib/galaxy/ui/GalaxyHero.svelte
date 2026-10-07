@@ -44,6 +44,16 @@
   let tuneOpen = $state(false);
   let settings = $state<Settings>({ ...DEFAULT_SETTINGS });
   let showPlanets = $state(false);
+  let showSystems = $state(false);
+  let catalog = $state<{ name: string; subtitle: string }[] | null>(null);
+  let systemsPanel = $state<HTMLDivElement>();
+
+  // Keyboard users land in the list as soon as it opens.
+  $effect(() => {
+    if (showSystems && catalog && systemsPanel) {
+      systemsPanel.querySelector('button')?.focus({ preventScroll: true });
+    }
+  });
   const touchQuery = matchMedia('(hover: none) and (pointer: coarse)');
   let touch = $state(touchQuery.matches);
   let engaged = false;
@@ -71,6 +81,9 @@
           failed = true;
         }
         break;
+      case 'catalog':
+        catalog = message.systems;
+        break;
       case 'hud':
         hud = message.hud;
         break;
@@ -87,6 +100,7 @@
         if (message.mode !== mode) {
           tuneOpen = false;
           showPlanets = false;
+          showSystems = false;
         }
         mode = message.mode;
         travelling = message.travelling;
@@ -159,6 +173,11 @@
     // from the scene must not stay pressed in the engine.
     if (phase === 'up') {
       if (held.has(event.code)) release(event.code);
+      return;
+    }
+    if (event.code === 'Escape' && showSystems) {
+      showSystems = false;
+      root?.querySelector<HTMLElement>('[aria-label="Star systems"][aria-expanded]')?.focus();
       return;
     }
     if (!engaged && !expanded) return;
@@ -393,6 +412,30 @@
     </ul>
   {/if}
 
+  {#if showSystems && mode === 'galaxy' && !travelling}
+    <div bind:this={systemsPanel} class="systems-panel" role="dialog" aria-label="Star systems">
+      {#if catalog}
+        <ul class="planet-list systems" aria-label="Star systems">
+          {#each catalog as s, i (i)}
+            <li>
+              <button
+                type="button"
+                onclick={() => {
+                  showSystems = false;
+                  send({ type: 'goto', target: 'system', index: i });
+                }}
+              >
+                <b>{s.name}</b><span>{s.subtitle}</span>
+              </button>
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <p class="systems-loading">Charting the galaxy…</p>
+      {/if}
+    </div>
+  {/if}
+
   {#if mode === 'planet' && !travelling && instrument}
     <Instrument data={instrument} />
   {/if}
@@ -424,7 +467,16 @@
     {onDark}
     onExpand={() => (expanded = !expanded)}
     onPlay={() => (playing = !playing)}
-    onTune={() => (tuneOpen = !tuneOpen)}
+    onTune={() => {
+      showSystems = false;
+      tuneOpen = !tuneOpen;
+    }}
+    systemsOpen={showSystems}
+    onSystems={() => {
+      tuneOpen = false;
+      showSystems = !showSystems;
+      if (showSystems && !catalog) send({ type: 'catalog' });
+    }}
     onWalk={() => {
       send({ type: 'key', phase: 'down', code: 'KeyF', shift: false });
       send({ type: 'key', phase: 'up', code: 'KeyF', shift: false });
@@ -663,6 +715,40 @@
   }
   .planet-list span {
     color: rgb(233 236 246 / 0.62);
+  }
+  .systems-panel {
+    position: absolute;
+    top: 3.6rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 6;
+    width: min(40rem, calc(100% - 2rem));
+    /* Ends above the dock (5.4rem from the bottom, 2.6rem tall). */
+    max-height: calc(100% - 12.8rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.4rem;
+    border-radius: 1rem;
+    border: 1px solid rgb(233 236 246 / 0.14);
+    background: rgb(10 12 20 / 0.66);
+    backdrop-filter: blur(16px) saturate(150%);
+    box-shadow: 0 12px 34px rgb(0 0 0 / 0.32);
+    scrollbar-width: thin;
+  }
+  .systems-panel .planet-list {
+    position: static;
+    transform: none;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  .systems-loading {
+    margin: 0.6rem 0.8rem;
+    color: rgb(233 236 246 / 0.7);
+    font-size: 0.75rem;
   }
   .status {
     position: absolute;

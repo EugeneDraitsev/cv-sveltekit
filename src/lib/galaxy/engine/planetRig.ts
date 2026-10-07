@@ -116,9 +116,11 @@ export class PlanetRig {
     const k = damp(18, dt);
     this.lookVelocity[0] += (input.lookX - this.lookVelocity[0]) * k;
     this.lookVelocity[1] += (input.lookY - this.lookVelocity[1]) * k;
-    const yaw = -input.lookX * 0.0042;
+    // Uneven pointer deltas are smoothed; over a drag the total turn still
+    // equals the total input.
+    const yaw = -this.lookVelocity[0] * 0.0042;
     this.heading = normalize(rotateAxis(this.heading, up, yaw));
-    this.pitch = clamp(this.pitch - input.lookY * 0.0042, -1.45, 1.45);
+    this.pitch = clamp(this.pitch - this.lookVelocity[1] * 0.0042, -1.45, 1.45);
 
     const right = normalize(cross(this.heading, up));
     const altitude = Math.max(this.altitude, 0);

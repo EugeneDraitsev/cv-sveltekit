@@ -7,6 +7,7 @@
     expanded,
     playing,
     tuneOpen,
+    systemsOpen = false,
     busy,
     walking,
     canWalk = true,
@@ -15,6 +16,7 @@
     onExpand,
     onPlay,
     onTune,
+    onSystems,
     onWalk,
     onTimeLapse,
   }: {
@@ -22,6 +24,7 @@
     expanded: boolean;
     playing: boolean;
     tuneOpen: boolean;
+    systemsOpen?: boolean;
     busy: boolean;
     walking: boolean;
     /** False over a giant: there is no ground to walk on. */
@@ -31,6 +34,8 @@
     onExpand: () => void;
     onPlay: () => void;
     onTune: () => void;
+    /** Open the list of star systems (galaxy view). */
+    onSystems?: () => void;
     onWalk: () => void;
     onTimeLapse: () => void;
   } = $props();
@@ -97,6 +102,19 @@
     {/if}
     {#if mode === 'galaxy'}
       <span class="separator" aria-hidden="true"></span>
+      {#if onSystems}
+        <button
+          type="button"
+          onclick={onSystems}
+          disabled={busy}
+          aria-expanded={systemsOpen}
+          aria-label="Star systems"
+          title="Star systems"
+        >
+          <Icon icon="mdi:star-four-points-outline" width="18" height="18" />
+          <span>Systems</span>
+        </button>
+      {/if}
       <button
         type="button"
         onclick={onTune}

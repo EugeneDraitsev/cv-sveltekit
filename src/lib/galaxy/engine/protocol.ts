@@ -63,7 +63,9 @@ export type ToEngine =
   | { type: 'key'; phase: 'down' | 'up'; code: string; shift: boolean }
   | { type: 'touchFlight'; input: TouchFlight }
   | { type: 'command'; action: 'back' | 'activateHover' | 'reset' | 'timeLapse' }
-  | { type: 'goto'; target: 'galaxy' | 'system' | 'planet'; index: number; instant?: boolean };
+  | { type: 'goto'; target: 'galaxy' | 'system' | 'planet'; index: number; instant?: boolean }
+  /** Ask for the list of marked star systems (a keyboard-friendly way in). */
+  | { type: 'catalog' };
 
 export interface HudInfo {
   visible: boolean;
@@ -112,6 +114,7 @@ export type FromEngine =
    */
   | { type: 'error'; message: string; retry?: 'webgl' }
   | { type: 'hud'; hud: HudInfo }
+  | { type: 'catalog'; systems: { name: string; subtitle: string }[] }
   | {
       type: 'state';
       mode: Mode;

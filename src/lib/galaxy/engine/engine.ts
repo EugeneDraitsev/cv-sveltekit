@@ -338,6 +338,15 @@ export class Engine {
         this.touch = message.input;
         this.interact();
         break;
+      case 'catalog':
+        this.post({
+          type: 'catalog',
+          systems: GALAXY_SITES.map((site) => {
+            const system = getSystem(site.seed);
+            return { name: system.name, subtitle: system.subtitle };
+          }),
+        });
+        break;
       case 'goto':
         this.instant = Boolean(message.instant);
         if (message.target === 'galaxy') this.resetToGalaxy();
