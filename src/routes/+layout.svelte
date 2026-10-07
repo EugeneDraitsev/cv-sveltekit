@@ -209,7 +209,9 @@
   {#if galaxyAllowed && GalaxyHero}
     <GalaxyHero />
   {:else}
-    <div class="galaxy-placeholder w-full" aria-hidden="true"></div>
+    <div class="galaxy-placeholder w-full" aria-hidden="true">
+      <div class="galaxy-backdrop"></div>
+    </div>
   {/if}
 </div>
 

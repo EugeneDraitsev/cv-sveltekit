@@ -384,6 +384,7 @@
   onfocusin={onFocusIn}
   onfocusout={onFocusOut}
 >
+  <div class="galaxy-backdrop" aria-hidden="true"></div>
   {#key canvasKey}
     <canvas
       bind:this={canvas}
