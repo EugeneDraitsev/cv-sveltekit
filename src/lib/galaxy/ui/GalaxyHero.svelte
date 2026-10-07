@@ -164,7 +164,15 @@
     if (!engaged && !expanded) return;
     if (event.repeat && phase === 'down') return;
     const target = event.target as HTMLElement | null;
-    if (target && /INPUT|SELECT|TEXTAREA/.test(target.tagName)) return;
+    // Text fields keep every key; a focused button or link keeps Space, its
+    // activation key (WASD and the rest still fly).
+    if (
+      target?.closest('input, select, textarea, [contenteditable]:not([contenteditable="false"])')
+    ) {
+      return;
+    }
+    if (event.code === 'Space' && target?.closest('button, a[href], summary, [role="button"]'))
+      return;
     const flying = mode === 'planet' && FLIGHT_KEYS.has(event.code);
     if (!flying && event.code !== 'Escape') return;
     if (flying) event.preventDefault();
