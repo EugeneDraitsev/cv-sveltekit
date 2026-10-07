@@ -115,6 +115,12 @@ export interface Backend {
   readonly software: boolean;
   /** Whether the HDR targets really hold half floats (false on some WebGL2 devices). */
   readonly floatTargets: boolean;
+  /**
+   * Whether a blended pass may also write a 32-bit float attachment (WebGL2
+   * applies one blend state to every draw buffer unless it can set them
+   * per attachment).
+   */
+  readonly floatBlend: boolean;
   resize(width: number, height: number): void;
   createTexture(desc: TextureDesc): Texture;
   writeTexture(texture: Texture, data: ArrayBufferView): void;

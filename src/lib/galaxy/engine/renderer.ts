@@ -118,10 +118,12 @@ export class Renderer {
 
   /**
    * Planet surfaces render into 32-bit float targets (patch atlas, plant
-   * placement, distances); WebGL2 without EXT_color_buffer_float cannot.
+   * placement, distances), and blended passes also write those distances:
+   * WebGL2 needs EXT_color_buffer_float and float blending (or per-attachment
+   * blend state) for that.
    */
   get surfaceSupported() {
-    return this.backend.floatTargets;
+    return this.backend.floatTargets && this.backend.floatBlend;
   }
 
   /** Compile the planet pipelines (in the background, before any landing). */

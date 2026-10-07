@@ -52,6 +52,8 @@ export class WebGpuBackend implements Backend {
   readonly kind = 'webgpu' as const;
   lost = false;
   floatTargets = true;
+  /** Blend state is per target in WebGPU; float32 targets are never blended. */
+  floatBlend = true;
   private encoder: GPUCommandEncoder | null = null;
   private inFlight = 0;
   private samplers: GPUSampler[];

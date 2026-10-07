@@ -54,6 +54,20 @@ export class WebGlBackend implements Backend {
   readonly kind = 'webgl2' as const;
   lost = false;
   readonly floatTargets: boolean;
+  readonly floatBlend: boolean;
+  /** Per-attachment blend state (OES_draw_buffers_indexed), when available. */
+  private indexed: {
+    enableiOES(target: number, index: number): void;
+    disableiOES(target: number, index: number): void;
+    blendFunciOES(buf: number, src: number, dst: number): void;
+    blendFuncSeparateiOES(
+      buf: number,
+      srcRGB: number,
+      dstRGB: number,
+      srcA: number,
+      dstA: number,
+    ): void;
+  } | null;
   private parallel: { COMPLETION_STATUS_KHR: number } | null;
   private framebuffers = new Map<string, WebGLFramebuffer>();
   private width = 1;
@@ -68,7 +82,10 @@ export class WebGlBackend implements Backend {
   ) {
     this.floatTargets = Boolean(gl.getExtension('EXT_color_buffer_float'));
     gl.getExtension('EXT_color_buffer_half_float');
-    gl.getExtension('EXT_float_blend');
+    this.indexed = gl.getExtension('OES_draw_buffers_indexed');
+    // Blending into a 32-bit float attachment needs EXT_float_blend, unless
+    // blending can be switched off for that attachment alone.
+    this.floatBlend = Boolean(gl.getExtension('EXT_float_blend')) || Boolean(this.indexed);
     this.parallel = gl.getExtension('KHR_parallel_shader_compile');
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
   }
@@ -320,16 +337,44 @@ export class WebGlBackend implements Backend {
     return fb;
   }
 
-  private blend(mode: BlendMode | undefined) {
+  private blendFactors(mode: BlendMode): [number, number, number, number] {
     const gl = this.gl;
+    if (mode === 'add') return [gl.ONE, gl.ONE, gl.ONE, gl.ONE];
+    if (mode === 'premultiplied') {
+      return [gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA];
+    }
+    return [gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA];
+  }
+
+  /**
+   * Blend state for a pipeline's outputs. With per-attachment control each
+   * output gets its own (so a 32-bit float attachment is never blended);
+   * otherwise the first output's mode applies to all of them.
+   */
+  private blend(outputs: PipelineDesc['outputs']) {
+    const gl = this.gl;
+    const ext = this.indexed;
+    if (ext && outputs.length > 1) {
+      outputs.forEach((out, i) => {
+        const mode = out.blend;
+        if (!mode || mode === 'none' || out.format === 'rgba32float') {
+          ext.disableiOES(gl.BLEND, i);
+          return;
+        }
+        ext.enableiOES(gl.BLEND, i);
+        const [src, dst, srcA, dstA] = this.blendFactors(mode);
+        ext.blendFuncSeparateiOES(i, src, dst, srcA, dstA);
+      });
+      return;
+    }
+    const mode = outputs[0]?.blend;
     if (!mode || mode === 'none') {
       gl.disable(gl.BLEND);
       return;
     }
     gl.enable(gl.BLEND);
-    if (mode === 'add') gl.blendFunc(gl.ONE, gl.ONE);
-    else if (mode === 'premultiplied') gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    else gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    const [src, dst, srcA, dstA] = this.blendFactors(mode);
+    gl.blendFuncSeparate(src, dst, srcA, dstA);
   }
 
   beginFrame() {}
@@ -363,7 +408,7 @@ export class WebGlBackend implements Backend {
         const p = command.pipeline as GlPipeline;
         const d = p.desc;
         gl.useProgram(p.program);
-        this.blend(d.outputs[0]?.blend);
+        this.blend(d.outputs);
         if (hasDepth && d.depth) {
           gl.enable(gl.DEPTH_TEST);
           gl.depthMask(d.depth.write);

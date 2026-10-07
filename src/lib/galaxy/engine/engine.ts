@@ -136,6 +136,7 @@ export class Engine {
   private surfaceFailed = false;
   /** A one-off frame is owed (theme, settings, resize) while nothing animates. */
   private redraw = false;
+  private disposed = false;
   private surfaceBudgetUntil = 0;
   /** Orbit-line opacity, eased toward its target instead of switching. */
   private orbitInk = 0;
@@ -225,7 +226,9 @@ export class Engine {
         this.quality = withPreset(this.deviceQuality, this.settings.quality);
         renderer = new Renderer(backend, this.deviceQuality);
         await renderer.init();
+        if (this.abandoned(backend, renderer)) return;
       } catch (error) {
+        if (this.abandoned(backend, renderer)) return;
         // Any WebGPU failure (adapter, shader validation) falls back to WebGL2.
         console.warn('WebGPU unavailable, using WebGL2', error);
         backend?.destroy();
@@ -247,6 +250,7 @@ export class Engine {
       this.quality = withPreset(this.deviceQuality, this.settings.quality);
       renderer = new Renderer(backend, this.deviceQuality);
       await renderer.init();
+      if (this.abandoned(backend, renderer)) return;
     }
     this.backend = backend;
     this.renderer = renderer;
@@ -1065,6 +1069,8 @@ export class Engine {
       this.last = 0;
       return;
     }
+    // A lost device never comes back: stop the loop instead of spinning.
+    if (this.renderer.backend.lost) return;
     const limit = this.frameLimit(now);
     if (now + 0.5 < this.nextFrameAt || !this.renderer.backend.canRender()) {
       this.schedule();
@@ -1381,7 +1387,17 @@ export class Engine {
 
   /** Debug: compare GPU patch heights with the CPU twin for a few leaves. */
   dispose() {
+    this.disposed = true;
     this.visible = false;
+    this.running = false;
     this.renderer?.destroy();
+  }
+
+  /** init() outlived the engine: free what it built and stop there. */
+  private abandoned(backend: Backend | null, renderer: Renderer | null) {
+    if (!this.disposed) return false;
+    if (renderer) renderer.destroy();
+    else backend?.destroy();
+    return true;
   }
 }
