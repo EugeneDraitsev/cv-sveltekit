@@ -146,7 +146,21 @@
     'ArrowRight',
   ]);
 
+  // Flight keys the engine currently holds down.
+  const held = new Set<string>();
+
+  function release(code: string) {
+    held.delete(code);
+    send({ type: 'key', phase: 'up', code, shift: false });
+  }
+
   function onKey(event: KeyboardEvent, phase: 'down' | 'up') {
+    // Releases always go through: a key held while the visitor clicks away
+    // from the scene must not stay pressed in the engine.
+    if (phase === 'up') {
+      if (held.has(event.code)) release(event.code);
+      return;
+    }
     if (!engaged && !expanded) return;
     if (event.repeat && phase === 'down') return;
     const target = event.target as HTMLElement | null;
@@ -154,11 +168,18 @@
     const flying = mode === 'planet' && FLIGHT_KEYS.has(event.code);
     if (!flying && event.code !== 'Escape') return;
     if (flying) event.preventDefault();
-    if (event.code === 'Escape' && expanded && mode === 'galaxy' && phase === 'down') {
+    if (event.code === 'Escape' && expanded && mode === 'galaxy') {
       expanded = false;
       return;
     }
+    if (flying) held.add(event.code);
     send({ type: 'key', phase, code: event.code, shift: event.shiftKey });
+  }
+
+  /** Switching windows or tabs swallows keyups: let go of everything. */
+  function releaseAll() {
+    // Deleting the current entry while iterating a Set is safe.
+    for (const code of held) release(code);
   }
 
   function onDocumentPointer(event: PointerEvent) {
@@ -259,7 +280,11 @@
   onDestroy(() => host?.dispose());
 </script>
 
-<svelte:window onkeydown={(e) => onKey(e, 'down')} onkeyup={(e) => onKey(e, 'up')} />
+<svelte:window
+  onkeydown={(e) => onKey(e, 'down')}
+  onkeyup={(e) => onKey(e, 'up')}
+  onblur={releaseAll}
+/>
 
 <div
   bind:this={root}

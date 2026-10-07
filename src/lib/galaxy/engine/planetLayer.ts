@@ -445,7 +445,11 @@ export class PlanetLayer {
     pass.end();
   }
 
-  /** Clears the distance target where the terrain did not draw. */
+  /**
+   * Reset the distance target to "no hit". Runs before drawTerrain, which
+   * loads (not clears) it, so terrain and plants overwrite only what they
+   * cover and the atmosphere pass sees sky everywhere else.
+   */
   clearDistance() {
     const pass = this.backend.beginPass({
       color: [this.dist!],
