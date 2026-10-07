@@ -7,87 +7,100 @@ the header is a 3D galaxy you can fly into.
 
 ![Procedural spiral galaxy rendered above the About section](docs/galaxy.webp)
 
-Click a marked star and the camera dives into its star system. Click a planet there and you
-land on it, in a free camera, over terrain that is generated while you fly. The particle
-field uses a fixed seed and each marked system, planet, biome and moon comes from its
-particle index, so everyone gets the same galaxy — there is just a lot of it.
+Click a marked star and the camera flies into its star system. Click a planet there and you
+land on it, then fly or walk over terrain streamed in around you. One continuous camera path
+links all three levels — no loading screens, no cuts. Every system, planet, biome and moon
+comes from a fixed seed, so everyone gets the same galaxy; there is just a lot of it:
+160 systems, 14 planet archetypes and about 40 biomes, from pine taiga and blossom valleys to
+painted mesas, red rock canyons, lava fields, ice spire forests and airless crater highlands.
 
-![Free flight over a procedurally generated gas giant](docs/planet.webp)
+![A star system with orbits and planets](docs/system.webp)
+
+![Landing in a snowy pine taiga](docs/planet.webp)
+
+![Painted mesas, lava fields, red rock canyons and an airless crater highland](docs/worlds.webp)
 
 ## Controls
 
-| Action              | Desktop             | Touch       |
-| ------------------- | ------------------- | ----------- |
-| Open the galaxy     | hover or Explore    | Explore     |
-| Enter a star system | click a star        | tap twice   |
-| Land on a planet    | click it            | tap twice   |
-| Look around         | drag                | drag        |
-| Fly                 | `WASD` / arrows     | joystick    |
-| Climb               | `Space`             | `⬆` button  |
-| Descend             | `C`                 | `⬇` button  |
-| Boost               | `Shift`             | `⚡` button |
-| Go back             | `Esc` or top button | top button  |
+| Action              | Desktop                       | Touch                        |
+| ------------------- | ----------------------------- | ---------------------------- |
+| Orbit the view      | drag                          | drag                         |
+| Zoom                | wheel (after a click)         | pinch                        |
+| Enter a star system | click a marked star           | tap the star, then its label |
+| Land on a planet    | click it, or the Planets list | tap it, then its label       |
+| Look around         | drag                          | drag                         |
+| Fly                 | `WASD` / arrows               | joystick                     |
+| Climb / descend     | `Space` or `E` / `C` or `Q`   | ⬆ / ⬇ buttons                |
+| Boost               | `Shift`; the wheel sets speed | ⚡ button                    |
+| Walk on the ground  | `F`                           | Walk in the dock             |
+| Time-lapse          | `T`                           | Time-lapse in the dock       |
+| Go back             | `Esc` or the top button       | top button                   |
 
-The bottom dock provides Expand, Pause and Tune controls. Tune opens a Tweakpane panel for
-spin, arm count, colors and particle parameters. On a planet, a flight instrument shows the
-current biome, altitude above ground, speed and heading. Movement and drag look are damped;
-the touch joystick supports simultaneous climb/descent and boost.
+The dock under the hero has Expand (full screen height) and Pause, plus Tune in galaxy view:
+exposure, glow, nebulae, dust lanes, disk thickness, rotation speed and a quality preset. On
+a planet, a small instrument shows the biome, height above ground, speed and local solar time.
+With reduced motion requested, the galaxy starts paused and flights shrink to a quick fade.
 
 ## How it works
 
-**One seed per body.** `starSystem.ts` turns a galaxy particle index into a whole star
-system: star class, planets, biomes, moons, names. Results are memoized, so the hover HUD,
-the system scene and the planet surface all read the same data.
+**A renderer of its own, on TypeGPU.** The old Three.js / Threlte scenes are gone. The engine
+under [src/lib/galaxy](src/lib/galaxy) is a few thousand lines of TypeScript and WGSL on
+[TypeGPU](https://docs.swmansion.com/TypeGPU/): uniform blocks are TypeGPU schemas, shader
+modules are resolved by `tgpu.resolve`, and WebGPU runs it. Where WebGPU is missing, the
+same WGSL is translated to GLSL ES 3.00 by a small in-house translator and drawn with WebGL2,
+so both backends share every shader line.
 
-**Terrain height is written twice.** Once in GLSL for rendering, once in TypeScript for
-placing plants and keeping the camera above ground. Both use the same constants, octave
-counts and waterline math. CPU contract tests cover noise and terrain continuity; changes to
-either implementation also need a GPU comparison. Climate blends dunes, ridges, terraces and
-rolling ground, with vegetation density and palettes blending across biome boundaries.
+**It runs off the main thread.** The page hands its canvas to a module worker with
+`transferControlToOffscreen()`; parsing TypeGPU, compiling shaders, generating systems and
+drawing frames all happen there. The page only loads a 7 KB (gzip) UI chunk once it is idle
+after `load`, so the galaxy appears on its own — no Explore button — without costing the
+first paint anything. Browsers without OffscreenCanvas run the engine in-page instead.
 
-**The ground is one grid that follows you.** It parks on whole grid cells under the camera
-and samples world-anchored noise. The origin keeps the same base-cell snapping interval
-while coverage changes, so changing altitude cannot suddenly shift the entire grid.
+**Three levels, one camera.** The galaxy is a baked density volume (raymarched through a slice
+atlas) plus GPU-procedural stars. A star system is analytic: spheres, rings, eclipses,
+atmospheres and orbits are ray-traced in one fullscreen pass, so a planet looks right from any
+distance. On landing, a cube-sphere quadtree of terrain patches takes over, built on the GPU
+into a height/climate atlas; flights between levels are log-radial or log-altitude so that
+30 000 km and 30 m take the same time.
 
-**Climbing zooms the grid out.** Altitude selects a power-of-two coverage level with
-hysteresis; the grid and fog then morph toward it continuously, with the same vertex budget.
-This hides the grid boundary without a sudden jump in the landscape or haze.
+**Terrain height is written twice, and checked.** Once in WGSL for the patches, once in
+TypeScript ([world/terrain.ts](src/lib/galaxy/world/terrain.ts)) for the camera, landing
+sites and LOD decisions. Both use the same integer-hashed noise, so they agree to a metre on
+the GPU; unit tests cover the CPU side and every shader is checked to build for both
+backends. Climate picks the biome mix; ten relief styles (plains, mountains, dunes, mesas,
+canyons, craters, spires, volcanoes…) give each biome its shape.
 
-**Journeys follow camera completion.** Curved approaches, small banking turns and atmospheric
-descent share the renderer's clock and ease to zero speed before navigation unlocks. The
-next scene loads before departure and warms its shaders under the transition veil. Landing
-follows a continuous path above the terrain, and outgoing flights bypass OrbitControls'
-distance clamp. Return flights restore the previous viewpoint. Reduced-motion visits start
-paused and skip the flights.
+**Detail where it is visible.** Patches split by distance and by geometric error (estimated
+from the CPU twin), so far ridges still get vertices; each level carries only the noise
+octaves its grid can resolve, and the shader adds field-, patch- and grain-scale detail per
+pixel with footprint-based fading. Cliffs show layered rock strata, coasts get beaches, and
+liquids are shaded as water, ice, lava or acid.
 
-**Three.js is not in the initial load.** It loads on Explore or desktop hover inside the
-hero. Scrolling, navigation and reading the CV leave it unloaded. The page is prerendered
-HTML, icons are inline SVG, and sections below the fold use `content-visibility: auto`.
+**Light and air.** Single-scattering Rayleigh and Mie atmospheres (Chapman approximation, no
+lookup tables), a drifting cloud deck that shades the ground, two-cascade sun shadows,
+binary stars, moonlight and starlight at night, and exposure that adapts from noon to
+midnight. Time-lapse runs a full day in about ten seconds.
+
+**Plants are placed on the GPU.** A placement pass decides, for every cell of a grid around
+the camera, whether one of 26 procedural plant and rock meshes grows there, using the same
+biome mix as the ground; groves, thickets and clearings come from a low-frequency field.
+Instanced draws add wind, translucent leaves, night glow and shadows.
 
 ## Performance
 
-Scores depend on the build, network and audit environment. The September 13, 2026 mobile
-audit of the existing production deployment scored 98 for Performance. The original local
-production build scored 99; the updated build scored 100 in the standard mobile preset,
-with FCP 1.22 s, LCP 1.53 s and no blocking time. Accessibility, Best Practices and SEO also
-scored 100. These are local lab measurements; the older report on the About page records
-the June 19 deployment.
+Lighthouse 12.8.2 on a production build served over HTTP/2 with gzip (mirroring Vercel), with
+the galaxy loading automatically:
 
-Blog and 3D styles load with their features, reducing the initial shared stylesheet from
-47.41 to 26.26 KB. Selective module preloads discover the route and entry points early while
-leaving connection capacity for the HTML. Star ratings use CSS clipping without measuring
-offscreen elements during hydration.
+| Preset  | Performance | Accessibility | Best Practices | SEO | FCP   | LCP   | TBT  | CLS |
+| ------- | ----------- | ------------- | -------------- | --- | ----- | ----- | ---- | --- |
+| Mobile  | 100         | 100           | 100            | 100 | 1.0 s | 1.2 s | 0 ms | 0   |
+| Desktop | 100         | 100           | 100            | 100 | 0.3 s | 0.3 s | 0 ms | 0   |
 
-The renderer starts at a capped DPR (1.25 on compact/constrained devices, 1.75 otherwise)
-and adapts resolution from sustained frame times. Terrain uses 112 or 192 grid segments,
-three height evaluations per vertex, and interpolated climate weights instead of repeating
-climate noise per fragment. Flora generation is spread across frames and instance matrices
-upload only when placement changes. Scene tasks stop while paused, off screen or in a
-hidden tab; on-demand rendering can still paint a static view.
-
-See [the performance notes](docs/performance.md) for measurements, validation and the
-Three.js / TypeGPU decision. Lighthouse covers initial delivery; these scores do not measure
-flight smoothness on a physical phone.
+The renderer's ~150 KB (gzip) of worker code is fetched after `load` and never touches the
+main thread, which is why it does not show up in blocking time. Frames run at 60 fps while you
+interact, fly or stand on a planet; an idle galaxy drops to 30 fps and an idle system to 45.
+Nothing renders while paused, off screen or in a hidden tab, and the render scale drops when
+frames run long. See [the performance notes](docs/performance.md).
 
 ## Blog
 
@@ -101,8 +114,8 @@ Gameplay out of 495 entries. That post embeds live WebGL scenes straight from th
 ## Stack
 
 - [SvelteKit](https://kit.svelte.dev/) with Svelte 5 runes, fully prerendered
-- [Threlte](https://threlte.xyz/) / [Three.js](https://threejs.org/), with custom GLSL for the
-  galaxy, star systems, terrain, sky, water and speed lines
+- [TypeGPU](https://docs.swmansion.com/TypeGPU/) on WebGPU, with a WebGL2 fallback; WGSL
+  shaders for the galaxy, star systems, terrain, atmosphere, water and plants
 - [Tailwind CSS v4](https://tailwindcss.com/), themed after a JetBrains syntax palette
 - Vercel
 
@@ -114,7 +127,7 @@ bun run dev
 ```
 
 Other scripts: `bun run lint` (Oxlint), `bun run format` (Oxfmt), `bun run check`
-(svelte-check), `bun run test:unit` (generation and CPU noise contracts), `bun run test:e2e`
+(svelte-check), `bun run test:unit` (world generation, terrain twin, quadtree and shader builds), `bun run test:e2e`
 (production build plus Playwright), `bun run build` and `bun run preview`. `bun run verify` runs
 the whole set, and GitHub Actions runs the same thing plus Chromium smoke tests on pull requests
 and pushes to `main`.

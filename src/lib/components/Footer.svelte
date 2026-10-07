@@ -7,7 +7,7 @@
 
   let shaderActive = $state(false);
 
-  // Lazy-load the WebGL footer shader (and its three.js / galaxy.utils deps) only
+  // Lazy-load the WebGL footer shader (and its galaxy palette) only
   // once the footer scrolls into view — keeps it out of the initial page bundle.
   let FooterShader = $state<Component<ComponentProps<typeof FooterShaderType>>>();
   $effect(() => {

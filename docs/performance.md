@@ -1,4 +1,104 @@
-# Performance and flight update — September 13, 2026
+# Performance — TypeGPU renderer, October 7, 2026
+
+The hero no longer waits for a click. The Three.js / Threlte scenes were replaced by a
+TypeGPU engine that runs in a worker, so the galaxy can start on its own after `load`
+without touching the scores below.
+
+## Initial delivery
+
+Lighthouse 12.8.2, production build served over HTTP/2 with gzip and immutable caching
+(a small local server that mirrors Vercel's CDN), default mobile preset (simulated Slow 4G,
+4× CPU) and desktop preset. The galaxy UI chunk and the worker are requested during the
+audit.
+
+| Run        | Performance | Accessibility / Best Practices / SEO | FCP   | LCP   | SI    | TBT  | CLS |
+| ---------- | ----------- | ------------------------------------ | ----- | ----- | ----- | ---- | --- |
+| Mobile, #1 | 100         | 100 / 100 / 100                      | 1.0 s | 1.2 s | 1.0 s | 0 ms | 0   |
+| Mobile, #2 | 100         | 100 / 100 / 100                      | 1.0 s | 1.2 s | 1.0 s | 0 ms | 0   |
+| Desktop    | 100         | 100 / 100 / 100                      | 0.3 s | 0.3 s | 0.3 s | 0 ms | 0   |
+
+These are lab runs on one machine, not field data. Over plain HTTP/1.1 `vite preview` the
+numbers are a little worse, as before; compare like with like.
+
+## Why an always-on galaxy costs nothing up front
+
+- **Nothing renderer-related is in the prerendered HTML or the entry chunks.** The layout
+  imports `GalaxyHero.svelte` (≈20 KB, 7 KB gzip, plus 3 KB of CSS) only after the `load`
+  event, in an idle callback with a 1.2 s timeout. The placeholder keeps the hero's height,
+  so nothing shifts.
+- **The engine runs in a module worker.** The hero calls `transferControlToOffscreen()` and
+  posts the canvas to `engine/worker.ts`. TypeGPU, the engine, shader assembly, star-system
+  generation and every frame live there: about 150 KB gzip (406 KB + 99 KB raw) that never
+  executes on the main thread, which is why it does not register as blocking time. Browsers
+  without OffscreenCanvas (and `?thread=main`) run the same engine in-page.
+- **First frame.** Under mobile emulation the first galaxy frame lands about three seconds
+  after `load`; the canvas fades in when the worker reports it.
+
+## Rendering budgets
+
+- **Backends.** WebGPU through TypeGPU when available; otherwise WebGL2 with the same WGSL
+  translated to GLSL ES 3.00 (`?renderer=webgl` forces it). Pipelines compile asynchronously
+  (`createRenderPipelineAsync`, `KHR_parallel_shader_compile`); the planet pipelines compile
+  in the background while you look at the galaxy.
+- **Quality presets** are picked from cheap hints (touch, screen size, cores, memory,
+  software adapter): render scale, pixel budgets (2.1 M px in space and 1.3 M px on a planet
+  for high), raymarch steps, star counts, patch resolution (33² or 17²) and atlas size. The
+  Tune panel can override the runtime part. Sustained slow frames lower the render scale
+  further; headroom restores it.
+- **Frame pacing.** 60 fps while you interact, fly or stand on a planet; an idle galaxy
+  drops to 30 fps and an idle system to 45. Nothing renders while paused, off screen or in a
+  hidden tab.
+- **Terrain.** Patch heights and climate are generated once per patch on the GPU into a
+  float atlas (up to 16 patches a frame) and reused; selection runs on the CPU in double
+  precision and only eye-relative positions reach the GPU, so there is no jitter at 2 m above
+  a 150 km planet. Patches split by distance from the actual ground (not sea level) and, from
+  the slots left over, by geometric error estimated from the CPU terrain twin.
+- **Plants.** A placement pass writes positions for up to ten plant layers and a grass layer
+  into a 256² atlas each frame; instanced draws read it, so the CPU never touches instances.
+- **Shadows.** Two cascades (150 m and 2.6 km), texel-snapped; casters are culled by their
+  light-space footprint and the caster list reuses one buffer.
+
+## Validation
+
+- `bun run test:unit` (42 tests): system generation limits and determinism, noise and terrain
+  continuity, landing sites, quadtree refinement, the WGSL → GLSL translator, and a WGSL and a
+  GLSL build of every pipeline.
+- `bun run test:e2e` (7 tests): routes, titles and landmarks, and the galaxy mounting on its
+  own after load without page errors.
+- GPU/CPU terrain parity was checked by reading the patch atlas back and comparing it with
+  the CPU twin: near the camera they agree within a few metres.
+- Headless Chrome with the real GPU (WebGPU) and with `?renderer=webgl` covered the galaxy,
+  system and planet views, landings on every archetype, a full day/night cycle, and the light
+  theme.
+
+## Known limits
+
+- Neighbouring terrain patches of different levels carry different noise octaves; where
+  they disagree by tens of metres, the crack-hiding skirt can show as a short wall. Stitching
+  or geomorphing would remove it.
+- Touch emulation on a desktop GPU says nothing about phone frame rates. Profile a mid-range
+  Android phone and an iPhone in flight, on landing and after a few minutes of thermal load
+  before raising budgets.
+
+## Reproduce
+
+```sh
+bun install --frozen-lockfile
+bun run verify
+bun run test:e2e
+bun run preview -- --host 127.0.0.1 --port 4173
+npx --yes lighthouse@12.8.2 http://127.0.0.1:4173 --only-categories=performance,accessibility,best-practices,seo --chrome-flags="--headless --no-sandbox" --output=json --output-path=output/playwright/lighthouse-mobile.json
+```
+
+In PowerShell, quote the entire `--only-categories=...` argument so the commas are not
+interpreted as an array. Restart `vite preview` after rebuilding so its manifest and hashed
+assets belong to the same build.
+
+---
+
+# Earlier: Three.js renderer — September 13, 2026
+
+Kept for history; the numbers below predate the TypeGPU engine.
 
 ## Initial delivery
 
@@ -131,18 +231,3 @@ requires Node 22.17+ (the local Node runtime is 22.13.1), changes configuration
 placement and migrates `$lib` aliases and application imports. This is a separate
 compatibility migration, with no demonstrated benefit to the current WebGL frame
 loop or first paint. The mobile 100 result above uses Kit 2.
-
-## Reproduce
-
-```sh
-bun install --frozen-lockfile
-bun run verify
-bun run test:e2e
-bun run preview -- --host 127.0.0.1 --port 4173
-npx --yes lighthouse@12.8.2 http://127.0.0.1:4173 --only-categories=performance,accessibility,best-practices,seo --chrome-flags="--headless --no-sandbox" --output=json --output-path=output/playwright/lighthouse-mobile.json
-```
-
-In PowerShell, quote the entire `--only-categories=...` argument so the commas are
-not interpreted as an array. Local screenshots and audit JSON are in the ignored
-`output/playwright/` directory. Restart `vite preview` after rebuilding so its
-manifest and hashed assets belong to the same build.

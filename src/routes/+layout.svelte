@@ -9,7 +9,7 @@
   import { SITE_DATA } from '$lib/constants';
   import Footer from '$lib/components/Footer.svelte';
   import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
-  import type ThrelteAppType from '$lib/components/three/ThrelteApp.svelte';
+  import type GalaxyHeroType from '$lib/galaxy/ui/GalaxyHero.svelte';
   import '../global.css';
 
   // Vercel analytics scripts only exist on real deployments — skip them locally so
@@ -20,10 +20,8 @@
 
   const headerLinks = SITE_DATA.headerLinks;
   const { children } = $props();
-  let ThrelteApp = $state<Component<ComponentProps<typeof ThrelteAppType>>>();
+  let GalaxyHero = $state<Component<ComponentProps<typeof GalaxyHeroType>>>();
   let galaxyLoadStarted = false;
-  let galaxyLoading = $state(false);
-  let galaxyError = $state(false);
   let galaxyRegion = $state<HTMLElement>();
   let galaxyHeroVisible = $state(true);
   let tabsElement = $state<HTMLElement>();
@@ -97,38 +95,45 @@
     return () => observer.disconnect();
   });
 
+  /** Run when the main thread is idle (or soon, where idle callbacks are missing). */
+  function whenIdle(callback: () => void): number {
+    return typeof requestIdleCallback === 'function'
+      ? requestIdleCallback(callback, { timeout: 1200 })
+      : (setTimeout(callback, 200) as unknown as number);
+  }
+
   async function loadGalaxy() {
     if (galaxyLoadStarted || !galaxyAllowed) return;
     galaxyLoadStarted = true;
-    galaxyLoading = true;
-    galaxyError = false;
     try {
-      const { default: App } = await import('$lib/components/three/ThrelteApp.svelte');
-      ThrelteApp = App;
+      const { default: Hero } = await import('$lib/galaxy/ui/GalaxyHero.svelte');
+      GalaxyHero = Hero;
     } catch (error) {
       galaxyLoadStarted = false;
-      galaxyError = true;
       console.error('Unable to load the interactive galaxy', error);
-    } finally {
-      galaxyLoading = false;
     }
   }
 
   $effect(() => {
-    if (!galaxyRegion || !galaxyAllowed) return;
-    const region = galaxyRegion;
-    // Desktop hover inside the hero is intent. Page scrolling, CV downloads,
-    // navigation and touch scrolling shouldn't parse a 3D engine.
-    const onEnter = (event: PointerEvent) => {
-      if (
-        !galaxyError &&
-        event.pointerType === 'mouse' &&
-        !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      )
-        void loadGalaxy();
+    if (!galaxyAllowed || galaxyLoadStarted) return;
+    // The renderer runs on a worker thread, so it can start without waiting
+    // for interaction: once the page has loaded and the main thread is idle,
+    // fetch the small UI chunk; it hands the canvas to the worker.
+    let cancelled = false;
+    let idleHandle = 0;
+    const start = () => {
+      idleHandle = whenIdle(() => {
+        if (!cancelled) void loadGalaxy();
+      });
     };
-    region.addEventListener('pointerenter', onEnter);
-    return () => region.removeEventListener('pointerenter', onEnter);
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start, { once: true });
+    return () => {
+      cancelled = true;
+      window.removeEventListener('load', start);
+      if (typeof cancelIdleCallback === 'function') cancelIdleCallback(idleHandle);
+      else clearTimeout(idleHandle);
+    };
   });
 
   $effect(() => {
@@ -189,34 +194,10 @@
 </nav>
 
 <div bind:this={galaxyRegion}>
-  {#if galaxyAllowed && ThrelteApp}
-    <ThrelteApp />
+  {#if galaxyAllowed && GalaxyHero}
+    <GalaxyHero />
   {:else}
-    <div class="galaxy-placeholder theme-grayscale w-full">
-      <button
-        class="galaxy-launch"
-        onclick={() => (galaxyError ? location.reload() : loadGalaxy())}
-        disabled={galaxyLoading}
-      >
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
-          <ellipse
-            cx="12"
-            cy="12"
-            rx="10"
-            ry="4"
-            transform="rotate(-30 12 12)"
-            stroke="currentColor"
-            stroke-width="1.3"
-          />
-          <path d="m12 5 1.6 5.4L19 12l-5.4 1.6L12 19l-1.6-5.4L5 12l5.4-1.6Z" fill="currentColor" />
-        </svg>
-        {galaxyLoading
-          ? 'Opening the galaxy…'
-          : galaxyError
-            ? 'Reload to try the galaxy again'
-            : 'Explore the galaxy'}
-      </button>
-    </div>
+    <div class="galaxy-placeholder theme-grayscale w-full" aria-hidden="true"></div>
   {/if}
 </div>
 

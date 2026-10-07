@@ -2,11 +2,7 @@
   import { untrack } from 'svelte';
   import themeStore from '$lib/stores/theme.svelte';
   import type { Theme } from '$lib/stores/theme.svelte';
-  import {
-    getGalaxyColorPalette,
-    customGalaxyColors,
-    customNebulaColors,
-  } from '$lib/components/three/galaxy.utils.svelte';
+  import { getGalaxyColorPalette } from '$lib/galaxyPalette';
 
   type ColorTuple = [number, number, number];
   type FooterShaderColors = {
@@ -525,10 +521,6 @@
 
     $effect(() => {
       void themeStore.theme;
-      void customGalaxyColors.inside;
-      void customGalaxyColors.outside;
-      void customNebulaColors.inside;
-      void customNebulaColors.outside;
 
       untrack(() => {
         if (targetCanvas) {
