@@ -115,6 +115,8 @@ export class Engine {
   private timeLapse = false;
   /** The planet surface pipelines could not be built on this GPU. */
   private surfaceFailed = false;
+  /** A one-off frame is owed (theme, settings, resize) while nothing animates. */
+  private redraw = false;
   private sunSample: { time: number; sun: Vec3; rising: boolean } = {
     time: -1,
     sun: [0, 1, 0],
@@ -994,7 +996,9 @@ export class Engine {
   }
 
   // ─── Frame loop ───────────────────────────────────────────────────────
+  /** Something changed: draw at least one frame, even when idle or paused. */
   private kick() {
+    this.redraw = true;
     if (!this.raf && this.renderer) this.schedule();
   }
 
@@ -1028,7 +1032,7 @@ export class Engine {
     }
     const animate =
       this.playing || this.moving() || this.mode === 'planet' || now - this.lastInteraction < 2500;
-    if (!animate && this.sentFirstFrame) {
+    if (!animate && this.sentFirstFrame && !this.redraw) {
       this.last = 0;
       return;
     }
@@ -1060,6 +1064,7 @@ export class Engine {
     this.updateHover();
     this.publishState();
     this.renderFrame(now);
+    this.redraw = false;
     this.measure(elapsed, limit);
     this.schedule();
   }
