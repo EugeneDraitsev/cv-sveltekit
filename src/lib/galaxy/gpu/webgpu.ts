@@ -48,6 +48,17 @@ const BLENDS: Record<Exclude<BlendMode, 'none'>, GPUBlendState> = {
   },
 };
 
+/**
+ * WebGPU failed after it had claimed the canvas. A canvas never changes
+ * context type, so falling back to WebGL2 needs a new canvas.
+ */
+export class CanvasClaimedError extends Error {
+  constructor(readonly reason: unknown) {
+    super(reason instanceof Error ? reason.message : String(reason));
+    this.name = 'CanvasClaimedError';
+  }
+}
+
 export class WebGpuBackend implements Backend {
   readonly kind = 'webgpu' as const;
   lost = false;
@@ -108,6 +119,23 @@ export class WebGpuBackend implements Backend {
       root.destroy();
       throw new Error('Could not create a WebGPU canvas context');
     }
+    // From here on the canvas is WebGPU's for good: any failure must tell the
+    // caller, which needs a fresh canvas to fall back to WebGL2.
+    try {
+      return await WebGpuBackend.finish(root, device, context, canvas, onLost);
+    } catch (error) {
+      root.destroy();
+      throw new CanvasClaimedError(error);
+    }
+  }
+
+  private static async finish(
+    root: TgpuRoot,
+    device: GPUDevice,
+    context: GPUCanvasContext,
+    canvas: OffscreenCanvas | HTMLCanvasElement,
+    onLost: (reason: string) => void,
+  ): Promise<WebGpuBackend> {
     let info = '';
     let software = false;
     try {

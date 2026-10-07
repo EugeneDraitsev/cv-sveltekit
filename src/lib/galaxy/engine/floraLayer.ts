@@ -62,6 +62,8 @@ export class FloraLayer {
   private data = new BlockData(FloraBlock);
   private layers: Layer[] = [];
   private lastProbe = 0;
+  /** The planet the last probe ran on; a new planet always probes at once. */
+  private probed: PlanetData | null = null;
   private kinds: number[] = [];
 
   constructor(
@@ -106,8 +108,15 @@ export class FloraLayer {
 
   /** Which flora kinds grow within reach of the camera, most common first. */
   private nearbyKinds(planet: PlanetData, eye: Vec3, now: number) {
-    if (now - this.lastProbe < 400 && this.kinds.length) return this.kinds;
+    // Throttled whether or not the last probe found anything: giants and
+    // barren ground would otherwise re-probe every frame.
+    if (planet === this.probed && now - this.lastProbe < 400) return this.kinds;
+    this.probed = planet;
     this.lastProbe = now;
+    if (planet.giant || !planet.biomes.length) {
+      this.kinds = [];
+      return this.kinds;
+    }
     const params = terrainParams(planet);
     const r = Math.hypot(eye[0], eye[1], eye[2]);
     const n: Vec3 = [eye[0] / r, eye[1] / r, eye[2] / r];

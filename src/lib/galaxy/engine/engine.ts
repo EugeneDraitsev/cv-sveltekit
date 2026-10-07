@@ -221,7 +221,11 @@ export class Engine {
     if (message.renderer !== 'webgl' && 'gpu' in navigator) {
       try {
         const { WebGpuBackend } = await import('../gpu/webgpu');
-        backend = await WebGpuBackend.create(message.canvas, onLost);
+        backend = await WebGpuBackend.create(message.canvas, onLost).catch((error: unknown) => {
+          // create() may fail after binding the canvas (e.g. configure()).
+          if (error instanceof Error && error.name === 'CanvasClaimedError') canvasTaken = true;
+          throw error;
+        });
         canvasTaken = true;
         this.deviceQuality = pickQuality({
           ...this.hints,
