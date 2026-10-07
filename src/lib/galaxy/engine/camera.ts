@@ -143,14 +143,17 @@ export function flightPose(
   focusTo: Vec3,
   t: number,
   settle = 0.42,
+  /** When (0..1) the focus starts and finishes moving from focusFrom to focusTo. */
+  focusSpan: [number, number] = [0, 0.7],
 ): Pose {
   if (t <= 0) return from;
   if (t >= 1) return to;
   const e = ease(t);
+  const k = ease((t - focusSpan[0]) / (focusSpan[1] - focusSpan[0]));
   const focus: Vec3 = [
-    lerp(focusFrom[0], focusTo[0], ease(t / 0.7)),
-    lerp(focusFrom[1], focusTo[1], ease(t / 0.7)),
-    lerp(focusFrom[2], focusTo[2], ease(t / 0.7)),
+    lerp(focusFrom[0], focusTo[0], k),
+    lerp(focusFrom[1], focusTo[1], k),
+    lerp(focusFrom[2], focusTo[2], k),
   ];
   const a = sub(from.eye, focusFrom);
   const b = sub(to.eye, focusTo);

@@ -65,6 +65,8 @@ function starLight(star: { color: [number, number, number]; luminosity: number }
   return [r * k, g * k, b * k];
 }
 const FLIGHT_SECONDS = 3.2;
+/** From a planet's orbit out to the whole system: a ~25× change of scale. */
+const ORBIT_EXIT_SECONDS = 3.6;
 const LANDING_SECONDS = 5.6;
 /** A body-frame pose in planet-centred axes that do not spin. */
 const poseFromBody = (o: Orientation, p: Pose): Pose => ({
@@ -775,13 +777,52 @@ export class Engine {
     if (this.flight) return;
     if (this.mode === 'planet') this.ascend();
     else if (this.mode === 'system') {
-      if (this.systemRig.follow) {
-        this.systemRig.follow = null;
-        this.systemRig.minDistance = 3;
-        this.systemRig.set({ target: [0, 0, 0], ...this.systemOverview() });
-      } else this.leaveSystem();
+      if (this.systemRig.follow) this.leavePlanetOrbit();
+      else this.leaveSystem();
     }
     this.interact();
+  }
+
+  /**
+   * From the orbit around one planet back out to the whole system: a real
+   * flight, not a damped jump. Its start rides along with the planet, which
+   * keeps moving on its orbit during the flight.
+   */
+  private leavePlanetOrbit() {
+    const follow = this.systemRig.follow;
+    if (!follow || !this.state) return;
+    const from = this.camera.pose;
+    const anchor = follow();
+    const overview = this.systemOverview();
+    const to = orbitPose(
+      [0, 0, 0],
+      overview.yaw,
+      overview.pitch,
+      overview.distance,
+      overview.roll,
+      overview.fov,
+    );
+    this.systemRig.follow = null;
+    this.startFlight({
+      frame: 'S',
+      from,
+      to,
+      path: (t) => {
+        const planet = follow();
+        const moved = sub(planet, anchor);
+        const start = { ...from, eye: add(from.eye, moved) };
+        // Pull back from the planet first; only then swing the focus over
+        // to the star, so the camera never grazes it on the way out.
+        return flightPose(start, to, planet, [0, 0, 0], t, 0.42, [0.3, 0.9]);
+      },
+      label: `Back to ${this.system?.name ?? 'the system'}`,
+      duration: ORBIT_EXIT_SECONDS,
+      done: () => {
+        this.systemRig.minDistance = 3;
+        this.systemRig.set({ target: [0, 0, 0], ...overview }, true);
+        this.camera = { frame: 'S', pose: this.systemRig.pose() };
+      },
+    });
   }
 
   /** Test hook: drop any journey and return to the galaxy overview at once. */
