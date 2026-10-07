@@ -373,11 +373,14 @@
     document.addEventListener('pointerdown', onDocumentPointer, true);
     const syncTouch = () => (touch = touchQuery.matches);
     touchQuery.addEventListener('change', syncTouch);
-    // Test hook for automated visual checks.
-    (window as unknown as { galaxyHook?: object }).galaxyHook = {
+    // Test hook for automated visual checks; removed again on unmount so it
+    // cannot keep a disposed host (and its engine) reachable.
+    const hookHost = window as unknown as { galaxyHook?: object };
+    const hook = {
       send,
       state: () => ({ mode, travelling, system, planet, instrument }),
     };
+    hookHost.galaxyHook = hook;
     return () => {
       disposed = true;
       resize.disconnect();
@@ -386,6 +389,7 @@
       canvas?.removeEventListener('wheel', onWheel);
       document.removeEventListener('pointerdown', onDocumentPointer, true);
       touchQuery.removeEventListener('change', syncTouch);
+      if (hookHost.galaxyHook === hook) delete hookHost.galaxyHook;
     };
   });
 
