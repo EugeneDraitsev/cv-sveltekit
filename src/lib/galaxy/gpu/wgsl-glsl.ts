@@ -37,6 +37,10 @@ const FUNCTION_RENAMES: Record<string, string> = {
   atan2: 'atan',
   dpdx: 'dFdx',
   dpdy: 'dFdy',
+  // GLSL ES has no explicit fine variant; dFdx is as fine as the driver gives.
+  dpdxFine: 'dFdx',
+  dpdyFine: 'dFdy',
+  fwidthFine: 'fwidth',
   inverseSqrt: 'inversesqrt',
 };
 

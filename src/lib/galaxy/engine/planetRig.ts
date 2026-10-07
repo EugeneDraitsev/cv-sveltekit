@@ -14,6 +14,10 @@ import {
   quatSlerp,
   quatView,
   rotateAxis,
+  quatDot,
+  quatFromTo,
+  quatMul,
+  quatNeg,
   scale,
   slerp,
   sub,
@@ -209,6 +213,8 @@ export function chooseLandingSite(
   planet: PlanetData,
   sun: Vec3,
   near: Vec3,
+  /** Prefer headings close to this (e.g. the incoming camera's screen-up). */
+  prefer?: Vec3,
 ): { site: Vec3; heading: Vec3 } {
   const params = terrainParams(planet);
   const side = perpendicular(sun);
@@ -269,7 +275,7 @@ export function chooseLandingSite(
       best = n;
     }
   }
-  return { site: best, heading: viewHeading(params, planet.meters, best, sun) };
+  return { site: best, heading: viewHeading(params, planet.meters, best, sun, prefer) };
 }
 
 /** Camera height above the ground right after landing, in metres. */
@@ -282,7 +288,13 @@ const VIEW_SAMPLES = [40, 90, 180, 350, 650, 1100, 1800, 2900, 4500, 7000];
  * near horizon, never a wall right in front of the camera, and the sun from
  * the side if possible.
  */
-function viewHeading(params: TerrainParams, meters: number, site: Vec3, sun: Vec3): Vec3 {
+function viewHeading(
+  params: TerrainParams,
+  meters: number,
+  site: Vec3,
+  sun: Vec3,
+  prefer?: Vec3,
+): Vec3 {
   const t = perpendicular(site);
   const toSun = normalize(sub(sun, scale(site, dot(sun, site))));
   const eyeM = terrainHeight(params, ...site, 8) * meters + LANDING_EYE_HEIGHT;
@@ -303,8 +315,15 @@ function viewHeading(params: TerrainParams, meters: number, site: Vec3, sun: Vec
     }
     // Side light shows relief best; looking into the sun washes the view out.
     const facing = dot(d, toSun);
+    // Facing where the incoming camera's screen-up points means the landing
+    // needs little roll.
+    const aligned = prefer ? dot(d, prefer) * 0.8 : 0;
     const view =
-      drama * 4 - Math.max(0, blocked) * 12 - Math.max(0, facing) * 0.9 - Math.abs(facing) * 0.25;
+      drama * 4 -
+      Math.max(0, blocked) * 12 -
+      Math.max(0, facing) * 0.9 -
+      Math.abs(facing) * 0.25 +
+      aligned;
     if (view > bestView) {
       bestView = view;
       heading = d;
@@ -328,28 +347,46 @@ export function planetFlightPose(
 ): Pose {
   if (t <= 0) return from;
   if (t >= 1) return to;
-  const e = ease(t);
   const ra = length(from.eye);
   const rb = length(to.eye);
   const da = scale(from.eye, 1 / ra);
   const db = scale(to.eye, 1 / rb);
   const altA = Math.max(ra - 1, 1e-7);
   const altB = Math.max(rb - 1, 1e-7);
-  const alt = Math.exp(lerp(Math.log(altA), Math.log(altB), e));
-  // A glide slope: the ground still to cover shrinks with the altitude, so the
-  // gaze toward the site holds a steady angle instead of whipping around low.
-  const remaining = clamp((alt - altB) / Math.max(altA - altB, 1e-9), 0, 1);
-  const dir = slerp(db, da, remaining);
-  const ground = groundAt(dir);
-  const radius = Math.max(1 + alt, 1 + ground + (alt - Math.max(altB, 0)) * 0.02 + 6e-6);
-  const eye = scale(dir, radius);
-  const site = scale(db, 1 + Math.max(ground, 0));
-  // While high, look at the landing site with the arrival heading as screen-up,
-  // so the final pitch-up faces the view chosen for the landing.
-  const look = quatFromView(sub(site, eye), to.forward);
-  const early = quatSlerp(quatFromView(from.forward, from.up), look, ease(t / 0.35));
-  const view = quatView(quatSlerp(early, quatFromView(to.forward, to.up), ease((t - 0.55) / 0.45)));
-  return { eye, forward: view.forward, up: view.up, fov: lerp(from.fov, to.fov, e) };
+  const start = quatFromView(from.forward, from.up);
+  const final = quatFromView(to.forward, to.up);
+
+  /** Eye position and the early view (start turned toward the site) at time s. */
+  const sample = (s: number) => {
+    const alt = Math.exp(lerp(Math.log(altA), Math.log(altB), ease(s)));
+    // A glide slope: the ground still to cover shrinks with the altitude, so
+    // the gaze toward the site holds a steady angle instead of whipping round.
+    const remaining = clamp((alt - altB) / Math.max(altA - altB, 1e-9), 0, 1);
+    const dir = slerp(db, da, remaining);
+    const ground = groundAt(dir);
+    const radius = Math.max(1 + alt, 1 + ground + (alt - Math.max(altB, 0)) * 0.02 + 6e-6);
+    const eye = scale(dir, radius);
+    const site = scale(db, 1 + Math.max(ground, 0));
+    // Look at the landing site by turning the starting orientation along the
+    // shortest arc (parallel transport): the roll changes only as much as the
+    // gaze does, with no screen-up hint that could swing round.
+    const look = quatMul(quatFromTo(from.forward, sub(site, eye), from.up), start);
+    return { eye, early: quatSlerp(start, look, ease(s / 0.35)) };
+  };
+
+  const { eye, early } = sample(t);
+  // Settle onto the arrival view. The turning direction is fixed once, from
+  // where the camera is when settling begins: re-picking the shorter way every
+  // frame flips it the moment the remaining turn passes 180°.
+  const settle = ease((t - 0.55) / 0.45);
+  let view = early;
+  if (settle > 0) {
+    const reference = sample(0.55).early;
+    const target = quatDot(reference, final) < 0 ? quatNeg(final) : final;
+    view = quatSlerp(early, target, settle, false);
+  }
+  const { forward, up } = quatView(view);
+  return { eye, forward, up, fov: lerp(from.fov, to.fov, ease(t)) };
 }
 
 /**
@@ -367,7 +404,11 @@ export function ascentPose(from: Pose, to: Pose, t: number): Pose {
   const alt = Math.exp(lerp(Math.log(Math.max(ra - 1, 1e-7)), Math.log(rb - 1), e));
   const dir = slerp(scale(from.eye, 1 / ra), scale(to.eye, 1 / rb), ease((t - 0.15) / 0.85));
   const view = quatView(
-    quatSlerp(quatFromView(from.forward, from.up), quatFromView(to.forward, to.up), ease(t / 0.6)),
+    quatSlerp(
+      quatFromView(from.forward, from.up),
+      quatFromView(to.forward, to.up),
+      ease((t - 0.08) / 0.62),
+    ),
   );
   return {
     eye: scale(dir, 1 + alt),

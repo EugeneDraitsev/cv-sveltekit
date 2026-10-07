@@ -3,7 +3,14 @@
   import Icon from '$lib/components/Icon.svelte';
   import type { TouchFlight } from '../engine/protocol';
 
-  const { onInput }: { onInput: (input: TouchFlight) => void } = $props();
+  const {
+    onInput,
+    compact = false,
+  }: {
+    onInput: (input: TouchFlight) => void;
+    /** The hero is collapsed: smaller controls, tucked into the corners. */
+    compact?: boolean;
+  } = $props();
 
   /** Max knob travel from the pad centre, px. */
   const RADIUS = 40;
@@ -72,6 +79,7 @@
 
 <div
   class="touch"
+  class:compact
   role="group"
   aria-label="Touch flight controls"
   oncontextmenu={(e) => e.preventDefault()}
@@ -128,8 +136,8 @@
   }
   .pad {
     position: relative;
-    width: 116px;
-    height: 116px;
+    width: 104px;
+    height: 104px;
     border-radius: 50%;
     pointer-events: auto;
     touch-action: none;
@@ -138,40 +146,64 @@
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    border: 1.5px solid #e5eaf566;
-    background: radial-gradient(circle, #11152455, #11152499);
-    backdrop-filter: blur(6px);
+    border: 1px solid rgb(233 236 246 / 0.22);
+    background: radial-gradient(circle, rgb(10 12 20 / 0.18), rgb(10 12 20 / 0.45));
+    backdrop-filter: blur(10px);
   }
   .knob {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 46px;
-    height: 46px;
-    margin: -23px 0 0 -23px;
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
     border-radius: 50%;
-    background: #e5eaf5cc;
-    box-shadow: 0 2px 10px #0006;
+    border: 1.5px solid rgb(255 217 160 / 0.8);
+    background: rgb(233 236 246 / 0.55);
+    box-shadow: 0 2px 10px rgb(0 0 0 / 0.35);
   }
   .actions {
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: 0.5rem;
     pointer-events: auto;
   }
   button {
     display: grid;
     place-items: center;
-    width: 52px;
-    height: 52px;
+    width: 46px;
+    height: 46px;
     border-radius: 50%;
-    border: 1.5px solid #e5eaf566;
-    background: #111524aa;
-    color: #e5eaf5;
-    backdrop-filter: blur(6px);
+    border: 1px solid rgb(233 236 246 / 0.22);
+    background: rgb(10 12 20 / 0.5);
+    color: #e9ecf6;
+    backdrop-filter: blur(10px);
+    -webkit-tap-highlight-color: transparent;
     touch-action: none;
   }
+  .compact {
+    bottom: 8.4rem;
+    padding: 0 0.6rem;
+  }
+  .compact .pad {
+    width: 84px;
+    height: 84px;
+  }
+  .compact .knob {
+    width: 32px;
+    height: 32px;
+    margin: -16px 0 0 -16px;
+  }
+  .compact .actions {
+    flex-direction: row;
+    gap: 0.4rem;
+  }
+  .compact button {
+    width: 40px;
+    height: 40px;
+  }
   button:active {
-    background: #e5eaf540;
+    background: rgb(255 217 160 / 0.22);
+    color: #ffd9a0;
   }
 </style>

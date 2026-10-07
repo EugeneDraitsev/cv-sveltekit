@@ -201,7 +201,7 @@ fn fs(fsIn: Varyings) -> FragOut {
     let hv: vec3f = normalize(sun - viewDir);
     color = color + sunLight * shade * pow(max(dot(normal, hv), 0.0), 60.0) * 0.8;
   }
-  o.color0 = vec4f(color, 1.0);
+  o.color0 = vec4f(color, 1.0) * pl.handoff.x;
   o.color1 = vec4f(dist, 0.0, 0.0, 1.0);
   return o;
 }`,
@@ -224,7 +224,7 @@ fn fs(fsIn: Varyings) -> FragOut {
     { name: 'info', type: 'vec4f' },
     { name: 'tint', type: 'vec3f' },
   ],
-  outputs: [{ format: 'rgba16float' }, { format: 'rgba32float' }],
+  outputs: [{ format: 'rgba16float', blend: 'premultiplied' }, { format: 'rgba32float' }],
   depth: { write: true, compare: 'less' },
 });
 

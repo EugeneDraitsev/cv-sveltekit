@@ -96,6 +96,26 @@ describe('landing and take-off paths', () => {
     }
   });
 
+  it('never flip, whatever the approach', () => {
+    // A fixed pseudo-random spread of orbits, sites and headings, including
+    // approaches from behind the planet and straight over a pole.
+    let seed = 7;
+    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
+    for (let i = 0; i < 60; i++) {
+      const site = normalize([rand(), rand(), rand()]);
+      const ground = groundPose(site, [rand(), rand(), rand()]);
+      const from = orbitPose(
+        [0, 0, 0],
+        rand() * 3.2,
+        rand() * 1.4,
+        3 + Math.abs(rand()) * 25,
+        0,
+        40,
+      );
+      expect(maxTurn((t) => planetFlightPose(from, ground, t, () => 0))).toBeLessThan(0.08);
+    }
+  });
+
   it('end exactly where the orbit rig takes over', () => {
     const ground = groundPose([0.3, 0.2, 0.93], [0, 1, 0]);
     const orbit = orbitPose([0, 0, 0], 0.31, 0.2, 4.8, 0, 40);

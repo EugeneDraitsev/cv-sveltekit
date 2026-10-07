@@ -268,13 +268,15 @@ fn renderSystem(rd: vec3f, limit: f32) -> vec4f {
     if (planet.giant > 0.5) {
       albedo = gasColor(row, planet, n, sys.viewport.z);
     } else {
-      // Only octaves wider than ~4 px: finer ones alias into blocky bump.
-      let octaves: i32 = clamp(i32(log2(0.0714 / max(footprint, 0.000001))) + 1, 2, 8);
+      // Only octaves wider than ~12 px. Slope (rock, snow) comes from screen
+      // derivatives of this height, and finer octaves flip it pixel by pixel
+      // into a checkerboard, worst at the low render scales phones use.
+      let octaves: i32 = clamp(i32(log2(0.0238 / max(footprint, 0.000001))) + 1, 2, 8);
       let h: f32 = terrainHeight(row, planet, n, octaves);
-      let hx: f32 = dpdx(h);
-      let hy: f32 = dpdy(h);
-      let px: vec3f = dpdx(p);
-      let py: vec3f = dpdy(p);
+      let hx: f32 = dpdxFine(h);
+      let hy: f32 = dpdyFine(h);
+      let px: vec3f = dpdxFine(p);
+      let py: vec3f = dpdyFine(p);
       // Fine colour variation only where a pixel resolves it.
       let detail: f32 = gnoise(n * 900.0) * (1.0 - smoothstep(0.0002, 0.0006, footprint));
       if (h < 0.0 && planet.water > 0.5) {
@@ -285,17 +287,23 @@ fn renderSystem(rd: vec3f, limit: f32) -> vec4f {
           emission = planetTexel(row, 3).rgb * (2.5 - depth * 1.5);
         }
       } else {
-        // Derivative bump: relief shading without extra height samples.
+        // Derivative bump: relief shading without extra height samples. Where
+        // the height jumps by a good share of the relief within one pixel
+        // (canyon walls, terraces seen from orbit), the feature is
+        // undersampled: fade the bump and the rocky-slope look instead of
+        // letting them alias into a pixel maze.
+        let perPixel: f32 = (abs(hx) + abs(hy)) / max(planet.relief, 0.00001);
+        let resolved: f32 = 1.0 - smoothstep(0.015, 0.06, perPixel);
         let scale: f32 = radius;
         let cx: vec3f = cross(worldN, py);
         let cy: vec3f = cross(px, worldN);
         let det: f32 = dot(px, cx);
         if (abs(det) > 0.0) {
           let grad: vec3f = (cx * hx + cy * hy) * scale / det * sign(det);
-          let g: vec3f = grad * 1.6;
+          let g: vec3f = grad * 1.6 * resolved;
           normal = normalize(worldN - g / max(1.0, length(g) * 1.4));
         }
-        let slope: f32 = clamp(1.0 - dot(normal, worldN), 0.0, 1.0) * 6.0;
+        let slope: f32 = clamp(1.0 - dot(normal, worldN), 0.0, 1.0) * 6.0 * resolved;
         let m: Material = surfaceMaterial(row, planet, n, max(h, 0.0), slope, climate, detail * 0.5);
         albedo = m.albedo;
         emission = m.emission;

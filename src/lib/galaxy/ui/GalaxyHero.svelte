@@ -390,7 +390,10 @@
   {/if}
 
   {#if mode === 'planet' && touch && !travelling}
-    <TouchFlight onInput={(input: TouchInput) => send({ type: 'touchFlight', input })} />
+    <TouchFlight
+      compact={!expanded}
+      onInput={(input: TouchInput) => send({ type: 'touchFlight', input })}
+    />
   {/if}
 
   {#if travelling}

@@ -161,12 +161,12 @@ fn vs(vsIn: VertexIn) -> Varyings {
 }
 // Bump mapping without tangents (Mikkelsen): perturb N by a scalar height.
 fn bump(normal: vec3f, p: vec3f, height: f32) -> vec3f {
-  let px: vec3f = dpdx(p);
-  let py: vec3f = dpdy(p);
+  let px: vec3f = dpdxFine(p);
+  let py: vec3f = dpdyFine(p);
   let r1: vec3f = cross(py, normal);
   let r2: vec3f = cross(normal, px);
   let det: f32 = dot(px, r1);
-  let grad: vec3f = sign(det) * (dpdx(height) * r1 + dpdy(height) * r2);
+  let grad: vec3f = sign(det) * (dpdxFine(height) * r1 + dpdyFine(height) * r2);
   let bumped: vec3f = abs(det) * normal - grad;
   return select(normal, normalize(bumped), dot(bumped, bumped) > 0.0);
 }
@@ -298,7 +298,9 @@ fn fs(fsIn: Varyings) -> FragOut {
     let darkness: f32 = 1.0 - smoothstep(0.0, 0.15, luminance(sunLight) * max(dot(n, sun), 0.0) + luminance(ambient) * 2.0);
     color = color + m.emission * (0.15 + darkness * 0.85);
   }
-  o.color0 = vec4f(color, 1.0);
+  // Premultiplied over the orbital sphere, which shows through while the
+  // view hands over between the two renderers.
+  o.color0 = vec4f(color, 1.0) * pl.handoff.x;
   o.color1 = vec4f(dist, 0.0, 0.0, 1.0);
   return o;
 }`,
@@ -316,7 +318,7 @@ fn fs(fsIn: Varyings) -> FragOut {
     { name: 'normal', type: 'vec3f' },
     { name: 'data', type: 'vec4f' },
   ],
-  outputs: [{ format: 'rgba16float' }, { format: 'rgba32float' }],
+  outputs: [{ format: 'rgba16float', blend: 'premultiplied' }, { format: 'rgba32float' }],
   depth: { write: true, compare: 'less' },
 });
 
@@ -382,10 +384,13 @@ fn fs(fsIn: Varyings) -> FragOut {
   let planet: Planet = loadPlanet(row);
   let air: Air = loadAir(row);
   let sun: vec3f = pl.sun0.xyz;
-  let sunColor: vec3f = pl.sun0Color.rgb;
+  // sun0Color.w scales the scattered light: 1 near the ground, easing to the
+  // orbital view's balance with altitude so the hand-off matches.
+  let airGain: f32 = pl.sun0Color.w;
+  let sunColor: vec3f = pl.sun0Color.rgb * airGain;
   var sunColor1: vec3f = vec3f(0.0);
   if (pl.sun1.w > 0.0) {
-    sunColor1 = pl.sun1Color.rgb;
+    sunColor1 = pl.sun1Color.rgb * airGain;
   }
   let steps: i32 = select(12, 16, pl.state.x < 0.05);
   var color: vec3f = scene;
@@ -413,7 +418,8 @@ fn fs(fsIn: Varyings) -> FragOut {
     let sc: Scatter = scatterAlong(ro, rd, tMax, air, sun, sunColor, pl.sun1.xyz, sunColor1, steps);
     color = scene * sc.transmittance + sc.light;
   }
-  o.color0 = vec4f(color, 1.0);
+  // Mid hand-off the scene already holds the orbital sphere with its own air.
+  o.color0 = vec4f(mix(scene, color, pl.handoff.x), 1.0);
   return o;
 }`,
   uniforms: planetUniform,

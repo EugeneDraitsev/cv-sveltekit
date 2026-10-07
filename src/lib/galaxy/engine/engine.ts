@@ -3,7 +3,19 @@ import { BlockData } from '../gpu/blocks';
 import { WebGlBackend } from '../gpu/webgl';
 import { GalaxyBlock, PlanetBlock, PostBlock, SystemBlock } from './blocks';
 import { OrbitRig, flightPose, orbitPose, poseBasis, type Pose } from './camera';
-import { add, clamp, dot, length, normalize, scale, smoothstep, sub, type Vec3 } from './math';
+import {
+  add,
+  clamp,
+  damp,
+  dot,
+  length,
+  lerp,
+  normalize,
+  scale,
+  smoothstep,
+  sub,
+  type Vec3,
+} from './math';
 import {
   DEFAULT_SETTINGS,
   type FromEngine,
@@ -70,7 +82,14 @@ const poseToBody = (o: Orientation, p: Pose): Pose => ({
   fov: p.fov,
 });
 
-const ASCENT_SECONDS = 4.6;
+const ASCENT_SECONDS = 6.4;
+
+/** Altitudes (radii) between which the surface and orbital renderers cross-fade. */
+const HANDOFF_LOW = 0.08;
+const HANDOFF_HIGH = 0.3;
+
+/** 1 near the ground, 0 from about one radius up: how much to use surface tuning. */
+const surfaceness = (altitude: number) => 1 - smoothstep(0.04, 1.2, altitude);
 /** Orbit distance after a take-off, in planet radii. */
 const ASCENT_RADII = 4.8;
 const WATER_KIND = { none: 0, water: 1, lava: 2, ice: 3, acid: 4 } as const;
@@ -117,6 +136,9 @@ export class Engine {
   private surfaceFailed = false;
   /** A one-off frame is owed (theme, settings, resize) while nothing animates. */
   private redraw = false;
+  private surfaceBudgetUntil = 0;
+  /** Orbit-line opacity, eased toward its target instead of switching. */
+  private orbitInk = 0;
   private sunSample: { time: number; sun: Vec3; rising: boolean } = {
     time: -1,
     sun: [0, 1, 0],
@@ -646,7 +668,7 @@ export class Engine {
       toBody(planet.orientation, sub(this.state.stars[0].position, planet.position)),
     );
     const from = this.sToP(this.camera.pose, planet);
-    const { site, heading } = chooseLandingSite(planet.data, sun, normalize(from.eye));
+    const { site, heading } = chooseLandingSite(planet.data, sun, normalize(from.eye), from.up);
     const ground = rig.ground(site);
     // Over a giant, arrive above the cloud deck rather than skimming it.
     const eyeHeight = planet.data.giant ? 450 : LANDING_EYE_HEIGHT;
@@ -689,6 +711,7 @@ export class Engine {
     const end = orbitPose([0, 0, 0], orbit.yaw, orbit.pitch, orbit.distance, 0, orbit.fov);
     const toBodyPose = (p: Pose) => poseToBody(this.state!.planets[index].orientation, p);
     this.mode = 'system';
+    this.timeLapse = false;
     this.startFlight({
       frame: 'P',
       from,
@@ -775,7 +798,13 @@ export class Engine {
     this.flight = {
       ...f,
       elapsed: 0,
-      duration: this.instant ? 0.001 : this.reducedMotion ? 0.35 : f.duration,
+      // Reduced motion shortens flights but keeps them: a 0.3 s jump between
+      // orbit and ground is more jarring than a brief, smooth move.
+      duration: this.instant
+        ? 0.001
+        : this.reducedMotion
+          ? Math.max(1.6, f.duration * 0.5)
+          : f.duration,
     };
     this.camera = { frame: f.frame, pose: f.from };
     this.pointers.clear();
@@ -1048,7 +1077,9 @@ export class Engine {
     if (this.playing || this.mode === 'planet') {
       this.time += dt;
       if (this.mode === 'galaxy' && !this.flight) this.angle += dt * this.settings.rotation * 0.026;
-      if (this.state) this.systemTime += dt * (this.timeLapse ? 40 : 1);
+      // Time-lapse is a surface feature: in orbit it would whirl the moons.
+      const lapse = this.timeLapse && this.mode === 'planet' && !this.flight;
+      if (this.state) this.systemTime += dt * (lapse ? 40 : 1);
     }
     this.state?.update(this.systemTime);
     if (this.flight) {
@@ -1061,6 +1092,13 @@ export class Engine {
       this.orbit.update(dt);
       this.camera = { frame: this.mode === 'galaxy' ? 'G' : 'S', pose: this.orbit.pose() };
     }
+    const ink =
+      this.mode === 'system' && !this.flight
+        ? 1
+        : this.mode === 'planet' || this.camera.frame === 'P'
+          ? 0
+          : 0.35 * this.presence();
+    this.orbitInk += (ink - this.orbitInk) * damp(4, elapsed);
     this.updateHover();
     this.publishState();
     this.renderFrame(now);
@@ -1135,11 +1173,7 @@ export class Engine {
         'options',
         excludePlanet,
         0,
-        this.mode === 'system' && !this.flight
-          ? 1
-          : this.mode === 'planet'
-            ? 0
-            : 0.35 * this.presence(),
+        this.orbitInk,
         this.hover?.kind === 'planet' ? this.hover.index : -1,
       )
       .vec('origin', sub([0, 0, 0], eye), 0);
@@ -1184,7 +1218,10 @@ export class Engine {
     const far = 40;
     const altitude = length(pose.eye) - 1;
     const up = normalize(pose.eye);
-    const daylight = smoothstep(-0.12, 0.2, dot(up, sun0));
+    // Above the air, the sky is space again: stars and the galaxy come back.
+    const airTop = data.atmosphere.height;
+    const daylight =
+      smoothstep(-0.12, 0.2, dot(up, sun0)) * (1 - smoothstep(airTop, airTop * 4, altitude));
     // Brightest moon in the sky lights the night.
     let moonDir: Vec3 = [0, 1, 0];
     let moonPhase = 0;
@@ -1211,7 +1248,9 @@ export class Engine {
       .vec('forward', basis.forward, 0)
       .set('viewport', w, h, this.time, w / h)
       .vec('sun0', sun0, 1)
-      .vec('sun0Color', light(0), 1)
+      // Surfaces here are lit 2.6× (tuned on the ground); the orbital view
+      // lights them 1.6× and its air 1×. Up high, scale the air to match.
+      .vec('sun0Color', light(0), lerp(1 / 1.6, 1, surfaceness(altitude)))
       .set('clip', 1 / near, 1 / Math.log2(1 + far / near), 0.06, WATER_KIND[data.water])
       .vec('moon', moonDir, moonPhase)
       .set('cloud', planet.cloudPhase, 2600 / meters, data.giant ? 0 : data.clouds, 900 / meters)
@@ -1224,13 +1263,16 @@ export class Engine {
 
   private renderFrame(now = performance.now()) {
     const inPlanet = this.camera.frame === 'P' && this.planetState() && this.renderer.planet;
+    // The surface budget holds for a moment after take-off: resizing every
+    // target mid-flight is a visible hitch, a beat later it is not.
+    if (inPlanet) this.surfaceBudgetUntil = now + 1500;
     const [w, h] = renderSize(
       this.cssWidth,
       this.cssHeight,
       this.dpr,
       this.quality,
       this.adaptive,
-      Boolean(inPlanet),
+      Boolean(inPlanet) || now < this.surfaceBudgetUntil,
     );
     this.renderer.resize(w, h);
     const presence = this.presence();
@@ -1247,14 +1289,24 @@ export class Engine {
     let daylight = 0;
     let sunUp = 0;
     let exclude = -1;
+    let surfaceWeight = 0;
     if (inPlanet) {
+      surfaceWeight = surfaceness(length(this.camera.pose.eye) - 1);
       const { d, daylight: day } = this.writePlanet(this.camera.pose, now);
       sunUp = day;
       daylight = day * Math.min(1, this.planetState()!.data.atmosphere.density);
       const layer = this.renderer.planet!;
       const pose = this.camera.pose;
+      // Close in, the streamed surface; high up, the orbital sphere, which is
+      // sharper there. In between they cross-fade, so neither pops in.
+      const meshWeight =
+        layer.tree.leaves.length >= 6
+          ? 1 - smoothstep(HANDOFF_LOW, HANDOFF_HIGH, length(pose.eye) - 1)
+          : 0;
+      d.set('handoff', meshWeight, 0, 0, 0);
       planetFrame = {
         data: d,
+        mix: meshWeight,
         view: {
           eye: pose.eye,
           basis: poseBasis(pose),
@@ -1265,7 +1317,7 @@ export class Engine {
         info: this.planetState()!.data,
         now,
       };
-      if (layer.tree.leaves.length >= 6) exclude = this.planetIndex;
+      if (meshWeight >= 0.999) exclude = this.planetIndex;
     }
 
     this.galaxyData
@@ -1300,8 +1352,12 @@ export class Engine {
       .set('adapt', (1 - presence * 0.94) * (1 - daylight), 0, 0, 0);
     // Exposure follows the sun itself (airless worlds have a black sky but a
     // harshly lit ground) and opens up at night like dark-adapted eyes.
-    const exposure =
-      this.settings.exposure * (inPlanet ? 1.5 - sunUp * 0.9 - (sunUp - daylight) * 0.12 : 1);
+    // Surface exposure fades back to the space value with altitude, so the
+    // hand-off to the orbital view on take-off does not jump in brightness.
+    // Up high it eases to 1.6 / 2.6, the orbital view's light balance.
+    const surfaceExposure = 1.5 - sunUp * 0.9 - (sunUp - daylight) * 0.12;
+    const orbitExposure = inPlanet ? 1.6 / 2.6 : 1;
+    const exposure = this.settings.exposure * lerp(orbitExposure, surfaceExposure, surfaceWeight);
     this.postData
       .set('viewport', w, h, this.time, 0)
       .set('look', exposure, this.settings.bloom, lightMix, 0)

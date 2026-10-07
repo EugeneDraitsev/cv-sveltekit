@@ -45,7 +45,7 @@
       aria-label={expanded ? 'Collapse scene' : 'Expand scene'}
       title={expanded ? 'Collapse' : 'Expand'}
     >
-      <Icon icon={expanded ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'} width="20" height="20" />
+      <Icon icon={expanded ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'} width="18" height="18" />
       <span>{expanded ? 'Collapse' : 'Expand'}</span>
     </button>
     {#if mode === 'planet'}
@@ -59,7 +59,7 @@
           aria-label={walking ? 'Switch to flying' : 'Switch to walking'}
           title={walking ? 'Fly (F)' : 'Walk (F)'}
         >
-          <Icon icon={walking ? 'mdi:airplane' : 'mdi:walk'} width="20" height="20" />
+          <Icon icon={walking ? 'mdi:airplane' : 'mdi:walk'} width="18" height="18" />
           <span>{walking ? 'Fly' : 'Walk'}</span>
         </button>
       {/if}
@@ -71,8 +71,9 @@
         aria-label={timeLapse ? 'Normal time' : 'Fast-forward the day'}
         title="Time-lapse (T)"
       >
-        <Icon icon="mdi:weather-sunset" width="20" height="20" />
-        <span>{timeLapse ? 'Real time' : 'Time-lapse'}</span>
+        <Icon icon="mdi:weather-sunset" width="18" height="18" />
+        <span>Time-lapse</span>
+        {#if timeLapse}<em>×40</em>{/if}
       </button>
     {:else}
       <span class="separator" aria-hidden="true"></span>
@@ -104,7 +105,7 @@
         aria-label="Galaxy settings"
         title="Tune"
       >
-        <Icon icon="material-symbols:tune" width="20" height="20" />
+        <Icon icon="material-symbols:tune" width="18" height="18" />
         <span>Tune</span>
       </button>
     {/if}
@@ -114,72 +115,116 @@
 <style>
   .dock-wrap {
     position: absolute;
-    bottom: 5.5rem;
-    left: 1.25rem;
-    right: 1.25rem;
+    bottom: 5.4rem;
+    left: 1rem;
+    right: 1rem;
     z-index: 8;
     display: flex;
     justify-content: center;
     pointer-events: none;
     --dock-ink: var(--color-identifier);
-    --dock-bg: var(--color-base-100);
+    --dock-accent: var(--color-primary);
+    --dock-glass: color-mix(in srgb, var(--color-base-100) 70%, transparent);
+    --dock-edge: color-mix(in srgb, var(--color-identifier) 14%, transparent);
   }
   .on-dark {
-    --dock-ink: #e5eaf5;
-    --dock-bg: #111524;
+    --dock-ink: #e9ecf6;
+    --dock-accent: #ffd9a0;
+    --dock-glass: rgb(10 12 20 / 0.55);
+    --dock-edge: rgb(233 236 246 / 0.14);
   }
   .dock {
     display: flex;
     align-items: center;
-    gap: 0.2rem;
-    padding: 0.3rem;
-    border: 1px solid color-mix(in srgb, var(--dock-ink) 20%, transparent);
+    gap: 0.15rem;
+    padding: 0.2rem;
+    border: 1px solid var(--dock-edge);
     border-radius: 999px;
-    background: color-mix(in srgb, var(--dock-bg) 85%, transparent);
-    box-shadow: 0 8px 28px #0002;
-    backdrop-filter: blur(12px);
+    background: var(--dock-glass);
+    backdrop-filter: blur(16px) saturate(150%);
+    box-shadow:
+      0 10px 28px rgb(0 0 0 / 0.22),
+      inset 0 1px 0 rgb(255 255 255 / 0.06);
     pointer-events: auto;
   }
   button {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.45rem;
-    min-height: 44px;
-    min-width: 44px;
-    padding: 0.5rem 0.85rem;
+    gap: 0.4rem;
+    height: 2.25rem;
+    min-width: 2.25rem;
+    padding: 0 0.75rem;
     border: 0;
     border-radius: 999px;
-    color: var(--dock-ink);
+    background: transparent;
+    color: color-mix(in srgb, var(--dock-ink) 86%, transparent);
     font: inherit;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
     cursor: pointer;
-    transition: background 150ms ease;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      background-color 150ms ease,
+      color 150ms ease;
   }
-  button:hover:not(:disabled),
-  button[aria-expanded='true'],
-  button[aria-pressed='true'] {
-    background: color-mix(in srgb, var(--dock-ink) 12%, transparent);
+  /* Hover only where there is a pointer that hovers: on touch it would
+     stick after a tap and hide the real on/off state. */
+  @media (hover: hover) {
+    button:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--dock-ink) 10%, transparent);
+      color: var(--dock-ink);
+    }
+  }
+  /* On: accent text on an accent-tinted pill, with a small indicator. */
+  button[aria-pressed='true'],
+  button[aria-expanded='true'] {
+    background: color-mix(in srgb, var(--dock-accent) 18%, transparent);
+    color: var(--dock-accent);
+  }
+  button[aria-pressed='true']::after {
+    content: '';
+    position: absolute;
+    bottom: 0.2rem;
+    left: 50%;
+    width: 0.25rem;
+    height: 0.25rem;
+    margin-left: -0.125rem;
+    border-radius: 50%;
+    background: var(--dock-accent);
+  }
+  button:focus {
+    outline: none;
   }
   button:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 3px;
+    outline: 2px solid color-mix(in srgb, var(--dock-accent) 70%, transparent);
+    outline-offset: 2px;
   }
   button:disabled {
     opacity: 0.4;
     cursor: default;
   }
+  em {
+    font-style: normal;
+    font-size: 0.66rem;
+    opacity: 0.85;
+  }
   .separator {
     width: 1px;
-    height: 16px;
-    background: color-mix(in srgb, var(--dock-ink) 18%, transparent);
+    height: 14px;
+    margin-inline: 0.1rem;
+    background: var(--dock-edge);
   }
   @media (max-width: 520px) {
-    button span {
+    button span,
+    button em {
       display: none;
     }
     button {
-      padding-inline: 0.7rem;
+      width: 2.5rem;
+      height: 2.5rem;
+      padding: 0;
     }
   }
 </style>

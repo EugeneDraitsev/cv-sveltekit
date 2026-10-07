@@ -32,6 +32,8 @@ export interface FrameDesc {
     budget: number;
     info: PlanetData;
     now: number;
+    /** Surface renderer weight (0: only the orbital sphere shows). */
+    mix: number;
   } | null;
 }
 
@@ -238,13 +240,17 @@ export class Renderer {
     if (planet && frame.planet) {
       planet.update(frame.planet.view, frame.planet.budget, frame.planet.info, frame.planet.now);
       planet.writeUniform(frame.planet.data, frame.planet.view.eye, frame.planet.info.meters);
+      // Patches keep streaming in while the orbital sphere stands in, so the
+      // surface is ready when the view hands over to it.
       planet.build(this.planetTex);
-      planet.placeFlora(this.planetTex);
-      planet.drawShadows(this.planetTex);
-      planet.clearDistance();
-      planet.drawTerrain(this.hdr, this.planetTex);
-      planet.drawAtmosphere(this.hdr, this.planetTex);
-      source = planet.output!;
+      if (frame.planet.mix > 0) {
+        planet.placeFlora(this.planetTex);
+        planet.drawShadows(this.planetTex);
+        planet.clearDistance();
+        planet.drawTerrain(this.hdr, this.planetTex);
+        planet.drawAtmosphere(this.hdr, this.planetTex);
+        source = planet.output!;
+      }
     }
     const graded = source;
     for (const target of this.blooms) {

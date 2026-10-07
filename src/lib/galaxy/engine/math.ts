@@ -138,15 +138,25 @@ export function quatFromView(forward: Vec3, up: Vec3): Quat {
   return [q[0] / n, q[1] / n, q[2] / n, q[3] / n];
 }
 
-/** Shortest-arc spherical interpolation between unit quaternions. */
-export function quatSlerp(a: Quat, b: Quat, t: number): Quat {
-  let d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
-  const s = d < 0 ? -1 : 1;
+/** Dot product of two quaternions. */
+export const quatDot = (a: Quat, b: Quat) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+
+/** The same rotation with the opposite sign. */
+export const quatNeg = (q: Quat): Quat => [-q[0], -q[1], -q[2], -q[3]];
+
+/**
+ * Spherical interpolation between unit quaternions. By default it takes the
+ * shorter way round; with `shortest = false` it follows `b` exactly as
+ * given, so a caller can keep one turning direction over a whole animation.
+ */
+export function quatSlerp(a: Quat, b: Quat, t: number, shortest = true): Quat {
+  let d = quatDot(a, b);
+  const s = shortest && d < 0 ? -1 : 1;
   d *= s;
   let wa = 1 - t;
   let wb = t * s;
-  if (d < 0.9995) {
-    const theta = Math.acos(d);
+  if (Math.abs(d) < 0.9995) {
+    const theta = Math.acos(clamp(d, -1, 1));
     const sin = Math.sin(theta);
     wa = Math.sin((1 - t) * theta) / sin;
     wb = (Math.sin(t * theta) / sin) * s;
@@ -171,4 +181,34 @@ export function quatRotate(q: Quat, v: Vec3): Vec3 {
 /** Forward and up of the view a quaternion describes. */
 export function quatView(q: Quat): { forward: Vec3; up: Vec3 } {
   return { forward: quatRotate(q, [0, 0, -1]), up: quatRotate(q, [0, 1, 0]) };
+}
+
+/** Hamilton product: the rotation `b` followed by `a`. */
+export function quatMul(a: Quat, b: Quat): Quat {
+  return [
+    a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
+    a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
+    a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3],
+    a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2],
+  ];
+}
+
+/**
+ * The shortest-arc rotation taking direction `from` onto `to`. Opposite
+ * directions turn about `axis` (any perpendicular one if omitted).
+ */
+export function quatFromTo(from: Vec3, to: Vec3, axis?: Vec3): Quat {
+  const a = normalize(from);
+  const b = normalize(to);
+  const d = dot(a, b);
+  if (d < -0.999999) {
+    const k = normalize(
+      axis && Math.abs(dot(axis, a)) < 0.99 ? cross(a, cross(axis, a)) : perpendicular(a),
+    );
+    return [k[0], k[1], k[2], 0];
+  }
+  const c = cross(a, b);
+  const q: Quat = [c[0], c[1], c[2], 1 + d];
+  const n = Math.hypot(...q);
+  return [q[0] / n, q[1] / n, q[2] / n, q[3] / n];
 }

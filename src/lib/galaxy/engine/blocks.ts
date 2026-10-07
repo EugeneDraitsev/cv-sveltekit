@@ -85,6 +85,11 @@ export const PlanetBlock = uniformBlock('PlanetParams', {
   cascade1: 'vec4',
   /** depth range (radii), map size (texels), enabled, unused. */
   shadow: 'vec4',
+  /**
+   * x: weight of the surface renderer against the orbital sphere drawn
+   * beneath it (0..1), for a cross-fade between the two in flight.
+   */
+  handoff: 'vec4',
 });
 
 /** Which shadow cascade a depth-only draw renders. */
