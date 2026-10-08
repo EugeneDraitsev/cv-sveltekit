@@ -150,6 +150,29 @@ export class PlanetLayer {
     await this.flora.init();
   }
 
+  /**
+   * Free the atlas, shadow maps, targets and buffers, e.g. when `init()`
+   * failed and the engine carries on in orbit. Uniform blocks are a few
+   * hundred bytes and the backend has no call to free them.
+   */
+  destroy() {
+    const b = this.backend;
+    for (const t of [this.atlas, ...this.shadowMaps, this.depth, this.dist, this.output]) {
+      if (t) b.destroyTexture(t);
+    }
+    for (const buffer of [
+      this.grid,
+      this.indices,
+      this.patchBuffer,
+      this.jobBuffer,
+      ...this.shadowBuffers,
+    ]) {
+      b.destroyBuffer(buffer);
+    }
+    this.depth = this.dist = this.output = null;
+    this.flora.destroy();
+  }
+
   resize(width: number, height: number) {
     if (width === this.width && height === this.height) return;
     const b = this.backend;

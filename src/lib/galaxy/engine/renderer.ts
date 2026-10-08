@@ -147,7 +147,14 @@ export class Renderer {
     this.planetLoad ??= (async () => {
       if (!this.surfaceSupported) throw new Error('Planet surfaces need float render targets');
       const layer = new PlanetLayer(this.backend, this.quality);
-      await layer.init();
+      try {
+        await layer.init();
+      } catch (error) {
+        // A driver rejected a pipeline: the engine stays in orbit with this
+        // backend, so give back the atlas, shadow maps and buffers now.
+        if (!this.destroyed) layer.destroy();
+        throw error;
+      }
       // Disposed while the pipelines compiled: allocate nothing more.
       if (this.destroyed) throw new Error('Renderer was destroyed');
       layer.resize(this.width, this.height);

@@ -97,6 +97,16 @@ export class FloraLayer {
     }
   }
 
+  /** Free the placement targets and plant meshes (the backend outlives us). */
+  destroy() {
+    const b = this.backend;
+    b.destroyTexture(this.placeA);
+    b.destroyTexture(this.placeB);
+    for (const { buffer } of this.meshes.values()) b.destroyBuffer(buffer);
+    b.destroyBuffer(this.grassMesh.buffer);
+    this.meshes.clear();
+  }
+
   async init() {
     const [place, draw, shadow] = await Promise.all([
       this.backend.createPipeline(floraPlacementProgram()),
