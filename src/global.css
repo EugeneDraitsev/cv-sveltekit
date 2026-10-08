@@ -244,13 +244,15 @@ body {
   visibility: hidden;
 }
 
+/* Light theme: the renderer prints the galaxy like a risograph in riso blue,
+   fluorescent pink and yellow; the stand-in uses the same three inks. */
 [data-theme='light'] .galaxy-backdrop {
-  --bd-star: rgb(40 50 110 / 0.3);
-  --bd-star-warm: rgb(150 90 40 / 0.28);
-  --bd-star-blue: rgb(50 70 160 / 0.28);
-  --bd-core: rgb(170 92 40 / 0.45);
-  --bd-core-edge: rgb(170 92 40 / 0.14);
-  --bd-disk: rgb(60 80 170 / 0.12);
+  --bd-star: rgb(0 120 191 / 0.45);
+  --bd-star-warm: rgb(255 72 176 / 0.4);
+  --bd-star-blue: rgb(0 120 191 / 0.35);
+  --bd-core: rgb(255 150 0 / 0.55);
+  --bd-core-edge: rgb(255 72 176 / 0.2);
+  --bd-disk: rgb(0 120 191 / 0.16);
   --bd-dust: rgb(255 255 255 / 0.5);
   mask-image: none;
 }

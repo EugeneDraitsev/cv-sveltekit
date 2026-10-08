@@ -1461,7 +1461,9 @@ export class Engine {
     const orbitExposure = inPlanet ? 1.6 / 2.6 : 1;
     const exposure = this.settings.exposure * lerp(orbitExposure, surfaceExposure, surfaceWeight);
     this.postData
-      .set('viewport', w, h, this.time, 0)
+      // w: render pixels per CSS pixel, so the light theme's print grain
+      // has the same physical size on every screen.
+      .set('viewport', w, h, this.time, w / Math.max(1, this.cssWidth))
       .set('look', exposure, this.settings.bloom, lightMix, 0)
       .vec('paper', PAPER[this.theme], 0.36)
       .vec('ink', INK, this.theme === 'dark' ? 1 : 0);

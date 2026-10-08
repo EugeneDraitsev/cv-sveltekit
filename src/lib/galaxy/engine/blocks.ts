@@ -118,7 +118,7 @@ export const FloraDrawBlock = uniformBlock('FloraDraw', {
 });
 
 export const PostBlock = uniformBlock('PostParams', {
-  /** HDR target width, height, time, unused. */
+  /** HDR target width, height, time, render pixels per CSS pixel. */
   viewport: 'vec4',
   /** exposure, bloom strength, light-theme mix, unused. */
   look: 'vec4',
