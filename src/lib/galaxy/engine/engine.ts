@@ -66,6 +66,12 @@ function starLight(star: { color: [number, number, number]; luminosity: number }
 /** Galaxy units out to where the disk's glow fades (its sites reach ~13). */
 const GALAXY_DISK_RADIUS = 13;
 const FLIGHT_SECONDS = 3.2;
+/**
+ * Turn rates per unit of the rotation setting (radians a second): the disk,
+ * and the deep sky behind it at under half that, so the two drift apart.
+ */
+const GALAXY_TURN = 0.026;
+const SKY_TURN = 0.012;
 /** From a planet's orbit out to the whole system: a ~25× change of scale. */
 const ORBIT_EXIT_SECONDS = 3.6;
 const LANDING_SECONDS = 5.6;
@@ -133,6 +139,11 @@ export class Engine {
   private time = 0;
   private systemTime = 0;
   private angle = 0;
+  /** The deep sky's turn about its tilted axis (radians). */
+  private skyAngle = 0;
+  /** The galaxy camera's idle float: its own clock, and how much of it shows (0..1). */
+  private floatTime = 0;
+  private floatWeight = 0;
   private timeLapse = false;
   /** The planet surface pipelines could not be built on this GPU. */
   private surfaceFailed = false;
@@ -1146,6 +1157,26 @@ export class Engine {
     return interacting || this.mode === 'planet' ? 60 : this.mode === 'galaxy' ? 30 : 45;
   }
 
+  /**
+   * In the galaxy view the camera floats a little over a minute or two: it
+   * tilts and leans, so the disk shifts against the turning sky. It never
+   * swings about the disk's axis, where it would add to or cancel the disk's
+   * own spin and make the galaxy seem to speed up and stall. It fades out for
+   * flights and the other views (a flight back to the galaxy ends on the bare
+   * orbit pose) and only fades in while playing, so a paused or reduced-motion
+   * view never moves on its own.
+   */
+  private floatGalaxy(dt: number) {
+    const target = this.mode === 'galaxy' && !this.flight ? 1 : 0;
+    if (target < this.floatWeight || this.playing) {
+      this.floatWeight += (target - this.floatWeight) * damp(target ? 0.4 : 3, dt);
+    }
+    const t = this.floatTime;
+    this.galaxyRig.drift.pitch =
+      this.floatWeight * (0.035 * Math.sin(t * 0.083 + 0.6) + 0.015 * Math.sin(t * 0.031 + 2.1));
+    this.galaxyRig.drift.roll = this.floatWeight * 0.02 * Math.sin(t * 0.057 + 1.1);
+  }
+
   private tick(now: number) {
     this.raf = 0;
     if (!this.visible) {
@@ -1171,12 +1202,17 @@ export class Engine {
     const dt = Math.min(elapsed, 0.05);
     if (this.playing || this.mode === 'planet') {
       this.time += dt;
-      if (this.mode === 'galaxy' && !this.flight) this.angle += dt * this.settings.rotation * 0.026;
+      if (this.mode === 'galaxy' && !this.flight) {
+        this.angle += dt * this.settings.rotation * GALAXY_TURN;
+        this.skyAngle += dt * this.settings.rotation * SKY_TURN;
+        this.floatTime += dt;
+      }
       // Time-lapse is a surface feature: in orbit it would whirl the moons.
       const lapse = this.timeLapse && this.mode === 'planet' && !this.flight;
       if (this.state) this.systemTime += dt * (lapse ? 40 : 1);
     }
     this.state?.update(this.systemTime);
+    this.floatGalaxy(dt);
     if (this.flight) {
       // Flights follow wall time so a slow GPU cannot stretch them.
       this.updateFlight(Math.min(elapsed, 0.1));
@@ -1443,7 +1479,7 @@ export class Engine {
         presence * (1 - daylight),
       )
       .set('focus', focus[0], focus[1], focus[2], this.site ? presence : 0)
-      .set('adapt', (1 - presence * 0.94) * (1 - daylight), 1, 0, 0);
+      .set('adapt', (1 - presence * 0.94) * (1 - daylight), 1, this.skyAngle, 0);
     // Exposure follows the sun itself (airless worlds have a black sky but a
     // harshly lit ground) and opens up at night like dark-adapted eyes.
     // Surface exposure fades back to the space value with altitude, so the

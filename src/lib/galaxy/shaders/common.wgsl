@@ -65,6 +65,13 @@ fn rotateY(p: vec3f, a: f32) -> vec3f {
   return vec3f(c * p.x - s * p.z, p.y, s * p.x + c * p.z);
 }
 
+// Rodrigues: turn p by angle a about the unit axis k.
+fn rotateAxis(p: vec3f, k: vec3f, a: f32) -> vec3f {
+  let c: f32 = cos(a);
+  let s: f32 = sin(a);
+  return p * c + cross(k, p) * s + k * (dot(k, p) * (1.0 - c));
+}
+
 fn luminance(c: vec3f) -> f32 {
   return dot(c, vec3f(0.2126, 0.7152, 0.0722));
 }
