@@ -75,6 +75,17 @@ body {
    zoomed-image overlay (position: fixed) then opens inside the section
    instead of over the page. The image sizes below carry the page weight. */
 
+/* Where the hero's dark band ends under the nav: the content card's top,
+   less the nav's height (see navOverHero in the layout). */
+.hero-nav-marker {
+  position: absolute;
+  left: 0;
+  top: calc(100% - var(--galaxy-inset-bottom) - var(--galaxy-inset-top));
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
 .nav-active-indicator {
   @apply pointer-events-none absolute bottom-0 left-0 h-px bg-identifier;
   transition:
@@ -130,7 +141,26 @@ body {
   position: relative;
   min-height: var(--galaxy-height);
   overflow: hidden;
-  background: var(--color-base-100);
+  background: var(--galaxy-bg, var(--color-base-100));
+}
+
+/* Space stays dark in the light theme too. The hero and its stand-in keep the
+   dark palette (so does the nav while it floats over them) and fade into the
+   white page at the bottom, where the canvas fades out as well. */
+[data-theme='light'] :is(.galaxy-app, .galaxy-placeholder, nav.over-hero) {
+  --color-constant: #d694f9;
+  --color-declaration: #ffc66d;
+  --color-string: #a4c591;
+  --color-identifier: #d1d1d1;
+  --color-keyword: #cc7832;
+  --color-number: #9fd6ff;
+  --color-background: #424242;
+  --color-base-100: #121212;
+  --color-base-200: #1e1e1e;
+  --color-base-300: #484848;
+  --color-primary: #ffc66d;
+  --color-secondary: #d694f9;
+  --galaxy-bg: linear-gradient(to bottom, #121212 80%, #fff);
 }
 
 .galaxy-backdrop {
@@ -244,19 +274,6 @@ body {
   visibility: hidden;
 }
 
-/* Light theme: the renderer prints the galaxy like a risograph in riso blue,
-   fluorescent pink and yellow; the stand-in uses the same three inks. */
-[data-theme='light'] .galaxy-backdrop {
-  --bd-star: rgb(0 120 191 / 0.45);
-  --bd-star-warm: rgb(255 72 176 / 0.4);
-  --bd-star-blue: rgb(0 120 191 / 0.35);
-  --bd-core: rgb(255 150 0 / 0.55);
-  --bd-core-edge: rgb(255 72 176 / 0.2);
-  --bd-disk: rgb(0 120 191 / 0.16);
-  --bd-dust: rgb(255 255 255 / 0.5);
-  mask-image: none;
-}
-
 /* Start-up progress under the silhouette: a hairline bar and a short label.
    Small text only, so it never competes for LCP. Without a value the bar
    sweeps (the renderer chunk is still downloading). */
@@ -344,11 +361,6 @@ body {
 .galaxy-app.shown .galaxy-loader {
   opacity: 0;
   visibility: hidden;
-}
-
-[data-theme='light'] .galaxy-loader {
-  --loader-ink: rgb(43 45 48 / 0.6);
-  --loader-track: rgb(43 45 48 / 0.12);
 }
 
 @media (max-width: 768px) {

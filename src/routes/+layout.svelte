@@ -99,6 +99,20 @@
     return () => observer.disconnect();
   });
 
+  // The hero is dark in both themes: while the fixed nav floats over its dark
+  // band (until the content card reaches the nav), the nav takes the dark
+  // palette too. A marker at the end of that band tells when it has passed.
+  let navMarker = $state<HTMLElement>();
+  let navOverHero = $state(true);
+  $effect(() => {
+    if (!navMarker) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      navOverHero = entry.isIntersecting || entry.boundingClientRect.top > 0;
+    });
+    observer.observe(navMarker);
+    return () => observer.disconnect();
+  });
+
   /** Run when the main thread is idle (or soon, where idle callbacks are missing). */
   function whenIdle(callback: () => void): number {
     return typeof requestIdleCallback === 'function'
@@ -192,6 +206,7 @@
 <nav
   aria-label="Primary"
   class="fixed top-0 z-10 w-full bg-linear-to-br from-background/30 to-indigo-900/20 backdrop-blur-[1px]"
+  class:over-hero={navOverHero}
 >
   <div class="mx-auto flex max-w-325 items-center justify-between px-6 py-1 text-identifier">
     <div bind:this={tabsElement} class="nav-tabs relative flex gap-4 pb-1">
@@ -214,7 +229,8 @@
   </div>
 </nav>
 
-<div bind:this={galaxyRegion}>
+<div bind:this={galaxyRegion} class="relative">
+  <span bind:this={navMarker} class="hero-nav-marker" aria-hidden="true"></span>
   {#if galaxyAllowed && GalaxyHero}
     <GalaxyHero />
   {:else}

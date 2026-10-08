@@ -22,7 +22,6 @@ import {
   type HudInfo,
   type Mode,
   type Settings,
-  type Theme,
   type ToEngine,
   type TouchFlight,
 } from './protocol';
@@ -46,11 +45,12 @@ import { terrainHeight } from '../world/terrain';
 type Post = (message: FromEngine) => void;
 type Frame = 'G' | 'S' | 'P';
 
-const PAPER: Record<Theme, [number, number, number]> = {
-  dark: [0.0706, 0.0706, 0.0706],
-  light: [1, 1, 1],
-};
-const INK: [number, number, number] = [0.04, 0.07, 0.3];
+/**
+ * The dark page colour (--color-base-100), which space's black is lifted to so
+ * the hero has no seam. Space is drawn the same in both themes; in the light
+ * one the page CSS keeps the hero dark and fades it into white below.
+ */
+const PAGE: [number, number, number] = [0.0706, 0.0706, 0.0706];
 
 /**
  * Light a star casts, in renderer units. Red dwarfs are lifted toward the
@@ -125,7 +125,6 @@ export class Engine {
   private cssHeight = 1;
   private dpr = 1;
   private adaptive = 1;
-  private theme: Theme = 'dark';
   private reducedMotion = false;
   private visible = true;
   private playing = true;
@@ -212,7 +211,6 @@ export class Engine {
 
   async init(message: Extract<ToEngine, { type: 'init' }>) {
     this.hints = message.hints;
-    this.theme = message.theme;
     this.reducedMotion = message.reducedMotion;
     this.playing = !message.reducedMotion;
     this.cssWidth = message.width;
@@ -341,8 +339,7 @@ export class Engine {
         this.kick();
         break;
       case 'theme':
-        this.theme = message.theme;
-        this.kick();
+        // Space looks the same in both themes (see PAGE).
         break;
       case 'playing':
         this.playing = message.playing;
@@ -1384,7 +1381,6 @@ export class Engine {
     const eyeG = this.galaxyEye();
     const focus = this.starInGalaxy();
     this.writeMarkers(presence, this.site?.index ?? -1);
-    const lightMix = (this.theme === 'light' ? 1 : 0) * (1 - presence);
     const tanHalf = Math.tan((viewPose.fov * Math.PI) / 360);
 
     let planetFrame = null;
@@ -1451,7 +1447,7 @@ export class Engine {
         presence * (1 - daylight),
       )
       .set('focus', focus[0], focus[1], focus[2], this.site ? presence : 0)
-      .set('adapt', (1 - presence * 0.94) * (1 - daylight), 1 - lightMix * 0.6, 0, 0);
+      .set('adapt', (1 - presence * 0.94) * (1 - daylight), 1, 0, 0);
     // Exposure follows the sun itself (airless worlds have a black sky but a
     // harshly lit ground) and opens up at night like dark-adapted eyes.
     // Surface exposure fades back to the space value with altitude, so the
@@ -1461,12 +1457,9 @@ export class Engine {
     const orbitExposure = inPlanet ? 1.6 / 2.6 : 1;
     const exposure = this.settings.exposure * lerp(orbitExposure, surfaceExposure, surfaceWeight);
     this.postData
-      // w: render pixels per CSS pixel, so the light theme's print grain
-      // has the same physical size on every screen.
-      .set('viewport', w, h, this.time, w / Math.max(1, this.cssWidth))
-      .set('look', exposure, this.settings.bloom, lightMix, 0)
-      .vec('paper', PAPER[this.theme], 0.36)
-      .vec('ink', INK, this.theme === 'dark' ? 1 : 0);
+      .set('viewport', w, h, this.time, 0)
+      .set('look', exposure, this.settings.bloom, 0, 0)
+      .vec('paper', PAGE, 0.36);
     this.renderer.render({
       galaxy: this.galaxyData,
       volume: daylight < 0.98,

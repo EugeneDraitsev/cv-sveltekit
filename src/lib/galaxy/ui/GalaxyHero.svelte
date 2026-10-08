@@ -641,7 +641,8 @@
     z-index: 0;
     height: var(--galaxy-height);
     overflow: hidden;
-    background: var(--color-base-100);
+    /* The light theme fades the dark hero into the page (global.css). */
+    background: var(--galaxy-bg, var(--color-base-100));
     transition: height 220ms ease;
   }
   .galaxy-app.expanded {
