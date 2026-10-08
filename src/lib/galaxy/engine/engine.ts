@@ -645,7 +645,9 @@ export class Engine {
     this.hover = null;
     const star = this.starInGalaxy();
     const from = this.galaxyRig.pose();
-    this.galaxyReturn = from;
+    // The way back ends on the rig's own pose: the float has faded out by
+    // then, so the orbit picks up exactly where the flight stops.
+    this.galaxyReturn = this.galaxyRig.pose(false);
     const local: Pose = { ...from, eye: scale(sub(from.eye, star), 1 / this.k) };
     this.systemRig.minDistance = 3;
     this.systemRig.maxDistance = this.system!.extent * 4;

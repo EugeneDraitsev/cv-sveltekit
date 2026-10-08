@@ -167,13 +167,15 @@ export class OrbitRig {
     );
   }
 
-  pose(): Pose {
+  /** The pose shown; `withDrift: false` gives the rig's own, without the idle float. */
+  pose(withDrift = true): Pose {
+    const drift = withDrift ? this.drift : { pitch: 0, roll: 0 };
     const pose = orbitPose(
       this.target,
       this.yaw,
-      this.pitch + this.drift.pitch,
+      this.pitch + drift.pitch,
       this.distance,
-      this.roll + this.drift.roll,
+      this.roll + drift.roll,
       this.fov,
     );
     if (!this.disk) return pose;
