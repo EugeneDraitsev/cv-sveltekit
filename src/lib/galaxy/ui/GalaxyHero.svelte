@@ -278,9 +278,14 @@
    * Messages sent before the host existed (theme, pause, Tune, resizes while
    * the engine chunk was still loading) were dropped: bring it up to date.
    */
+  /** The canvas is a little taller than the hero (see --frame-shift). */
+  function frameBox() {
+    return (canvas ?? root)!.getBoundingClientRect();
+  }
+
   function syncHost() {
     if (!host || !root) return;
-    const box = root.getBoundingClientRect();
+    const box = frameBox();
     host.send({ type: 'resize', width: box.width, height: box.height, dpr: devicePixelRatio || 1 });
     host.send({ type: 'visibility', visible: intersecting && !document.hidden });
     host.send({ type: 'theme', theme: themeStore.theme === 'light' ? 'light' : 'dark' });
@@ -292,7 +297,7 @@
   function launch(renderer: 'auto' | 'webgl') {
     if (!canvas || !root) return;
     lastRenderer = renderer;
-    const rect = root.getBoundingClientRect();
+    const rect = frameBox();
     canvas.addEventListener('wheel', onWheel, { passive: false });
     startGalaxy({
       canvas,
@@ -368,8 +373,9 @@
   onMount(() => {
     if (!canvas || !root) return;
     launch('auto');
-    const resize = new ResizeObserver(([entry]) => {
-      const box = entry.contentRect;
+    // The hero's box drives the canvas's, which is what the engine renders.
+    const resize = new ResizeObserver(() => {
+      const box = frameBox();
       send({
         type: 'resize',
         width: box.width,
@@ -625,6 +631,12 @@
 <style>
   /* Own stacking context: overlays stay inside the hero, under the fixed nav. */
   .galaxy-app {
+    /* The scene's middle belongs in the middle of what is visible between
+       the nav and the content, not of the whole box: the canvas (and the HUD
+       drawn in its coordinates) grows by the difference and shifts to match. */
+    --frame-shift: calc(var(--galaxy-inset-bottom) - var(--galaxy-inset-top));
+    --frame-top: min(0px, calc(-1 * var(--frame-shift)));
+    --frame-height: calc(100% + max(var(--frame-shift), calc(-1 * var(--frame-shift))));
     position: relative;
     z-index: 0;
     height: var(--galaxy-height);
@@ -637,9 +649,10 @@
   }
   .galaxy-canvas {
     position: absolute;
-    inset: 0;
+    left: 0;
+    top: var(--frame-top);
     width: 100%;
-    height: 100%;
+    height: var(--frame-height);
     opacity: 0;
     transition: opacity 900ms ease;
     touch-action: pan-y;

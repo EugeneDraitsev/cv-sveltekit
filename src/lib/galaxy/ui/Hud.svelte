@@ -82,9 +82,13 @@
 </div>
 
 <style>
+  /* Positions come in canvas pixels: share the canvas frame (GalaxyHero). */
   .hud-layer {
     position: absolute;
-    inset: 0;
+    left: 0;
+    right: 0;
+    top: var(--frame-top, 0);
+    height: var(--frame-height, 100%);
     overflow: hidden;
     pointer-events: none;
     z-index: 4;

@@ -50,6 +50,55 @@ export function orbitPose(
   };
 }
 
+/**
+ * Perspective draws the near half of a tilted disk larger, so a view aimed at
+ * its centre leaves it sitting low (and to one side) in the frame. Slide the
+ * camera parallel to the screen until the projected rim of the disk
+ * (`radius` around `centre`, level with it) is centred: `wx` and `wy` of the
+ * way across and up. The view still turns around the disk's centre.
+ */
+export function centreDisk(
+  pose: Pose,
+  centre: Vec3,
+  radius: number,
+  aspect: number,
+  wx = 1,
+  wy = wx,
+): Pose {
+  if (wx <= 0 && wy <= 0) return pose;
+  const b = poseBasis(pose);
+  const tanHalf = Math.tan((pose.fov * Math.PI) / 360);
+  let eye = pose.eye;
+  // The rim points sit at different depths: a second pass settles the shift.
+  // Both passes find the full shift; the weights scale the result once.
+  for (let pass = 0; pass < 2; pass++) {
+    let x0 = Infinity;
+    let x1 = -Infinity;
+    let y0 = Infinity;
+    let y1 = -Infinity;
+    for (let i = 0; i < 48; i++) {
+      const a = (i / 48) * Math.PI * 2;
+      const rim: Vec3 = [Math.cos(a) * radius, 0, Math.sin(a) * radius];
+      const rel = sub(add(centre, rim), eye);
+      const z = dot(rel, b.forward);
+      // Part of the rim is beside or behind the camera: nothing to centre.
+      if (z < radius * 0.25) return pose;
+      x0 = Math.min(x0, dot(rel, b.right) / (z * tanHalf * aspect));
+      x1 = Math.max(x1, dot(rel, b.right) / (z * tanHalf * aspect));
+      y0 = Math.min(y0, dot(rel, b.up) / (z * tanHalf));
+      y1 = Math.max(y1, dot(rel, b.up) / (z * tanHalf));
+    }
+    const depth = dot(sub(centre, eye), b.forward);
+    const dx = ((x0 + x1) / 2) * depth * tanHalf * aspect;
+    const dy = ((y0 + y1) / 2) * depth * tanHalf;
+    eye = add(eye, add(scale(b.right, dx), scale(b.up, dy)));
+  }
+  const shift = sub(eye, pose.eye);
+  const across = scale(b.right, dot(shift, b.right) * wx);
+  const up = scale(b.up, dot(shift, b.up) * wy);
+  return { ...pose, eye: add(pose.eye, add(across, up)) };
+}
+
 /** An orbit rig around a target: drag to rotate, wheel / pinch to zoom. */
 export class OrbitRig {
   target: Vec3 = [0, 0, 0];
@@ -63,6 +112,11 @@ export class OrbitRig {
   maxDistance = 100;
   /** Follow a moving point (e.g. an orbiting planet). */
   follow: (() => Vec3) | null = null;
+  /**
+   * Frame a disk around the target by its outline rather than its centre
+   * (see centreDisk); fades out as the camera closes in on it.
+   */
+  disk: { radius: number; aspect: number } | null = null;
 
   set(values: Partial<OrbitRig['want']>, snap = false) {
     Object.assign(this.want, values);
@@ -109,7 +163,13 @@ export class OrbitRig {
   }
 
   pose(): Pose {
-    return orbitPose(this.target, this.yaw, this.pitch, this.distance, this.roll, this.fov);
+    const pose = orbitPose(this.target, this.yaw, this.pitch, this.distance, this.roll, this.fov);
+    if (!this.disk) return pose;
+    const { radius, aspect } = this.disk;
+    const weight = clamp((this.distance / radius - 1.4) / 0.8, 0, 1);
+    // The far side of a galaxy's disk fades out well inside its rim: centring
+    // the full outline lifts the visible glow too high (measured on renders).
+    return centreDisk(pose, this.target, radius, aspect, weight, weight * 0.6);
   }
 
   /** Adopt an arbitrary pose (e.g. the end of a flight) as orbit parameters. */

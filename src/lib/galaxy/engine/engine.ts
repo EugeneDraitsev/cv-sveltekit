@@ -64,6 +64,8 @@ function starLight(star: { color: [number, number, number]; luminosity: number }
     Math.pow(0.8 / Math.max(0.5, 0.2126 * r + 0.7152 * g + 0.0722 * b), 0.7);
   return [r * k, g * k, b * k];
 }
+/** Galaxy units out to where the disk's glow fades (its sites reach ~13). */
+const GALAXY_DISK_RADIUS = 13;
 const FLIGHT_SECONDS = 3.2;
 /** From a planet's orbit out to the whole system: a ~25× change of scale. */
 const ORBIT_EXIT_SECONDS = 3.6;
@@ -278,6 +280,7 @@ export class Engine {
     this.backend = backend;
     this.renderer = renderer;
     this.running = true;
+    this.frameDisk();
     this.frameGalaxy(true);
     this.camera.pose = this.galaxyRig.pose();
     this.post({ type: 'ready', backend: backend.kind, info: backend.adapterInfo });
@@ -310,6 +313,14 @@ export class Engine {
     this.galaxyRig.set({ distance: 34 * this.framingScale() }, snap);
   }
 
+  /** Centre the galaxy by its outline, which perspective pulls low. */
+  private frameDisk() {
+    this.galaxyRig.disk = {
+      radius: GALAXY_DISK_RADIUS,
+      aspect: this.cssWidth / Math.max(1, this.cssHeight),
+    };
+  }
+
   handle(message: ToEngine) {
     // Nothing to drive if init handed the canvas back for a WebGL2 restart.
     if (!this.running) return;
@@ -318,6 +329,7 @@ export class Engine {
         this.cssWidth = message.width;
         this.cssHeight = message.height;
         this.dpr = message.dpr;
+        this.frameDisk();
         if (this.mode === 'galaxy' && !this.flight) this.frameGalaxy();
         this.kick();
         break;

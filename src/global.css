@@ -31,6 +31,14 @@
 html {
   scrollbar-gutter: auto;
   --galaxy-height: 540px;
+  /* The fixed nav covers the top of the hero and every page pulls its content
+     up over the bottom (mt-[-72px]): the scene is framed in between. */
+  --galaxy-inset-top: 40px;
+  --galaxy-inset-bottom: 72px;
+  /* Resolved where used: the middle of that visible band, as a `top`. */
+  --galaxy-middle: calc(
+    var(--galaxy-inset-top) + (100% - var(--galaxy-inset-top) - var(--galaxy-inset-bottom)) / 2
+  );
 }
 
 html.has-scrollbar {
@@ -132,6 +140,10 @@ body {
   --bd-core-edge: rgb(255 196 130 / 0.22);
   --bd-disk: rgb(132 150 214 / 0.2);
   --bd-dust: rgb(18 18 18 / 0.35);
+  --bd-disk-width: min(
+    79vw,
+    (var(--galaxy-height) - var(--galaxy-inset-top) - var(--galaxy-inset-bottom)) * 1.37
+  );
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -165,15 +177,18 @@ body {
     visibility 0s linear 900ms;
 }
 
-/* The disk: a tilted, softly lit ellipse with a faint dust lane. */
+/* The disk: a tilted, softly lit ellipse with a faint dust lane. It matches
+   the renderer's opening view (the projected disk is tilted 11.6° down to the
+   right, 2.13 times as wide as tall, framed by height on wide screens and by
+   width on narrow ones), so the first frame takes its place without a jump. */
 .galaxy-backdrop::before {
   content: '';
   position: absolute;
   left: 50%;
-  top: 46%;
-  width: clamp(300px, 72%, 820px);
-  aspect-ratio: 2.4;
-  transform: translate(-50%, -50%) rotate(-13deg);
+  top: var(--galaxy-middle);
+  width: var(--bd-disk-width);
+  aspect-ratio: 2.13;
+  transform: translate(-50%, -50%) rotate(11.6deg);
   border-radius: 50%;
   background:
     radial-gradient(ellipse 30% 30% at 50% 50%, var(--bd-core-edge), transparent 70%),
@@ -186,15 +201,17 @@ body {
     radial-gradient(ellipse 50% 50% at 50% 50%, var(--bd-disk), transparent 72%);
 }
 
-/* The bulge: a warm core that breathes while the renderer starts. */
+/* The bulge: a warm core that breathes while the renderer starts. Like the
+   rendered one it sits above the disk's middle, by a tenth of the disk's
+   height: the near half of a tilted disk looks larger. */
 .galaxy-backdrop::after {
   content: '';
   position: absolute;
   left: 50%;
-  top: 46%;
+  top: calc(var(--galaxy-middle) - var(--bd-disk-width) * 0.047);
   width: clamp(64px, 15%, 170px);
   aspect-ratio: 1.6;
-  transform: translate(-50%, -50%) rotate(-13deg);
+  transform: translate(-50%, -50%) rotate(11.6deg);
   border-radius: 50%;
   background: radial-gradient(
     ellipse closest-side,
@@ -245,7 +262,7 @@ body {
   --loader-track: rgb(233 236 246 / 0.12);
   position: absolute;
   left: 50%;
-  top: calc(46% + 4.6rem);
+  top: calc(var(--galaxy-middle) + 4.6rem);
   z-index: 3;
   display: flex;
   flex-direction: column;
