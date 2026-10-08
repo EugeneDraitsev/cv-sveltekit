@@ -74,7 +74,7 @@
     },
     {
       title: 'September 30: Galaxy Store and Shipaton',
-      text: 'Galaxy Store approved version 1.0.1, and the game went in to RevenueCat Shipaton 2026 for the Best Game, RevenueCat Design and Best App for Galaxy awards.',
+      text: 'Galaxy Store approved version 1.0.1, and the game was entered in RevenueCat Shipaton 2026 for the Best Game, RevenueCat Design and Best App for Galaxy awards.',
     },
     {
       title: 'October: the Mac App Store and the Wishing Well',
