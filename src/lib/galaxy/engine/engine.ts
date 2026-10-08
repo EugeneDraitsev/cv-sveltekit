@@ -264,7 +264,15 @@ export class Engine {
       this.quality = withPreset(this.deviceQuality, this.settings.quality);
       renderer = new Renderer(backend, this.deviceQuality);
       progress(0.3, 'Compiling shaders');
-      await renderer.init(compiled);
+      try {
+        await renderer.init(compiled);
+      } catch (error) {
+        if (this.abandoned(backend, renderer)) return;
+        // Nothing left to fall back to: free the context, pipelines and
+        // targets built so far before the error is reported.
+        renderer.destroy();
+        throw error;
+      }
       if (this.abandoned(backend, renderer)) return;
     }
     this.backend = backend;

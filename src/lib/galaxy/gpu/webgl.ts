@@ -53,6 +53,8 @@ const VERTEX_FORMATS: Record<VertexFormat, { size: number; type: number; normali
 export class WebGlBackend implements Backend {
   readonly kind = 'webgl2' as const;
   lost = false;
+  /** destroy() drops the context on purpose: that loss is not an error. */
+  private destroyed = false;
   readonly floatTargets: boolean;
   readonly floatBlend: boolean;
   /** Per-attachment blend state (OES_draw_buffers_indexed), when available. */
@@ -111,7 +113,7 @@ export class WebGlBackend implements Backend {
     canvas.addEventListener('webglcontextlost', ((event: Event) => {
       event.preventDefault();
       backend.lost = true;
-      onLost('WebGL context lost');
+      if (!backend.destroyed) onLost('WebGL context lost');
     }) as EventListener);
     return backend;
   }
@@ -468,6 +470,7 @@ export class WebGlBackend implements Backend {
   }
 
   destroy() {
+    this.destroyed = true;
     for (const fb of this.framebuffers.values()) this.gl.deleteFramebuffer(fb);
     this.framebuffers.clear();
     this.gl.getExtension('WEBGL_lose_context')?.loseContext();
