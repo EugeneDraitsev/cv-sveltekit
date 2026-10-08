@@ -399,11 +399,10 @@
     background: #050807;
   }
 
+  /* Zoomed out to show the desktop layout. Zoom, unlike a scale transform, carries
+     into the frame, so the scene is drawn at the size it is shown and stays sharp. */
   .scene-viewport.desktop-overview iframe {
-    width: 150%;
-    height: 150%;
-    transform: scale(0.6667);
-    transform-origin: top left;
+    zoom: 0.6667;
   }
 
   /* One loader from the click until the scene's first clean frame. */
@@ -728,9 +727,7 @@
     }
 
     .scene-viewport.desktop-overview iframe {
-      width: 100%;
-      height: 100%;
-      transform: none;
+      zoom: 1;
     }
   }
 </style>
