@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from 'svelte';
-  import themeStore from '$lib/stores/theme.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import { startGalaxy, type GalaxyHost } from '../host';
   import {
@@ -275,7 +274,7 @@
   }
 
   /**
-   * Messages sent before the host existed (theme, pause, Tune, resizes while
+   * Messages sent before the host existed (pause, Tune, resizes while
    * the engine chunk was still loading) were dropped: bring it up to date.
    */
   /** The canvas is a little taller than the hero (see --frame-shift). */
@@ -288,7 +287,6 @@
     const box = frameBox();
     host.send({ type: 'resize', width: box.width, height: box.height, dpr: devicePixelRatio || 1 });
     host.send({ type: 'visibility', visible: intersecting && !document.hidden });
-    host.send({ type: 'theme', theme: themeStore.theme === 'light' ? 'light' : 'dark' });
     host.send({ type: 'playing', playing });
     host.send({ type: 'settings', settings: { ...settings } });
     if (showSystems && !catalog) host.send({ type: 'catalog' });
@@ -303,7 +301,6 @@
       canvas,
       width: rect.width,
       height: rect.height,
-      theme: themeStore.theme === 'light' ? 'light' : 'dark',
       reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
       renderer,
       onMessage,
@@ -414,10 +411,6 @@
       touchQuery.removeEventListener('change', syncTouch);
       if (hookHost.galaxyHook === hook) delete hookHost.galaxyHook;
     };
-  });
-
-  $effect(() => {
-    send({ type: 'theme', theme: themeStore.theme === 'light' ? 'light' : 'dark' });
   });
 
   $effect(() => {

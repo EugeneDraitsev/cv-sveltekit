@@ -1,17 +1,12 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
-  import themeStore from '$lib/stores/theme.svelte';
-  import type { Theme } from '$lib/stores/theme.svelte';
-  import { getGalaxyColorPalette } from '$lib/galaxyPalette';
-
   type ColorTuple = [number, number, number];
-  type FooterShaderColors = {
-    galaxyInside: ColorTuple;
-    galaxyOutside: ColorTuple;
-    nebulaInside: ColorTuple;
-    nebulaOutside: ColorTuple;
+  type FooterColors = {
     base: ColorTuple;
-    isLight: number;
+    dust: ColorTuple;
+    cool: ColorTuple;
+    mist: ColorTuple;
+    warm: ColorTuple;
+    hot: ColorTuple;
   };
 
   let { active = false } = $props<{ active?: boolean }>();
@@ -21,13 +16,20 @@
   let touchReleaseTimer: ReturnType<typeof setTimeout> | undefined;
   const trailLength = 16;
   const trail = Array.from({ length: trailLength }, () => ({ x: 0.5, y: 0.5 }));
-  let colors: FooterShaderColors = {
-    galaxyInside: [0.04, 0.11, 0.58],
-    galaxyOutside: [0.76, 0.77, 0.85],
-    nebulaInside: [0.04, 0.11, 0.58],
-    nebulaOutside: [0.76, 0.77, 0.85],
+
+  /** Brightness ramp first, then the two glyphs the cursor decodes cells into. */
+  const GLYPHS = ' .:-=+*#%@01';
+  const RAMP = 10;
+  /** One character cell, in CSS pixels. */
+  const CELL = { width: 6, height: 11 };
+
+  let colors: FooterColors = {
     base: [0.07, 0.07, 0.07],
-    isLight: 0,
+    dust: [0.82, 0.82, 0.82],
+    cool: [0.62, 0.84, 1],
+    mist: [0.84, 0.58, 0.98],
+    warm: [0.8, 0.47, 0.2],
+    hot: [1, 0.78, 0.43],
   };
 
   const vertexShaderSource = `
@@ -38,18 +40,35 @@
     }
   `;
 
+  // The page ends the way a source file would: in monospace. A ringed gas
+  // giant turns over a drifting nebula, all drawn with characters coloured
+  // like the site's syntax highlighting. Every pixel finds its character
+  // cell, evaluates the scene once at the cell's centre and copies the
+  // matching glyph out of a pixel-exact atlas.
   const fragmentShaderSource = `
+    // Glyph texels come from gl_FragCoord: mediump stops counting whole pixels
+    // past ~1024, so take highp where the GPU has it (resize() keeps the canvas
+    // small enough where it does not).
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    #else
     precision mediump float;
+    #endif
 
     uniform vec2 uResolution;
     uniform float uTime;
     uniform vec3 uTrail[16];
-    uniform vec3 uGalaxyInside;
-    uniform vec3 uGalaxyOutside;
-    uniform vec3 uNebulaInside;
-    uniform vec3 uNebulaOutside;
+    uniform vec2 uCell;
+    uniform sampler2D uAtlas;
     uniform vec3 uBase;
-    uniform float uIsLight;
+    uniform vec3 uDust;
+    uniform vec3 uCool;
+    uniform vec3 uMist;
+    uniform vec3 uWarm;
+    uniform vec3 uHot;
+
+    const float GLYPHS = ${GLYPHS.length.toFixed(1)};
+    const float RAMP = ${RAMP.toFixed(1)};
 
     float hash(vec2 p) {
       return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -67,205 +86,108 @@
       );
     }
 
-    float fbm(vec2 p) {
-      float v = 0.0;
-      float a = 0.5;
-      mat2 m = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
-      for (int i = 0; i < 3; i++) {
-        v += a * noise(p);
-        p = m * p * 2.0;
-        a *= 0.5;
-      }
-      return v;
-    }
-
-    float galaxyCell(vec2 uv, vec2 center, float seed, float scale, float t) {
-      vec2 p = (uv - center) / scale;
-      float rotation = seed * 0.58 + sin(t * 0.11 + seed) * 0.26;
-      mat2 rotate = mat2(cos(rotation), -sin(rotation), sin(rotation), cos(rotation));
-      p = rotate * p;
-      p.x *= 0.72 + 0.42 * hash(vec2(seed, 1.3));
-      p.y *= 0.82 + 0.28 * hash(vec2(seed, 2.7));
-
-      float d = length(p);
-      float angle = atan(p.y, p.x);
-      float armCount = 2.0 + floor(hash(vec2(seed, 4.1)) * 3.0);
-      float turbulence = noise(p * (5.2 + seed * 0.3) + vec2(seed, t * 0.16));
-      float arms = sin(
-        angle * armCount +
-        d * (17.0 + hash(vec2(seed, 5.9)) * 14.0) -
-        t * (1.1 + seed * 0.05) +
-        turbulence * (1.8 + hash(vec2(seed, 7.2)) * 1.2) +
-        seed
-      );
-      float armMask = smoothstep(0.2, 1.0, arms) * exp(-d * (1.58 + seed * 0.04));
-      float core = exp(-d * (5.7 + hash(vec2(seed, 8.4)) * 3.8));
-      float halo = exp(-d * (1.42 + hash(vec2(seed, 9.6)) * 0.78)) * 0.46;
-      float dust = noise(vec2(angle * 2.1 + seed, d * 7.4 - t * 0.2)) * 0.18;
-
-      return max(core, armMask + halo + dust * exp(-d * 2.3));
-    }
-
     void main() {
-      vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution.xy) / uResolution.y;
-      float t = uTime * 0.6;
+      vec2 cell = floor(gl_FragCoord.xy / uCell);
+      vec2 centre = (cell + 0.5) * uCell;
+      vec2 uv = (centre - 0.5 * uResolution.xy) / uResolution.y;
+      float t = uTime;
       float aspect = uResolution.x / uResolution.y;
-      float pattern = 0.0;
-      vec2 rippleUv = uv;
-      float waterShift = 0.0;
 
-      // We use the first 6 trail points to smoothly displace/push coordinates (stronger, wider push)
-      for (int i = 0; i < 6; i++) {
-        float fi = float(i);
+      // The cursor pushes the scene aside and lights up the cells it crosses.
+      vec2 p = uv;
+      float touch = 0.0;
+      for (int i = 0; i < 8; i++) {
         vec3 trailPoint = uTrail[i];
         vec2 trailUv = (trailPoint.xy - 0.5) * vec2(aspect, 1.0);
         vec2 trailVector = uv - trailUv;
-        float rawDistance = length(trailVector);
-        float distance = length(trailVector * vec2(1.0, 1.36));
-        vec2 direction = trailVector / max(rawDistance, 0.001);
-        float strength = trailPoint.z * (1.0 - fi * 0.12);
-
-        // Smooth exponential push force that displaces coordinates outwards with wider radius
-        float push = exp(-distance * (4.2 + fi * 0.35)) * strength;
-
-        rippleUv += direction * push * 0.22;
-        waterShift += push * 0.15;
+        float distance = length(trailVector * vec2(1.0, 1.3));
+        float push = exp(-distance * (5.0 + float(i) * 0.4)) * trailPoint.z;
+        p += trailVector / max(length(trailVector), 0.001) * push * 0.16;
+        touch = max(touch, exp(-distance * 9.0) * trailPoint.z * (1.0 - float(i) * 0.09));
       }
 
-      // Calculate smoke distortion once per pixel for performance
-      vec2 smokeQ = vec2(fbm(rippleUv * 2.5 + t * 0.1), fbm(rippleUv * 2.5 + vec2(5.2, 1.3) + t * 0.1));
-      vec2 smokeR = vec2(fbm(rippleUv * 2.5 + smokeQ * 1.2 + t * 0.15), fbm(rippleUv * 2.5 + smokeQ * 1.2 + vec2(8.3, 2.8) + t * 0.15));
-      float smoke = fbm(rippleUv * 2.5 + smokeR * 0.6);
-      vec2 distortedUv = rippleUv + smokeR * 0.08;
+      // Nebula: two octaves drifting sideways, kept sparse and dim.
+      vec2 q = p * vec2(1.6, 3.2) + vec2(t * 0.035, 0.0);
+      float cloud = noise(q) * 0.65 + noise(q * 2.3 + vec2(3.1, t * 0.05)) * 0.35;
+      float level = smoothstep(0.46, 0.95, cloud) * 0.46;
+      vec3 color = mix(uMist, uCool, noise(q * 0.5 + 7.0));
 
-      vec3 trailColorAcc = vec3(0.0);
-      float trailAlphaAcc = 0.0;
-
-      // Accumulate glowing smoke trail from 16 points
-      for (int i = 0; i < 16; i++) {
-        vec3 trailPoint = uTrail[i];
-        float intensity = trailPoint.z;
-        if (intensity > 0.01) {
-          vec2 trailUv = (trailPoint.xy - 0.5) * vec2(aspect, 1.0);
-
-          float radius = 0.28 * (1.0 - float(i) * 0.045);
-          float dist = length(distortedUv - trailUv);
-
-          // Core sharp smoke
-          float coreFactor = 1.0 - smoothstep(0.0, radius, dist);
-          float coreAlpha = pow(smoke, 1.8) * coreFactor;
-
-          // Soft wide glow halo simulating UnrealBloom
-          float glowFactor = exp(-dist * 12.0);
-
-          float alpha = (coreAlpha * 0.55 + glowFactor * 0.45) * intensity;
-
-          // Use pure/slightly boosted galaxy colors for a colorful, non-white core
-          vec3 c1 = mix(uGalaxyInside, vec3(1.0), 0.04);
-          vec3 c2 = mix(uGalaxyOutside, vec3(1.0), 0.07);
-          vec3 col = mix(c1, c2, sin(t * 0.8 + float(i) * 0.3) * 0.5 + 0.5);
-
-          trailColorAcc += col * alpha;
-          trailAlphaAcc += alpha;
+      // Still stars twinkle in the gaps.
+      float star = hash(cell * 0.731 + 17.0);
+      if (star > 0.972) {
+        float twinkle = 0.12 + 0.1 * sin(t * (1.1 + star * 2.6) + star * 40.0);
+        if (twinkle > level) {
+          level = twinkle;
+          color = uDust;
         }
       }
 
-      for (int i = 0; i < 9; i++) {
-        float fi = float(i);
-        float seed = fi + 1.0;
-        float spread = (fi + sin(fi * 2.17) * 0.24 + cos(fi * 0.91) * 0.16) / 8.0;
-        float x = mix(-aspect * 0.62, aspect * 0.62, spread);
-        float y = (hash(vec2(seed, 12.0)) - 0.5) * 0.52 + sin(fi * 1.71 + t * 0.28) * 0.06;
-        float scale = 0.76 + hash(vec2(seed, 13.0)) * 0.68;
-        float weight = 0.52 + hash(vec2(seed, 14.0)) * 0.78;
-        vec2 center = vec2(x + sin(t * 0.18 + fi) * 0.07, y);
-        pattern += galaxyCell(rippleUv, center, seed, scale, t) * weight;
-      }
-
-      float band = smoothstep(0.68, 0.0, abs(rippleUv.y + 0.02));
-      float drift = noise(vec2(rippleUv.x * 0.42 - t * 0.04, rippleUv.y * 2.1 + t * 0.08));
-      float strands = smoothstep(
-        0.35,
-        1.0,
-        sin(rippleUv.x * (7.0 + drift * 4.0) + rippleUv.y * 3.2 - t * 0.8)
+      // The planet: a banded gas giant with a ring, lit from the upper left.
+      // Wide footers keep it to the right of the links; narrow ones let it
+      // peek in from the bottom-right corner.
+      float wide = step(3.0, aspect);
+      float radius = mix(0.22, 0.36, wide);
+      vec2 planet = mix(
+        vec2(aspect * 0.5 - radius * 0.45, -0.5 + radius * 0.55),
+        vec2(aspect * 0.5 - radius * 3.1, -0.03),
+        wide
       );
-      float scan = smoothstep(
-        0.06,
-        0.0,
-        abs(fract((rippleUv.y + rippleUv.x * 0.025 + drift * 0.035) * 12.0 + t * 0.22) - 0.5)
+      vec2 s = (p - planet) / radius;
+      // Ring plane, tilted towards the viewer and turned a little on screen.
+      float roll = -0.32;
+      s = mat2(cos(roll), sin(roll), -sin(roll), cos(roll)) * s;
+      float tilt = 0.32;
+      float ringZ = -s.y * cos(tilt) / sin(tilt);
+      float ringR = length(vec3(s, ringZ));
+      float sphere = 1.0 - dot(s, s);
+      float sphereZ = sphere > 0.0 ? sqrt(sphere) : -1.0;
+      vec3 light = normalize(vec3(-0.62, 0.48, 0.62));
+
+      if (sphere > 0.0) {
+        vec3 n = vec3(s, sphereZ);
+        // Undo the screen roll so the bands run along the ring plane.
+        float lat = n.y * cos(tilt) - n.z * sin(tilt);
+        float lon = atan(n.x, n.z) + t * 0.12;
+        float bands = sin(lat * 13.0 + noise(vec2(lon * 2.0, lat * 6.0)) * 2.4);
+        float diffuse = max(dot(n, light), 0.0);
+        float shade = diffuse * (0.78 + 0.22 * bands) + pow(1.0 - sphereZ, 3.0) * 0.12;
+        // The night side keeps a faint fill, so the disc still reads as round.
+        level = 0.22 + 0.78 * clamp(shade, 0.0, 1.0);
+        vec3 lit = mix(uWarm, uHot, smoothstep(-0.3, 0.8, bands) * diffuse);
+        color = mix(mix(uMist, uWarm, 0.45), lit, smoothstep(0.0, 0.35, diffuse));
+      }
+
+      // The ring shows wherever it is in front of the planet (or clear of it).
+      bool ringVisible = ringR > 1.32 && ringR < 2.25 && (sphere <= 0.0 || ringZ > sphereZ);
+      if (ringVisible) {
+        // One wide gap (a Cassini division) and gentle banding.
+        float gaps = (0.75 + 0.25 * sin(ringR * 17.0)) * (1.0 - 0.8 * (1.0 - smoothstep(0.0, 0.07, abs(ringR - 1.78))));
+        // The planet's shadow falls across the far side of the ring.
+        float shadowed = (ringZ < 0.0 && abs(s.x) < 1.0) ? 0.35 : 1.0;
+        float ring = clamp(gaps * shadowed * (1.0 - smoothstep(2.0, 2.25, ringR)), 0.0, 1.0);
+        level = max(level * 0.4, 0.22 + 0.32 * ring);
+        color = mix(uCool, uDust, 0.35 + 0.4 * ring);
+      }
+
+      float glyph = floor(clamp(level, 0.0, 0.999) * RAMP);
+      // Under the cursor the scene decodes into flickering binary.
+      float flicker = hash(cell + floor(t * 14.0));
+      if (touch > 0.2 && flicker < touch) {
+        glyph = RAMP + step(0.5, hash(cell * 1.37 + floor(t * 9.0)));
+        color = mix(color, uHot, 0.7);
+      }
+
+      // The atlas holds one glyph per cell, pixel for pixel (no filtering).
+      vec2 local = floor(mod(gl_FragCoord.xy, uCell));
+      vec2 atlasUv = vec2(
+        (glyph * uCell.x + local.x + 0.5) / (GLYPHS * uCell.x),
+        (uCell.y - 1.0 - local.y + 0.5) / uCell.y
       );
-      float grain = noise(gl_FragCoord.xy * 0.8 + t);
+      float ink = texture2D(uAtlas, atlasUv).a;
 
-      pattern = clamp(
-        pattern * 0.36 +
-        strands * band * 0.3 +
-        scan * 0.1,
-        0.0,
-        1.0
-      );
-
-      vec3 lightBase = vec3(1.0);
-      vec3 galaxyInside = mix(uGalaxyInside, mix(lightBase, uGalaxyInside, 0.24), uIsLight);
-      vec3 galaxyOutside = mix(uGalaxyOutside, mix(lightBase, uGalaxyOutside, 0.42), uIsLight);
-
-      // Override nebula colors to be bright pastel in light mode, avoiding muddy grey/black tones
-      vec3 nebulaInside = uNebulaInside;
-      vec3 nebulaOutside = uNebulaOutside;
-      if (uIsLight > 0.5) {
-        nebulaInside = mix(uGalaxyInside, lightBase, 0.5); // Soft blue pastel
-        nebulaOutside = mix(uGalaxyOutside, lightBase, 0.6); // Soft orange/gold pastel
-      } else {
-        nebulaInside = mix(uNebulaInside, mix(lightBase, uNebulaInside, 0.18), uIsLight);
-        nebulaOutside = mix(uNebulaOutside, mix(lightBase, uNebulaOutside, 0.08), uIsLight);
-      }
-
-      vec3 galaxy = mix(galaxyOutside, galaxyInside, clamp(pattern * 1.15, 0.0, 1.0));
-      vec3 nebula = mix(nebulaOutside, nebulaInside, pattern);
-      vec3 signal = mix(galaxy, nebula, mix(0.42 + 0.14 * sin(t), 0.26, uIsLight));
-      signal = mix(signal, galaxyOutside, waterShift);
-      signal += grain * (uIsLight > 0.5 ? 0.012 : 0.032);
-
-      float strength = mix(1.0, 0.78, uIsLight); // Softened pattern strength to make footer less bright/contrasty
-
-      // Dynamic cosmic base backgrounds that use the main core color (uGalaxyInside)
-      vec3 finalBase = uBase;
-      if (uIsLight > 0.5) {
-        // Light mode: blend a soft pastel space-blue cream from uGalaxyInside to avoid flat white
-        finalBase = mix(vec3(0.96, 0.96, 0.98), uGalaxyInside, 0.04);
-      } else {
-        // Dark mode: blend a rich deep space navy from uGalaxyInside to avoid flat black/grey
-        finalBase = mix(vec3(0.015, 0.015, 0.025), uGalaxyInside, 0.08);
-      }
-
-      // Boost and tweak signal colors (softened multiplier on both themes to reduce brightness)
-      vec3 boostedSignal = signal;
-      if (uIsLight > 0.5) {
-        boostedSignal = mix(signal, mix(uGalaxyOutside, uGalaxyInside, pattern), 0.4) * 1.12; // Less bright, softer pastel
-      } else {
-        boostedSignal = signal * 1.25; // Softer pop in dark mode (reduced from 1.6)
-      }
-
-      // Compute the background color with galaxy pattern
-      float mixFactor = clamp(pattern * strength * 1.1, 0.0, 1.0); // Reduced multiplier to soften overall pattern
-      vec3 finalColor = mix(finalBase, boostedSignal, mixFactor);
-
-      // Add galaxy core glow in dark mode (reduced from 0.5 to 0.25 to make footer less bright)
-      if (uIsLight < 0.5) {
-        finalColor += boostedSignal * pow(pattern, 3.0) * 0.25;
-      }
-
-      // Blend the trailing smoke using mix/soft screen to avoid burning to white
-      float trailAlpha = clamp(trailAlphaAcc, 0.0, 1.0);
-      if (trailAlpha > 0.01) {
-        vec3 avgTrailColor = trailColorAcc / max(trailAlphaAcc, 0.001);
-        if (uIsLight > 0.5) {
-          finalColor = mix(finalColor, avgTrailColor, trailAlpha * 0.28); // Softer hover blend in light mode (down from 0.35)
-        } else {
-          // Mix the trail color and add a very soft glow proportional to density
-          finalColor = mix(finalColor, avgTrailColor, trailAlpha * 0.45); // Softer hover mix in dark mode (down from 0.55)
-          finalColor += avgTrailColor * trailAlpha * 0.08; // Softer glow (down from 0.12)
-        }
-      }
+      float strength = 0.45 + 0.55 * smoothstep(0.05, 0.6, level) + touch * 0.35;
+      vec3 base = mix(uBase, uCool, 0.03);
+      vec3 finalColor = mix(base, color, clamp(ink * strength, 0.0, 1.0));
 
       gl_FragColor = vec4(clamp(finalColor, 0.0, 1.0), 1.0);
     }
@@ -341,27 +263,48 @@
     hover = 0;
   }
 
-  function colorToTuple(
-    color: { r: number; g: number; b: number } | undefined,
-    fallback: ColorTuple,
-  ) {
-    if (!color) return fallback;
-    return [color.r, color.g, color.b] as ColorTuple;
+  /** Any CSS colour (custom properties included) as linear-ish 0–1 RGB. */
+  function cssColor(probe: CanvasRenderingContext2D, value: string, fallback: ColorTuple) {
+    if (!value) return fallback;
+    probe.clearRect(0, 0, 1, 1);
+    probe.fillStyle = '#000';
+    probe.fillStyle = value;
+    probe.fillRect(0, 0, 1, 1);
+    const [r, g, b] = probe.getImageData(0, 0, 1, 1).data;
+    return [r / 255, g / 255, b / 255] as ColorTuple;
   }
 
   function updateColorsFromDocument() {
-    const theme = (themeStore.theme ?? 'dark') as Theme;
-    const palette = getGalaxyColorPalette(theme);
-    const isLight = theme === 'light';
+    const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+    if (!probe) return;
+    const style = getComputedStyle(document.documentElement);
+    const read = (name: string, fallback: ColorTuple) =>
+      cssColor(probe, style.getPropertyValue(name).trim(), fallback);
 
     colors = {
-      galaxyInside: colorToTuple(palette.galaxyInsideColor, [0.04, 0.11, 0.58]),
-      galaxyOutside: colorToTuple(palette.galaxyOutsideColor, [0.76, 0.77, 0.85]),
-      nebulaInside: colorToTuple(palette.nebulaInsideColor, [0.04, 0.11, 0.58]),
-      nebulaOutside: colorToTuple(palette.nebulaOutsideColor, [0.76, 0.77, 0.85]),
-      base: isLight ? [1, 1, 1] : [0.07, 0.07, 0.07],
-      isLight: isLight ? 1 : 0,
+      base: read('--color-base-100', colors.base),
+      dust: read('--color-identifier', colors.dust),
+      cool: read('--color-number', colors.cool),
+      mist: read('--color-constant', colors.mist),
+      warm: read('--color-keyword', colors.warm),
+      hot: read('--color-declaration', colors.hot),
     };
+  }
+
+  /** Draw the glyphs, one cell each, at exactly the cell size the shader samples. */
+  function drawAtlas(width: number, height: number) {
+    const atlas = document.createElement('canvas');
+    atlas.width = width * GLYPHS.length;
+    atlas.height = height;
+    const context = atlas.getContext('2d');
+    if (!context) return atlas;
+    const family = getComputedStyle(document.body).fontFamily || 'monospace';
+    context.font = `${Math.round(height * 0.84)}px ${family}`;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillStyle = '#fff';
+    [...GLYPHS].forEach((glyph, i) => context.fillText(glyph, (i + 0.5) * width, height * 0.54));
+    return atlas;
   }
 
   function compileShader(gl: WebGLRenderingContext, type: number, source: string) {
@@ -421,7 +364,9 @@
     if (!program) return;
 
     const buffer = gl.createBuffer();
-    if (!buffer) {
+    const texture = gl.createTexture();
+    if (!buffer || !texture) {
+      if (buffer) gl.deleteBuffer(buffer);
       gl.deleteProgram(program);
       return;
     }
@@ -437,12 +382,16 @@
     const resolutionLocation = gl.getUniformLocation(program, 'uResolution');
     const timeLocation = gl.getUniformLocation(program, 'uTime');
     const trailLocation = gl.getUniformLocation(program, 'uTrail[0]');
-    const galaxyInsideLocation = gl.getUniformLocation(program, 'uGalaxyInside');
-    const galaxyOutsideLocation = gl.getUniformLocation(program, 'uGalaxyOutside');
-    const nebulaInsideLocation = gl.getUniformLocation(program, 'uNebulaInside');
-    const nebulaOutsideLocation = gl.getUniformLocation(program, 'uNebulaOutside');
-    const baseLocation = gl.getUniformLocation(program, 'uBase');
-    const isLightLocation = gl.getUniformLocation(program, 'uIsLight');
+    const cellLocation = gl.getUniformLocation(program, 'uCell');
+    const atlasLocation = gl.getUniformLocation(program, 'uAtlas');
+    const colorLocations = {
+      base: gl.getUniformLocation(program, 'uBase'),
+      dust: gl.getUniformLocation(program, 'uDust'),
+      cool: gl.getUniformLocation(program, 'uCool'),
+      mist: gl.getUniformLocation(program, 'uMist'),
+      warm: gl.getUniformLocation(program, 'uWarm'),
+      hot: gl.getUniformLocation(program, 'uHot'),
+    };
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let animationFrame: number | undefined;
@@ -450,9 +399,40 @@
     let start = performance.now();
     let trailIntensity = 0;
     const trailUniform = new Float32Array(trailLength * 3);
+    // Character cell in device pixels: whole pixels, so glyphs stay crisp.
+    let cell = { width: CELL.width, height: CELL.height };
+    let atlasReady = false;
+
+    function uploadAtlas() {
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        drawAtlas(cell.width, cell.height),
+      );
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    }
+
+    // Without fragment highp, gl_FragCoord only counts whole pixels up to
+    // 1024: render no larger than that there, and scale it up pixel for pixel
+    // so the glyphs stay crisp (only coarser).
+    const highp =
+      (gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT)?.precision ?? 0) > 0;
+    if (!highp) targetCanvas.style.imageRendering = 'pixelated';
 
     function resize() {
-      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      const ratio = Math.min(
+        window.devicePixelRatio || 1,
+        2,
+        highp ? Infinity : 1024 / Math.max(1, targetCanvas.clientWidth, targetCanvas.clientHeight),
+      );
       const width = Math.max(1, Math.floor(targetCanvas.clientWidth * ratio));
       const height = Math.max(1, Math.floor(targetCanvas.clientHeight * ratio));
 
@@ -460,6 +440,16 @@
         targetCanvas.width = width;
         targetCanvas.height = height;
         gl.viewport(0, 0, width, height);
+      }
+
+      const next = {
+        width: Math.max(4, Math.round(CELL.width * ratio)),
+        height: Math.max(7, Math.round(CELL.height * ratio)),
+      };
+      if (next.width !== cell.width || next.height !== cell.height || !atlasReady) {
+        cell = next;
+        uploadAtlas();
+        atlasReady = true;
       }
     }
 
@@ -491,16 +481,20 @@
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
       gl.enableVertexAttribArray(positionLocation);
       gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
 
       gl.uniform2f(resolutionLocation, targetCanvas.width, targetCanvas.height);
       gl.uniform1f(timeLocation, reducedMotion ? 0.8 : (now - start) / 1000);
       gl.uniform3fv(trailLocation, trailUniform);
-      gl.uniform3fv(galaxyInsideLocation, colors.galaxyInside);
-      gl.uniform3fv(galaxyOutsideLocation, colors.galaxyOutside);
-      gl.uniform3fv(nebulaInsideLocation, colors.nebulaInside);
-      gl.uniform3fv(nebulaOutsideLocation, colors.nebulaOutside);
-      gl.uniform3fv(baseLocation, colors.base);
-      gl.uniform1f(isLightLocation, colors.isLight);
+      gl.uniform2f(cellLocation, cell.width, cell.height);
+      gl.uniform1i(atlasLocation, 0);
+      gl.uniform3fv(colorLocations.base, colors.base);
+      gl.uniform3fv(colorLocations.dust, colors.dust);
+      gl.uniform3fv(colorLocations.cool, colors.cool);
+      gl.uniform3fv(colorLocations.mist, colors.mist);
+      gl.uniform3fv(colorLocations.warm, colors.warm);
+      gl.uniform3fv(colorLocations.hot, colors.hot);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
@@ -518,17 +512,6 @@
       if (animationFrame !== undefined) return;
       animationFrame = requestAnimationFrame(render);
     }
-
-    $effect(() => {
-      void themeStore.theme;
-
-      untrack(() => {
-        if (targetCanvas) {
-          updateColorsFromDocument();
-          draw(performance.now());
-        }
-      });
-    });
 
     updateColorsFromDocument();
     resize();
@@ -559,14 +542,11 @@
       clearTouchReleaseTimer();
       resizeObserver.disconnect();
       visibilityObserver?.disconnect();
+      gl.deleteTexture(texture);
       gl.deleteBuffer(buffer);
       gl.deleteProgram(program);
     };
   });
-
-  if (typeof document !== 'undefined') {
-    updateColorsFromDocument();
-  }
 </script>
 
 <canvas

@@ -163,7 +163,7 @@
 
 .blog-page .trace-note {
   margin-top: 1rem;
-  /* 55% muted this below the 4.5:1 contrast floor in both themes. */
+  /* 55% muted this below the 4.5:1 contrast floor. */
   color: color-mix(in srgb, var(--color-identifier) 78%, transparent);
   font-size: 0.8rem;
 }

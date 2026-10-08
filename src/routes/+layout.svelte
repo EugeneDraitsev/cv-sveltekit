@@ -9,7 +9,6 @@
   import { SITE_DATA } from '$lib/constants';
   import { importAgain } from '$lib/importAgain';
   import Footer from '$lib/components/Footer.svelte';
-  import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
   import type GalaxyHeroType from '$lib/galaxy/ui/GalaxyHero.svelte';
   import '../global.css';
 
@@ -193,7 +192,8 @@
   aria-label="Primary"
   class="fixed top-0 z-10 w-full bg-linear-to-br from-background/30 to-indigo-900/20 backdrop-blur-[1px]"
 >
-  <div class="mx-auto flex max-w-325 items-center justify-between px-6 py-1 text-identifier">
+  <!-- 40px tall: the hero frames its scene below it (--galaxy-inset-top). -->
+  <div class="mx-auto flex h-10 max-w-325 items-center px-6 text-identifier">
     <div bind:this={tabsElement} class="nav-tabs relative flex gap-4 pb-1">
       {#each headerLinks as { label, href }, index (href)}
         <a
@@ -209,8 +209,6 @@
       {/each}
       <span class="nav-active-indicator" style={activeIndicatorStyle} aria-hidden="true"></span>
     </div>
-
-    <ThemeSwitcher />
   </div>
 </nav>
 

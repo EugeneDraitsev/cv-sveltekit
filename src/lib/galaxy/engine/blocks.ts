@@ -120,10 +120,8 @@ export const FloraDrawBlock = uniformBlock('FloraDraw', {
 export const PostBlock = uniformBlock('PostParams', {
   /** HDR target width, height, time, unused. */
   viewport: 'vec4',
-  /** exposure, bloom strength, light-theme mix, unused. */
+  /** exposure, bloom strength, unused, unused. */
   look: 'vec4',
-  /** paper colour (light theme), vignette strength. */
+  /** page colour space's black is lifted to (sRGB), vignette strength. */
   paper: 'vec4',
-  /** ink colour (light theme). */
-  ink: 'vec4',
 });

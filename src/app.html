@@ -6,6 +6,8 @@
     <link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#121212" />
     <noscript
       ><style>
         /* Without scripts nothing will load: no progress to promise. */
@@ -20,23 +22,8 @@
         window.__chromium_devtools_metrics_reporter = function () {};
       }
 
-      const THEME_LOCAL_STORAGE_KEY = 'cv-theme';
-      const THEME_ATTRIBUTE = 'data-theme';
-
-      const savedTheme = localStorage.getItem(THEME_LOCAL_STORAGE_KEY);
-
-      if (savedTheme) {
-        document.documentElement.setAttribute(THEME_ATTRIBUTE, savedTheme);
-      } else {
-        const preferredScheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-          ? 'dark'
-          : 'light';
-
-        localStorage.setItem(THEME_LOCAL_STORAGE_KEY, preferredScheme);
-        document.documentElement.setAttribute(THEME_ATTRIBUTE, preferredScheme);
-      }
-
-      // The monochrome mode is gone; drop its stored preference.
+      // The site is dark only: drop the stored theme and monochrome choices.
+      localStorage.removeItem('cv-theme');
       localStorage.removeItem('cv-grayscale');
     </script>
   </head>

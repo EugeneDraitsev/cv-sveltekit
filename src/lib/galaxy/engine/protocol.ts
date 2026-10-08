@@ -1,6 +1,5 @@
 import type { DeviceHints } from './quality';
 
-export type Theme = 'dark' | 'light';
 export type Mode = 'galaxy' | 'system' | 'planet';
 
 export interface PointerMessage {
@@ -48,13 +47,11 @@ export type ToEngine =
       height: number;
       dpr: number;
       hints: DeviceHints;
-      theme: Theme;
       reducedMotion: boolean;
       renderer: 'auto' | 'webgl';
     }
   | { type: 'resize'; width: number; height: number; dpr: number }
   | { type: 'visibility'; visible: boolean }
-  | { type: 'theme'; theme: Theme }
   | { type: 'playing'; playing: boolean }
   | { type: 'engaged'; engaged: boolean; expanded: boolean }
   | { type: 'settings'; settings: Partial<Settings> }

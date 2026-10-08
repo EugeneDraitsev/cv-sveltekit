@@ -1,4 +1,4 @@
-// Bloom chain, filmic tone mapping and the light-theme "ink on paper" grade.
+// Bloom chain and filmic tone mapping.
 // Requires common.wgsl and the `post` uniforms.
 
 fn bloomTap(uv: vec2f) -> vec3f {
@@ -35,26 +35,12 @@ fn composite(uv: vec2f, pixel: vec2f) -> vec4f {
     + textureSampleLevel(bloom2, linearSampler, uv, 0.0).rgb * 0.28
     + textureSampleLevel(bloom3, linearSampler, uv, 0.0).rgb * 0.30;
   var col: vec3f = acesFilm((hdr + glow * post.look.y) * post.look.x);
-  // Light theme: the same image printed as coloured ink on the page.
-  let lightMix: f32 = post.look.z;
-  if (lightMix > 0.001) {
-    let l: f32 = max(col.r, max(col.g, col.b));
-    let hue: vec3f = col / max(l, 0.0001);
-    // Two inks: a cool one for arms, dust and stars, a warm sepia that takes
-    // over in the bright core so it prints as a glow rather than a blot.
-    let cool: vec3f = mix(post.ink.rgb, hue * 0.22 + post.ink.rgb * 0.5, 0.65);
-    let warm: vec3f = vec3f(0.66, 0.36, 0.16);
-    let ink: vec3f = mix(cool, warm, smoothstep(0.5, 0.97, l) * 0.9);
-    let density: f32 = pow(smoothstep(0.0, 0.9, l), 0.75) * (1.0 - smoothstep(0.75, 1.0, l) * 0.3);
-    let printed: vec3f = mix(post.paper.rgb, ink, density);
-    col = mix(col, printed, lightMix);
-  }
   let centered: vec2f = uv - vec2f(0.5);
-  let vignette: f32 = 1.0 - dot(centered, centered) * post.paper.w * (1.0 - lightMix);
+  let vignette: f32 = 1.0 - dot(centered, centered) * post.paper.w;
   col = col * vignette;
-  // Dark theme: the deepest black is the page colour itself, so the hero has
-  // no seam against the page around it (paper is sRGB, col is linear).
-  let lifted: vec3f = pow(post.paper.rgb, vec3f(2.2)) * post.ink.w * (1.0 - lightMix);
+  // The deepest black is the page colour itself, so the hero has no seam
+  // against the page (paper is sRGB, col is linear).
+  let lifted: vec3f = pow(post.paper.rgb, vec3f(2.2));
   col = lifted + col * (vec3f(1.0) - lifted);
   var display: vec3f = pow(max(col, vec3f(0.0)), vec3f(1.0 / 2.2));
   // Triangular dither hides banding in the dark gradients.

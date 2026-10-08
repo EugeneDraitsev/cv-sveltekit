@@ -11,23 +11,6 @@
 @source not './lib/components/ZoomableImage.svelte';
 @source not './lib/components/WebGLSceneEmbed.svelte';
 
-[data-theme='light'] {
-  --default-font-family:
-    'Consolas', 'Menlo', 'Monaco', 'Courier New', 'Liberation Mono', 'Courier', monospace;
-  --color-constant: #871094;
-  --color-declaration: #aa5a09;
-  --color-string: #067d17;
-  --color-identifier: #2b2d30;
-  --color-keyword: #aa5a09;
-  --color-number: #1750eb;
-  --color-background: white;
-  --color-base-100: white;
-  --color-base-200: #fefefe;
-  --color-base-300: var(--color-gray-200);
-  --color-primary: #cc7832;
-  --color-secondary: #d694f9;
-}
-
 html {
   scrollbar-gutter: auto;
   --galaxy-height: 540px;
@@ -95,10 +78,6 @@ body {
 
 .footer-galaxy-overlay {
   background: color-mix(in srgb, var(--color-base-100) 28%, transparent);
-}
-
-[data-theme='light'] .footer-galaxy-overlay {
-  background: color-mix(in srgb, var(--color-base-100) 42%, transparent);
 }
 
 .footer-link {
@@ -243,17 +222,6 @@ body {
   visibility: hidden;
 }
 
-[data-theme='light'] .galaxy-backdrop {
-  --bd-star: rgb(40 50 110 / 0.3);
-  --bd-star-warm: rgb(150 90 40 / 0.28);
-  --bd-star-blue: rgb(50 70 160 / 0.28);
-  --bd-core: rgb(170 92 40 / 0.45);
-  --bd-core-edge: rgb(170 92 40 / 0.14);
-  --bd-disk: rgb(60 80 170 / 0.12);
-  --bd-dust: rgb(255 255 255 / 0.5);
-  mask-image: none;
-}
-
 /* Start-up progress under the silhouette: a hairline bar and a short label.
    Small text only, so it never competes for LCP. Without a value the bar
    sweeps (the renderer chunk is still downloading). */
@@ -341,11 +309,6 @@ body {
 .galaxy-app.shown .galaxy-loader {
   opacity: 0;
   visibility: hidden;
-}
-
-[data-theme='light'] .galaxy-loader {
-  --loader-ink: rgb(43 45 48 / 0.6);
-  --loader-track: rgb(43 45 48 / 0.12);
 }
 
 @media (max-width: 768px) {

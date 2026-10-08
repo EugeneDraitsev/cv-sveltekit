@@ -1,5 +1,5 @@
 import { importAgain } from '$lib/importAgain';
-import type { FromEngine, Theme, ToEngine } from './engine/protocol';
+import type { FromEngine, ToEngine } from './engine/protocol';
 import type { DeviceHints } from './engine/quality';
 
 export interface GalaxyHost {
@@ -13,7 +13,6 @@ export interface HostOptions {
   canvas: HTMLCanvasElement;
   width: number;
   height: number;
-  theme: Theme;
   reducedMotion: boolean;
   /** Force WebGL2, e.g. on a fresh canvas after WebGPU failed on the first. */
   renderer?: 'auto' | 'webgl';
@@ -43,7 +42,6 @@ export async function startGalaxy(options: HostOptions): Promise<GalaxyHost> {
     height: options.height,
     dpr: window.devicePixelRatio || 1,
     hints: deviceHints(),
-    theme: options.theme,
     reducedMotion: options.reducedMotion,
     renderer:
       options.renderer === 'webgl' || params.get('renderer') === 'webgl'
