@@ -1,10 +1,10 @@
 <script lang="ts">
+  import SocialImage from '$lib/components/SocialImage.svelte';
   import { resolve } from '$app/paths';
   import { BLOG_POSTS, formatPostDate } from '$lib/blog';
   import { SITE_DATA } from '$lib/constants';
 
   const canonicalUrl = new URL('blog', SITE_DATA.siteUrl).href;
-  const socialImageUrl = new URL(BLOG_POSTS[0].image, SITE_DATA.siteUrl).href;
 </script>
 
 <svelte:head>
@@ -21,9 +21,9 @@
   />
   <meta property="og:type" content="website" />
   <meta property="og:url" content={canonicalUrl} />
-  <meta property="og:image" content={socialImageUrl} />
-  <meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
+
+<SocialImage src="/og/blog.jpg" alt="Build notes by Eugene Draitsev" />
 
 <main id="main-content" class="overlapped blog-page" tabindex="-1">
   <div class="relative mx-auto mt-[-72px] max-w-4xl px-3 pb-10 sm:px-4">

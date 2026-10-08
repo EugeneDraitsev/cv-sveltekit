@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SocialImage from '$lib/components/SocialImage.svelte';
   import { SITE_DATA } from '$lib/constants';
   import '../blog/blog.css';
 
@@ -21,8 +22,9 @@
   />
   <meta property="og:type" content="website" />
   <meta property="og:url" content={canonicalUrl} />
-  <meta name="twitter:card" content="summary" />
 </svelte:head>
+
+<SocialImage src="/og/about.jpg" alt="About this site: a procedural galaxy rendered in a worker" />
 
 <main id="main-content" class="overlapped blog-page" tabindex="-1">
   <article class="relative mx-auto mt-[-72px] max-w-4xl px-3 pb-10 sm:px-4">

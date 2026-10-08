@@ -5,8 +5,9 @@ export const BLOG_POSTS = [
     label: 'Personal build · since 2015',
     datePublished: '2026-06-19',
     dateModified: '2026-08-15',
-    image: '/blog/telegram-bot/architecture-overview-light.svg',
+    image: '/blog/telegram-bot/architecture-overview-dark.svg',
     imageAlt: 'Architecture diagram for the Telegram agent and its asynchronous workers',
+    socialImage: '/og/telegram-bot-app.jpg',
     imageMode: 'contain',
     description:
       'Ten years of the same bot: how a currency-command script grew a routing-only webhook, FIFO queues, idempotent workers, a fail-closed authorization gate and reply gating — without ever leaving its group chats.',
@@ -20,6 +21,7 @@ export const BLOG_POSTS = [
     dateModified: '2026-07-30',
     image: '/blog/gamedevjs-2026/orb-knight-splash.webp',
     imageAlt: 'Orb Knight facing a mechanical castle on the game title screen',
+    socialImage: '/og/gamedevjs-2026.jpg',
     imageMode: 'cover',
     description:
       'A machine knight with a sword, a gun and a chargeable laser — 6th in Gameplay of 495 jam entries. Build log, honest scores and live WebGL scenes from the actual game, embedded in the post.',
@@ -31,8 +33,9 @@ export const BLOG_POSTS = [
     label: 'Hobby-freelance project',
     datePublished: '2026-06-20',
     dateModified: '2026-07-30',
-    image: '/blog/mowfleet-dashboard/architecture-light.svg',
+    image: '/blog/mowfleet-dashboard/architecture-dark.svg',
     imageAlt: 'Architecture diagram for the MowFleet operations dashboard and AWS services',
+    socialImage: '/og/mowfleet-dashboard.jpg',
     imageMode: 'contain',
     description:
       'The dashboard that answers "did the robots actually mow my lawn?" — a Next.js app and serverless AWS pipeline turning Husqvarna telemetry into coverage, utilization, errors and reports.',
