@@ -46,7 +46,14 @@
   // cell, evaluates the scene once at the cell's centre and copies the
   // matching glyph out of a pixel-exact atlas.
   const fragmentShaderSource = `
+    // Glyph texels come from gl_FragCoord: mediump stops counting whole pixels
+    // past ~1024, so take highp where the GPU has it (resize() keeps the canvas
+    // small enough where it does not).
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    #else
     precision mediump float;
+    #endif
 
     uniform vec2 uResolution;
     uniform float uTime;
@@ -154,7 +161,7 @@
       bool ringVisible = ringR > 1.32 && ringR < 2.25 && (sphere <= 0.0 || ringZ > sphereZ);
       if (ringVisible) {
         // One wide gap (a Cassini division) and gentle banding.
-        float gaps = (0.75 + 0.25 * sin(ringR * 17.0)) * (1.0 - 0.8 * smoothstep(0.07, 0.0, abs(ringR - 1.78)));
+        float gaps = (0.75 + 0.25 * sin(ringR * 17.0)) * (1.0 - 0.8 * (1.0 - smoothstep(0.0, 0.07, abs(ringR - 1.78))));
         // The planet's shadow falls across the far side of the ring.
         float shadowed = (ringZ < 0.0 && abs(s.x) < 1.0) ? 0.35 : 1.0;
         float ring = clamp(gaps * shadowed * (1.0 - smoothstep(2.0, 2.25, ringR)), 0.0, 1.0);
@@ -413,8 +420,19 @@
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     }
 
+    // Without fragment highp, gl_FragCoord only counts whole pixels up to
+    // 1024: render no larger than that there, and scale it up pixel for pixel
+    // so the glyphs stay crisp (only coarser).
+    const highp =
+      (gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT)?.precision ?? 0) > 0;
+    if (!highp) targetCanvas.style.imageRendering = 'pixelated';
+
     function resize() {
-      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      const ratio = Math.min(
+        window.devicePixelRatio || 1,
+        2,
+        highp ? Infinity : 1024 / Math.max(1, targetCanvas.clientWidth, targetCanvas.clientHeight),
+      );
       const width = Math.max(1, Math.floor(targetCanvas.clientWidth * ratio));
       const height = Math.max(1, Math.floor(targetCanvas.clientHeight * ratio));
 

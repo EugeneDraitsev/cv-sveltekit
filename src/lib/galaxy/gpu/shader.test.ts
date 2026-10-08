@@ -69,9 +69,10 @@ describe('every pipeline', () => {
 });
 
 describe('shader sources', () => {
-  // WGSL leaves smoothstep undefined when low >= high, so a falling edge must
-  // be written as 1 - smoothstep(low, high, x) to match the CPU twin everywhere.
-  const sources = import.meta.glob('../shaders/*.wgsl', {
+  // WGSL and GLSL leave smoothstep undefined when low >= high, so a falling
+  // edge must be written as 1 - smoothstep(low, high, x) to behave the same on
+  // every driver. The footer's GLSL lives inline in its component.
+  const sources = import.meta.glob(['../shaders/*.wgsl', '../../components/FooterShader.svelte'], {
     query: '?raw',
     import: 'default',
     eager: true,
