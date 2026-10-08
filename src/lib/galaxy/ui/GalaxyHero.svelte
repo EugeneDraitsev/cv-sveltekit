@@ -586,9 +586,9 @@
     />
   {/if}
 
-  {#if travelling}
-    <p class="status" role="status">{travelLabel}</p>
-  {/if}
+  <!-- The flight itself shows where it goes: only screen readers hear it.
+       The live region stays mounted so each new label is announced. -->
+  <p class="sr-only" role="status">{travelling ? travelLabel : ''}</p>
 
   {#if tuneOpen && mode === 'galaxy'}
     <TunePanel {settings} onChange={updateSettings} onClose={closeTune} />
@@ -895,24 +895,6 @@
     margin: 0.6rem 0.8rem;
     color: rgb(233 236 246 / 0.7);
     font-size: 0.75rem;
-  }
-  .status {
-    position: absolute;
-    bottom: 9.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 7;
-    margin: 0;
-    padding: 0.45rem 1rem;
-    border-radius: 999px;
-    border: 1px solid rgb(233 236 246 / 0.14);
-    background: rgb(10 12 20 / 0.58);
-    backdrop-filter: blur(16px);
-    color: #e9ecf6;
-    font-size: 0.72rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    pointer-events: none;
   }
   .galaxy-error {
     position: absolute;
