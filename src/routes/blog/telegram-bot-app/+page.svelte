@@ -1,5 +1,6 @@
 <script lang="ts">
   import SocialImage from '$lib/components/SocialImage.svelte';
+  import PostDates from '$lib/components/PostDates.svelte';
   import { resolve } from '$app/paths';
   import Icon from '$lib/components/Icon.svelte';
   import ZoomableImage from '$lib/components/ZoomableImage.svelte';
@@ -26,7 +27,7 @@
 
   const highlights = [
     { value: '2015', label: 'first commit' },
-    { value: '9.6M', label: 'chat events stored' },
+    { value: '14 min', label: 'idempotency lease' },
     { value: '3', label: 'queues and workers' },
     { value: '10s', label: 'webhook budget' },
   ];
@@ -36,8 +37,15 @@
     { key: 'ingress', value: 'grammY webhook on AWS Lambda, routing only' },
     { key: 'transport', value: 'three FIFO SQS queues, one dead-letter queue each' },
     { key: 'durable', value: 'DynamoDB — chat events, per-user counters, authorization' },
-    { key: 'ephemeral', value: 'Upstash Redis — memory, 24h history, metrics, leases' },
-    { key: 'models', value: 'GPT-5.6 Luna primary, Gemini declared fallback' },
+    {
+      key: 'fast state',
+      value: 'Upstash Redis — chat memory, 24h history, 30-day metrics, leases',
+    },
+    {
+      key: 'models',
+      value:
+        'GPT-6 Astra for the agent loop, GPT-6 Luna for the gate and safety check, Gemini fallbacks',
+    },
     { key: 'frontend', value: 'Next.js on Vercel, private live statistics' },
   ];
 
@@ -49,16 +57,19 @@
     },
     {
       name: 'idempotency lease',
-      detail: 'redis · six minutes · outlives the lambda timeout',
+      detail: 'redis · 14 minutes · outlives the 13-minute worker timeout',
       exit: 'duplicate',
     },
     {
       name: 'reply gate',
-      detail: 'one classification · engage or ignore · default ignore',
+      detail: 'one classification with chat memory · engage or ignore · default ignore',
       exit: 'ignore',
     },
-    { name: 'context', detail: '24h history and chat-scoped memory, loaded only now' },
-    { name: 'model and tools', detail: 'GPT-5.6 Luna, Gemini fallback, typed tool registry' },
+    { name: 'context', detail: '24h history, tools and media, loaded only now' },
+    {
+      name: 'model and tools',
+      detail: 'GPT-6 Astra, Gemini 3.8 Flash fallback, typed tool registry',
+    },
     { name: 'delivery', detail: 'reply sent, lease swapped for a three-hour marker' },
   ];
 
@@ -88,7 +99,7 @@
   const decisions = [
     {
       title: 'order per chat, parallel across chats',
-      text: 'Every queue is FIFO with the Telegram chat id as MessageGroupId, so one chat stays ordered while unrelated chats run concurrently. Workers use batchSize 1 and partial batch responses, so a poisoned message cannot take its neighbours down with it.',
+      text: 'Every queue is FIFO with the Telegram chat id as MessageGroupId, so one chat stays ordered while unrelated chats run concurrently. Workers use batchSize 1 and partial batch responses, so a poison message is retried on its own and moves to its dead-letter queue after five attempts.',
     },
     {
       title: 'fail closed on authorization',
@@ -96,19 +107,19 @@
     },
     {
       title: 'assume every message arrives twice',
-      text: 'SQS delivery is at-least-once and a sent Telegram message cannot be recalled. Reply and agent jobs take a six-minute Redis lease before doing anything; it outlives the five-minute Lambda timeout, so it needs no heartbeat. Success swaps it for a three-hour completed marker, failure releases it for a clean retry.',
+      text: 'SQS delivery is at-least-once and a sent Telegram message cannot be recalled. Reply and agent jobs take a 14-minute Redis lease before doing anything; it outlives the longest worker timeout (13 minutes, for the agent worker), so it needs no heartbeat. Success swaps it for a three-hour completed marker, failure releases it for a clean retry.',
     },
     {
       title: 'let the data be its own idempotency key',
       text: 'The activity worker needs no lease at all. Its chat event is written in one transaction with the message counter, conditional on the event key being free, and that key is derived from the message id. Replaying a message cancels the whole transaction, so counters cannot drift.',
     },
     {
-      title: 'treat routing signals as hints, not proof',
-      text: 'A mention or a reply-to is evidence that someone might be talking to the bot, not that they are. Both are passed into the gate prompt and explicitly marked unreliable, so typing the bot name in a sentence about the bot does not earn an answer.',
+      title: 'treat mentions and replies as hints',
+      text: 'A mention or a reply only suggests that someone is talking to the bot. Both go into the gate prompt marked as unreliable, so naming the bot in a sentence about it does not trigger a reply.',
     },
     {
       title: 'attribute failures to a stage',
-      text: 'Model and tool calls record status, latency, provider and fallback source. When something breaks at 2am the question is which stage failed, not whether the bot feels broken.',
+      text: 'Model and tool calls record status, latency, provider and fallback source. When something breaks, the metrics show which stage failed and whether a fallback ran.',
     },
   ];
 </script>
@@ -151,12 +162,15 @@
         <h1 class="blog-title">
           Telegram agent architecture: from commands to asynchronous workers
         </h1>
+        <p class="post-meta">
+          <PostDates added={post.datePublished} updated={post.dateModified} />
+        </p>
         <p class="blog-lead">
           This bot has lived in the same group chats since 2015. It started as one command handler
           and is now a TypeScript monorepo with a routing-only webhook, three queue-backed workers,
-          a fail-closed authorization gate and an agent loop with tools and scoped memory. Almost
-          every boundary in it exists to protect the webhook or to survive a redelivery — not to
-          make the model smarter.
+          a fail-closed authorization gate and an agent loop with tools and scoped memory. Most of
+          its boundaries exist to keep the webhook fast or to survive a redelivery; few of them
+          touch the model.
         </p>
         <div class="mt-5 flex flex-wrap gap-4 text-sm">
           <a class="repo-link" href={repoUrl} target="_blank" rel="noreferrer">
@@ -180,12 +194,11 @@
       </header>
 
       <section class="mb-12">
-        <h2 class="section-heading">The model call is the easy part</h2>
+        <h2 class="section-heading">Most of the work happens before the model</h2>
         <p class="mb-6">
-          In an active group chat the hard questions sit upstream of any LLM. Should the bot answer
-          at all? Telegram wants an acknowledgement in seconds, so what fits in that budget? The
-          queue will hand you the same message twice — what happens the second time? Those questions
-          shaped the architecture. The model call is one step near the end of it.
+          In an active group chat the hard questions come before any LLM call: should the bot answer
+          at all, what fits inside Telegram's webhook timeout, and what happens when the queue
+          delivers the same message twice. The model call is one step near the end.
         </p>
         <ZoomableImage
           src="/blog/telegram-bot/architecture-overview-light.svg"
@@ -201,11 +214,12 @@
       <section class="mb-12">
         <h2 class="section-heading">Webhook, queues, workers</h2>
         <p class="mb-6">
-          The Telegram-facing Lambda does two things: one cached authorization read, and routing.
-          Every update is enqueued for the activity worker, registered commands go to the reply
-          worker, and anything that could reach the agent goes to the agent worker. Then it returns.
-          It never waits for a model, a render or a database write, which is what keeps the webhook
-          inside its budget no matter how slow a provider is that day.
+          The Telegram-facing Lambda checks Telegram's secret header, makes one cached authorization
+          read, and routes. Every message is enqueued for the activity worker, registered commands
+          go to the reply worker, and anything that could reach the agent goes to the agent worker.
+          Then it returns. It never waits for a model, a render or a database write, which is what
+          keeps the webhook inside its budget: a slow provider can't push it past the 10-second
+          limit.
         </p>
         <ZoomableImage
           src="/blog/telegram-bot/architecture-message-path-light.svg"
@@ -228,7 +242,7 @@
         <p class="mb-6">
           Group chats default to ignoring, and most of this pipeline exists to drop work as early
           and as cheaply as possible. Three of the six stages can end the turn; only a message that
-          survives all three is allowed to cost anything.
+          passes all three reaches history, tools and the main model.
         </p>
         <ol class="trace">
           {#each pipeline as step, index (step.name)}
@@ -243,26 +257,37 @@
           {/each}
         </ol>
         <p class="trace-note">
-          Registered agent commands skip the gate — an explicit command is already an explicit ask.
+          Registered agent commands skip the reply gate, since the command is the request, but first
+          pass a cyber-abuse check that fails closed.
         </p>
+        <ZoomableImage
+          src="/blog/telegram-bot/architecture-command-safety-light.svg"
+          darkSrc="/blog/telegram-bot/architecture-command-safety-dark.svg"
+          alt="Safety check for registered agent commands"
+          aspect="flow"
+          figureClass="diagram mt-6"
+          imageClass="w-full rounded"
+          caption="Registered agent commands: a cyber-abuse check before the agent runs, closed on any error."
+        />
       </section>
 
       <section class="mb-12">
         <h2 class="section-heading">Reply gating and context assembly</h2>
         <p>
           The gate is one small model call returning engage or ignore, and it runs on every eligible
-          message. Mention and reply-to flags are handed to it as context explicitly marked
-          unreliable, rather than used as a shortcut — otherwise anyone could summon the bot by
-          typing its name while talking about it. History, memory and tool definitions load only
-          after admission, so an ignored message costs one cheap classification and nothing else.
-          The typed tool registry covers web and image search, media generation, weather, code
-          execution, history lookup and memory updates; execution order, timeouts and rate limits
-          belong to the runtime, not to the model.
+          message with the chat's memory as context. Mention and reply-to flags go in too, marked as
+          unreliable rather than used as a shortcut; otherwise anyone could summon the bot by typing
+          its name while talking about it. History, tools and media load only after admission, so an
+          ignored message costs a cached memory read and one cheap classification. The typed tool
+          registry covers web and image search, image, video, music and voice generation, weather,
+          code execution, LaTeX and SVG rendering, history lookup, memory updates and per-chat tools
+          the bot can define itself. Execution order, timeouts and call limits belong to the
+          runtime, not to the model.
         </p>
       </section>
 
       <section class="mb-12">
-        <h2 class="section-heading">Decisions that keep it debuggable</h2>
+        <h2 class="section-heading">Design decisions</h2>
         <div class="rulelist">
           {#each decisions as decision, index (decision.title)}
             <article class="rule">
@@ -328,8 +353,8 @@
         <p>
           Repeatable evaluation. Metrics say which stage failed, not whether an answer got better
           after a prompt or model change. A replay corpus built from redacted production
-          conversations would turn "feels smarter" into something measurable before deploying. That
-          is the next piece of work.
+          conversations would let me measure a prompt or model change before deploying it. That is
+          the next piece of work.
         </p>
       </section>
     </div>

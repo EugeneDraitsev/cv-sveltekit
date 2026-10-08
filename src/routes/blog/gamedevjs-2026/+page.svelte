@@ -1,5 +1,6 @@
 <script lang="ts">
   import SocialImage from '$lib/components/SocialImage.svelte';
+  import PostDates from '$lib/components/PostDates.svelte';
   import { dev } from '$app/environment';
   import { resolve } from '$app/paths';
   import Icon from '$lib/components/Icon.svelte';
@@ -46,10 +47,10 @@
   });
 
   const highlights = [
-    { value: '#6', label: 'Gameplay · 495 entries' },
+    { value: '#6', label: 'Gameplay · 483 ranked' },
     { value: '#12', label: 'Overall' },
     { value: '13', label: 'days of jam' },
-    { value: '113', label: 'commits shipped' },
+    { value: '104', label: 'commits by the deadline' },
   ];
 
   const scores = [
@@ -63,27 +64,27 @@
   const shipped = [
     {
       title: 'Combat that carries the game',
-      text: 'Third-person movement, a sword, a gun and a chargeable laser against 12 enemy types and 3 bosses. Movement, hit resolution, Rapier physics, camera and enemy AI all share one frame budget.',
+      text: 'Third-person movement, a sword, a gun and a chargeable laser against 9 enemy types and 3 bosses. The last of them, the Gate Keeper, fires triple shots and sweeps an arc laser you have to jump.',
     },
     {
-      title: 'Runs with actual structure',
-      text: '29 room templates across 7 kinds — combat, challenge, treasure, shop, secret, boss — validated with Zod and stitched into seeded dungeon layouts. Gears buy modules; 21 of them reshape your build mid-run.',
+      title: 'Seeded runs',
+      text: '29 room templates across 7 kinds (combat, challenge, treasure, shop, secret, boss and a training polygon), validated with Zod and stitched into seeded dungeon layouts. Gears buy modules: 10 of them, across attack, body, melee and utility slots, reshape your build mid-run.',
     },
     {
-      title: 'Sound made of math',
-      text: 'Every sound effect is synthesized in Web Audio at runtime — noise buffers and oscillators through a compressor. No sample packs; the laser windup, door grind and metal-shatter death are all code.',
+      title: 'Synthesized sound effects',
+      text: 'Every sound effect is synthesized in Web Audio at runtime: noise buffers and oscillators through a compressor. The laser windup, door grind and metal-shatter death are all code; the music tracks are separate recordings.',
     },
   ];
 
   const buildLog = [
     {
-      date: 'Apr 15',
+      date: 'Apr 15–16',
       title: 'First Threlte prototype',
       text: 'A capsule, some targets, projectile shooting and a crosshair. Not a game yet, but it renders and shoots.',
     },
     {
-      date: 'Apr 18–21',
-      title: 'Rooms become a language',
+      date: 'Apr 17–21',
+      title: 'Rooms move into data',
       text: 'Room templates move into JSON with a Zod schema, dungeon layout gets seeded generation, and the first real enemies start applying pressure.',
     },
     {
@@ -99,17 +100,17 @@
     {
       date: 'Apr 25',
       title: 'The 25-commit day',
-      text: 'Laser beam with charge-up, the shop and its keeper NPC, the Gate Keeper boss, the core prison setpiece, and a full pass of procedural SFX. The busiest day of the jam.',
+      text: 'Laser beam with charge-up, the shop and its keeper NPC, the Gate Keeper boss, the core prison setpiece and a full pass of procedural sound effects. Late that night, the first performance work: a pixel-ratio cap, shadow-pass cuts and lights that mount only in the active room.',
     },
     {
       date: 'Apr 26',
-      title: 'Performance debt, all at once',
-      text: 'Pixel-ratio cap, shadow-pass cuts, lights that mount only when their room is active, material pre-warming. Frame time on mid hardware finally behaves.',
+      title: 'Submitted',
+      text: 'Material pre-warming, the itch.io build and the submission, ahead of the 17:00 CEST deadline. Some players still saw lag on weaker machines.',
     },
     {
-      date: 'Apr 27',
-      title: 'Ship it',
-      text: 'Run state persists across menus, resume works, screenshots taken, itch.io build uploaded with hours to spare.',
+      date: 'Apr 26–27',
+      title: 'After the deadline',
+      text: 'Nine more commits for the hosted build: performance fixes, warm-ups, room transitions and run state that survives the menus.',
     },
   ];
 
@@ -129,7 +130,7 @@
       items: [
         'Implementation passes across Svelte, Threlte, Three.js and Rapier',
         'First drafts of combat behaviors, room templates, enemies and UI',
-        'Mechanical refactors that touch thirty files without complaint',
+        'Mechanical refactors across many files',
         'Storybook fixtures that pin runtime state for review',
         'Codebase archaeology: "where does the damage number actually come from?"',
       ],
@@ -143,7 +144,7 @@
     },
     {
       title: 'Correct is not the same as good',
-      text: 'Agents will happily ship combat that satisfies every stated rule and still feels like hitting cardboard. State machines can be delegated; feel cannot. Playtest, tune, repeat.',
+      text: 'Agents will happily ship combat that satisfies every stated rule and still feels like hitting cardboard. Feel only comes from playtesting and tuning, over and over.',
     },
     {
       title: 'Storybook was the highest-leverage tool',
@@ -160,7 +161,7 @@
   <title>Orb Knight: a 3D roguelite in 13 days | Eugene Draitsev</title>
   <meta
     name="description"
-    content="Building Orb Knight for Gamedev.js Jam 2026: a Svelte + Three.js action roguelite shipped in 13 days with AI coding agents — 6th in Gameplay of 495 entries. Build log, live WebGL scenes and honest notes."
+    content="Building Orb Knight for Gamedev.js Jam 2026: a Svelte and Three.js action roguelite made in 13 days with AI coding agents, 6th in Gameplay. Build log and live WebGL scenes."
   />
   <link rel="canonical" href={canonicalUrl} />
   <meta property="og:title" content={post.title} />
@@ -192,14 +193,17 @@
           Game jam · 13 days · built with AI agents
         </p>
         <h1 class="blog-title">Orb Knight: a 3D browser roguelite in 13 days</h1>
+        <p class="post-meta">
+          <PostDates added={post.datePublished} updated={post.dateModified} />
+        </p>
         <p class="blog-lead">
-          Gamedev.js Jam 2026 handed everyone the same theme — <em>Machines</em> — and the same 13
-          days. I had a decade of production web work behind me and exactly zero shipped games, so
-          the bet was simple: build a real-time 3D action game in the browser, point coding agents
-          at the implementation, and keep architecture, review and playtesting firmly in my own
-          hands. Orb Knight came out the other side: a brass machine with a sword, a gun and a
-          laser, cutting its way out of a foundry. It took <strong>6th in Gameplay</strong> and
-          <strong>12th overall</strong> out of 495 entries.
+          Gamedev.js Jam 2026 gave everyone the same theme, <em>Machines</em>, and the same 13 days.
+          I had a decade of production web work behind me and no shipped games, so the plan was to
+          build a real-time 3D action game in the browser, let coding agents write most of the code,
+          and keep architecture, review and playtesting myself. A friend, Arseny Yankovski, added
+          the laser charge-up and three enemies. The result is Orb Knight: a brass machine with a
+          sword, a gun and a laser, cutting its way out of a foundry. It took
+          <strong>6th in Gameplay</strong> and <strong>12th overall</strong> out of 483 ranked entries.
         </p>
         <div class="mt-5 flex flex-wrap gap-4 text-sm">
           <a
@@ -233,11 +237,11 @@
 
       <section class="mb-12" aria-labelledby="outcome-heading">
         <p class="section-kicker">01 · The result</p>
-        <h2 id="outcome-heading" class="section-heading">6th in Gameplay, and one honest 79th</h2>
+        <h2 id="outcome-heading" class="section-heading">6th in Gameplay, 79th in Innovation</h2>
         <p class="mb-6 max-w-3xl">
-          The category I care about most is Gameplay — how the game actually feels in your hands.
-          Orb Knight scored <strong>4.027/5</strong> there, 6th across the whole jam, and players specifically
-          called out the combat. The scoreboard is also honest about the weak spot, and I'll get to that.
+          The category I care about most is Gameplay: how the game feels in your hands. Orb Knight
+          scored <strong>4.027/5</strong> there, 6th across the whole jam, and players mostly praised
+          the controls and the feel. Innovation was the weak spot.
         </p>
 
         <div class="mb-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -291,14 +295,14 @@
           </figure>
           <aside class="result-note">
             <p class="text-xs tracking-wide text-keyword uppercase">Reading the board</p>
-            <h3 class="mt-2 text-xl text-constant">The loop landed. The idea was safe.</h3>
+            <h3 class="mt-2 text-xl text-constant">Strong loop, familiar idea</h3>
             <p class="mt-3 text-sm">
-              Gameplay at 6th means the moment-to-moment feel — dodging, hitting, getting hit — did
-              its job. Graphics and Theme sat mid-pack, fine for a solo-plus-agents build.
+              Gameplay at 6th means the moment-to-moment feel of dodging, hitting and getting hit
+              worked. Graphics, Theme and Audio all finished in the top 7%.
             </p>
             <p class="mt-3 text-sm">
-              Innovation at 79th is the honest number: Orb Knight is a well-executed roguelite, not
-              a new idea. Nobody rates you down for that in the fun column — but they notice.
+              Innovation at 79th is fair: Orb Knight is a well-made roguelite, not a new idea.
+              Players didn't mark it down on Gameplay for that; the cost showed up in Innovation.
             </p>
           </aside>
         </div>
@@ -312,9 +316,9 @@
         <p class="mb-6">
           The submitted build is a complete run: fight through seeded foundry rooms, collect gears,
           rebuild your machine at the loadout bay, survive the shop keeper's prices, beat the Gate
-          Keeper, and break out onto the castle road. Roughly 56k lines of TypeScript and Svelte,
-          113 commits, one browser tab — SvelteKit and Svelte 5 runes for the shell, Threlte and
-          Three.js for rendering, Rapier for physics, Bun for everything else.
+          Keeper, and break out onto the castle road. Roughly 56k lines of TypeScript and Svelte and
+          104 commits by the deadline, in one browser tab: SvelteKit and Svelte 5 runes for the
+          shell, Threlte and Three.js for rendering, Rapier for physics, Bun for everything else.
         </p>
         <div class="mb-7 grid gap-4 md:grid-cols-3">
           {#each shipped as item (item)}
@@ -350,8 +354,8 @@
         <p class="section-kicker">03 · Build log</p>
         <h2 id="log-heading" class="section-heading">13 days, compressed</h2>
         <p class="mb-6 max-w-3xl">
-          The commit history tells the story better than any retrospective, so here it is, lightly
-          annotated. 113 commits between April 15 and April 27.
+          From the commit history: 104 commits between April 15 and the April 26 deadline, and nine
+          more after it.
         </p>
         <ol class="build-log">
           {#each buildLog as entry (entry)}
@@ -391,7 +395,7 @@
             poster="/blog/gamedevjs-2026/posters/laser.webp"
             desktopOverview
             tall
-            description="The Laser Beam module in its weapon lab. Hold fire to charge, sweep the beam through targets, switch to the other five builds — split arc, wave, lob, rockets — in the panel. The electric windup you hear is synthesized in Web Audio; this weapon and its sound shipped together on the 25-commit day."
+            description="The Laser Beam module in its weapon lab. Hold fire to charge, sweep the beam through targets, switch to the other five builds (default rivet, split arc, wave, lob and rockets) in the panel. The electric windup you hear is synthesized in Web Audio. Arseny Yankovski built the charge-up and this weapons playground."
           />
         </div>
 
@@ -402,7 +406,7 @@
               title="Gate Keeper sandbox"
               src={bossSceneUrl}
               poster="/blog/gamedevjs-2026/posters/boss.webp"
-              description="The final boss with its full moveset and none of the commute: triple shots, and a sweeping arc laser you jump over like the world's angriest skipping rope. This fixture is where its timings were tuned."
+              description="The final boss with its full moveset, without the run to reach it: triple shots, and a sweeping arc laser you jump over like the world's angriest skipping rope. This fixture is where its timings were tuned."
             />
           </article>
 
@@ -412,7 +416,7 @@
               title="Castle road, unlocked"
               src={finaleSceneUrl}
               poster="/blog/gamedevjs-2026/posters/finale.webp"
-              description="What the whole run points at: the outside world past the broken dome. Seeded terrain chunks, road and grass shaders, and the gate that only opens when the Gate Keeper stops arguing."
+              description="What the whole run points at: the outside world past the broken dome. Seeded terrain chunks, road and grass shaders, and the gate that opens once the Gate Keeper is down."
             />
           </article>
         </div>
@@ -425,21 +429,20 @@
             poster="/blog/gamedevjs-2026/posters/loadout.webp"
             desktopOverview
             tall
-            description="The module try-on fixture: swap any of the 21 modules and watch the character model, damage, fire rate, health, magazine and reload react instantly. Stat math and rendered result share one review surface — which is exactly how bugs in either got caught."
+            description="The module try-on fixture: swap any of the 10 modules and watch the character model, damage, fire rate, health, magazine and reload react instantly. Seeing the numbers next to the model caught bugs in both."
           />
         </div>
       </section>
 
       <section class="mb-12" aria-labelledby="roles-heading">
         <p class="section-kicker">05 · The workflow</p>
-        <h2 id="roles-heading" class="section-heading">
-          How the agent collaboration actually worked
-        </h2>
+        <h2 id="roles-heading" class="section-heading">How the agents and I split the work</h2>
         <p class="mb-6">
-          Branches in the repo are literally named <code>codex/*</code> — agents wrote a lot of this game.
-          But "agents wrote it" undersells what the job became: decomposing systems into tasks small enough
-          to review, keeping state boundaries clean enough that a wrong implementation was cheap to throw
-          away, and playtesting every change because no agent can feel a bad camera. The split, roughly:
+          Codex and Claude Code wrote most of this game; two of the merged branches are literally
+          named <code>codex/*</code>. My job shifted to splitting systems into tasks small enough to
+          review, keeping state boundaries clean so a bad implementation was cheap to throw away,
+          and playtesting every change, because no agent can tell you the camera feels wrong. The
+          split, roughly:
         </p>
         <div class="grid gap-5 md:grid-cols-2">
           {#each ownership as column (column)}
