@@ -138,6 +138,8 @@ export class Engine {
   private timeLapse = false;
   /** The planet surface pipelines could not be built on this GPU. */
   private surfaceFailed = false;
+  /** Bumped by every planet chosen while its shaders compile: the last wins. */
+  private planetRequest = 0;
   /** A one-off frame is owed (theme, settings, resize) while nothing animates. */
   private redraw = false;
   private disposed = false;
@@ -694,14 +696,21 @@ export class Engine {
     const layer = this.renderer.planet;
     if (!layer) {
       // Shaders still compiling: try again once they are ready, or settle for
-      // an orbit if this GPU cannot build them.
+      // an orbit if this GPU cannot build them. Only the latest choice counts,
+      // and only while the visitor is still in the system it was made in.
+      const request = ++this.planetRequest;
+      const state = this.state;
+      const current = () =>
+        !this.disposed && request === this.planetRequest && this.state === state;
       this.renderer.ensurePlanet().then(
-        () => this.selectPlanet(index),
+        () => {
+          if (current()) this.selectPlanet(index);
+        },
         (error: unknown) => {
           if (this.disposed) return;
           console.error('Planet renderer failed', error);
           this.surfaceFailed = true;
-          this.orbitPlanet(index);
+          if (current()) this.orbitPlanet(index);
         },
       );
       return;
