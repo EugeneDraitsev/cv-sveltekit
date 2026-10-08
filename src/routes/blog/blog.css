@@ -1,3 +1,7 @@
+/* The first @layer statement fixes the cascade order. This sheet can load
+   before global.css, and without the line its utilities layer would come
+   before base, so preflight's margin reset would beat every mt-* and mb-*. */
+@layer theme, base, components, utilities;
 @import '../../theme.css';
 @import 'tailwindcss/utilities.css' layer(utilities) source(none);
 @source './';
@@ -24,6 +28,11 @@
 
 .blog-lead {
   @apply mt-4 max-w-3xl text-base leading-relaxed sm:mt-5 sm:text-lg;
+}
+
+/* When the post was added and last updated, under the title. */
+.post-meta {
+  @apply mt-3 text-xs text-identifier/70 sm:text-sm;
 }
 
 .blog-page .subtitle {
