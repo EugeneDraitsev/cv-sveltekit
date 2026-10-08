@@ -31,6 +31,14 @@
 html {
   scrollbar-gutter: auto;
   --galaxy-height: 540px;
+  /* The fixed nav covers the top of the hero and every page pulls its content
+     up over the bottom (mt-[-72px]): the scene is framed in between. */
+  --galaxy-inset-top: 40px;
+  --galaxy-inset-bottom: 72px;
+  /* Resolved where used: the middle of that visible band, as a `top`. */
+  --galaxy-middle: calc(
+    var(--galaxy-inset-top) + (100% - var(--galaxy-inset-top) - var(--galaxy-inset-bottom)) / 2
+  );
 }
 
 html.has-scrollbar {
@@ -51,10 +59,6 @@ body {
 
 .subtitle {
   @apply mb-5 text-3xl text-declaration;
-}
-
-[data-grayscale='true'] .theme-grayscale {
-  @apply grayscale;
 }
 
 /* Below-the-fold sections skip style/layout/paint until scrolled near — cuts
@@ -118,63 +122,234 @@ body {
   outline-offset: 3px;
 }
 
-/* Hero backdrop shown until the 3D galaxy loads on interaction. */
+/* Hero backdrop: a CSS-only stand-in for the galaxy while its renderer loads.
+   No images and no text, so it never becomes the LCP element; it sits in the
+   prerendered HTML and under the canvas until the first frame, then fades. */
 .galaxy-placeholder {
   position: relative;
   min-height: var(--galaxy-height);
-  background:
-    radial-gradient(
-      ellipse 62% 44% at 50% 46%,
-      color-mix(in srgb, #46549f 16%, transparent),
-      transparent 72%
-    ),
-    var(--color-base-100);
+  overflow: hidden;
+  background: var(--color-base-100);
 }
 
-.galaxy-launch {
+.galaxy-backdrop {
+  --bd-star: rgb(232 236 255 / 0.75);
+  --bd-star-warm: rgb(255 226 190 / 0.7);
+  --bd-star-blue: rgb(190 205 255 / 0.65);
+  --bd-core: rgb(255 228 186 / 0.75);
+  --bd-core-edge: rgb(255 196 130 / 0.22);
+  --bd-disk: rgb(132 150 214 / 0.2);
+  --bd-dust: rgb(18 18 18 / 0.35);
+  --bd-disk-width: min(
+    79vw,
+    (var(--galaxy-height) - var(--galaxy-inset-top) - var(--galaxy-inset-bottom)) * 1.37
+  );
   position: absolute;
-  top: 42%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.65rem;
-  min-height: 48px;
-  width: max-content;
-  max-width: calc(100% - 2rem);
-  padding: 0.65rem 1.15rem;
-  border: 1px solid color-mix(in srgb, var(--color-identifier) 25%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-base-100) 82%, transparent);
-  color: var(--color-identifier);
-  font-size: 0.8rem;
-  cursor: pointer;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /* Twelve star layers over four co-prime tile sizes: no visible lattice. */
+  background:
+    radial-gradient(circle at 8% 85%, var(--bd-star) 0 0.46px, transparent 1.02px) 0 0 / 137px 113px,
+    radial-gradient(circle at 26% 69%, var(--bd-star-blue) 0 0.55px, transparent 1.22px) 0 0 / 137px
+      113px,
+    radial-gradient(circle at 36% 71%, var(--bd-star-warm) 0 0.63px, transparent 1.39px) 0 0 / 137px
+      113px,
+    radial-gradient(circle at 54% 65%, var(--bd-star-blue) 0 0.59px, transparent 1.3px) 0 0 / 211px
+      173px,
+    radial-gradient(circle at 77% 28%, var(--bd-star-warm) 0 0.5px, transparent 1.09px) 0 0 / 211px
+      173px,
+    radial-gradient(circle at 67% 67%, var(--bd-star) 0 0.38px, transparent 0.82px) 0 0 / 211px
+      173px,
+    radial-gradient(circle at 65% 47%, var(--bd-star-warm) 0 0.7px, transparent 1.53px) 0 0 / 89px
+      157px,
+    radial-gradient(circle at 76% 18%, var(--bd-star) 0 0.54px, transparent 1.2px) 0 0 / 89px 157px,
+    radial-gradient(circle at 86% 66%, var(--bd-star) 0 0.59px, transparent 1.3px) 0 0 / 89px 157px,
+    radial-gradient(circle at 57% 85%, var(--bd-star) 0 0.69px, transparent 1.51px) 0 0 / 263px
+      229px,
+    radial-gradient(circle at 39% 36%, var(--bd-star) 0 0.66px, transparent 1.46px) 0 0 / 263px
+      229px,
+    radial-gradient(circle at 36% 21%, var(--bd-star-blue) 0 0.46px, transparent 1.02px) 0 0 / 263px
+      229px;
+  mask-image: linear-gradient(to bottom, #000 80%, transparent);
+  transition:
+    opacity 900ms ease,
+    visibility 0s linear 900ms;
 }
 
-.galaxy-launch:hover {
-  border-color: var(--color-primary);
+/* The disk: a tilted, softly lit ellipse with a faint dust lane. It matches
+   the renderer's opening view (the projected disk is tilted 11.6° down to the
+   right, 2.13 times as wide as tall, framed by height on wide screens and by
+   width on narrow ones), so the first frame takes its place without a jump. */
+.galaxy-backdrop::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: var(--galaxy-middle);
+  width: var(--bd-disk-width);
+  aspect-ratio: 2.13;
+  transform: translate(-50%, -50%) rotate(11.6deg);
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse 30% 30% at 50% 50%, var(--bd-core-edge), transparent 70%),
+    radial-gradient(
+      ellipse 48% 46% at 50% 50%,
+      transparent 52%,
+      var(--bd-dust) 60%,
+      transparent 68%
+    ),
+    radial-gradient(ellipse 50% 50% at 50% 50%, var(--bd-disk), transparent 72%);
 }
-.galaxy-launch:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 4px;
+
+/* The bulge: a warm core that breathes while the renderer starts. Like the
+   rendered one it sits above the disk's middle, by a tenth of the disk's
+   height: the near half of a tilted disk looks larger. */
+.galaxy-backdrop::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: calc(var(--galaxy-middle) - var(--bd-disk-width) * 0.047);
+  width: clamp(64px, 15%, 170px);
+  aspect-ratio: 1.6;
+  transform: translate(-50%, -50%) rotate(11.6deg);
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse closest-side,
+    var(--bd-core),
+    var(--bd-core-edge) 55%,
+    transparent
+  );
+  animation: galaxy-breathe 3.2s ease-in-out infinite alternate;
 }
-.galaxy-launch:disabled {
-  cursor: progress;
+
+@keyframes galaxy-breathe {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .galaxy-backdrop::after {
+    animation: none;
+  }
+}
+
+/* Once the renderer shows its first frame, the stand-in steps aside. */
+.galaxy-app.shown .galaxy-backdrop {
+  opacity: 0;
+  visibility: hidden;
+}
+
+[data-theme='light'] .galaxy-backdrop {
+  --bd-star: rgb(40 50 110 / 0.3);
+  --bd-star-warm: rgb(150 90 40 / 0.28);
+  --bd-star-blue: rgb(50 70 160 / 0.28);
+  --bd-core: rgb(170 92 40 / 0.45);
+  --bd-core-edge: rgb(170 92 40 / 0.14);
+  --bd-disk: rgb(60 80 170 / 0.12);
+  --bd-dust: rgb(255 255 255 / 0.5);
+  mask-image: none;
+}
+
+/* Start-up progress under the silhouette: a hairline bar and a short label.
+   Small text only, so it never competes for LCP. Without a value the bar
+   sweeps (the renderer chunk is still downloading). */
+.galaxy-loader {
+  --loader-ink: rgb(233 236 246 / 0.62);
+  --loader-track: rgb(233 236 246 / 0.12);
+  position: absolute;
+  left: 50%;
+  top: calc(var(--galaxy-middle) + 4.6rem);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  transform: translateX(-50%);
+  color: var(--loader-ink);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 0 6px var(--color-base-100);
+  pointer-events: none;
+  transition:
+    opacity 600ms ease,
+    visibility 0s linear 600ms;
+}
+
+/* A readout row as wide as the bar: the label starts at its left edge and
+   the percentage sits in a fixed box at its right, so changing text never
+   moves where any text starts (that would count as layout shift). */
+.galaxy-loader-text {
+  display: flex;
+  justify-content: space-between;
+  width: 15rem;
+}
+
+.galaxy-loader-pct {
+  width: 4ch;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+.galaxy-loader-bar {
+  position: relative;
+  width: 15rem;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--loader-track);
+}
+
+.galaxy-loader-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffd9a0, #a9b8ff);
+  transform: scaleX(var(--progress, 0));
+  transform-origin: left center;
+  transition: transform 400ms ease;
+}
+
+.galaxy-loader[data-indeterminate] .galaxy-loader-bar::after {
+  width: 40%;
+  transform: translateX(-100%);
+  transition: none;
+  animation: galaxy-loader-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes galaxy-loader-sweep {
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .galaxy-loader[data-indeterminate] .galaxy-loader-bar::after {
+    animation: none;
+    width: 100%;
+    transform: none;
+    opacity: 0.35;
+  }
+}
+
+.galaxy-app.shown .galaxy-loader {
+  opacity: 0;
+  visibility: hidden;
+}
+
+[data-theme='light'] .galaxy-loader {
+  --loader-ink: rgb(43 45 48 / 0.6);
+  --loader-track: rgb(43 45 48 / 0.12);
 }
 
 @media (max-width: 768px) {
   html {
     --galaxy-height: 440px;
   }
-}
-
-[data-theme='light'] .galaxy-placeholder {
-  background:
-    radial-gradient(
-      ellipse 62% 44% at 50% 46%,
-      color-mix(in srgb, var(--color-primary) 9%, transparent),
-      transparent 72%
-    ),
-    var(--color-base-100);
 }

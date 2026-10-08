@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
-import glsl from 'vite-plugin-glsl';
 
 export default defineConfig({
-  plugins: [tailwindcss(), sveltekit(), glsl({ minify: true })],
-  ssr: { noExternal: ['postprocessing'] },
+  plugins: [tailwindcss(), sveltekit()],
+  // The renderer runs as a module worker (see src/lib/galaxy/host.ts).
+  worker: { format: 'es' },
 });

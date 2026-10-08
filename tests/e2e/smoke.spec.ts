@@ -27,10 +27,22 @@ test('search-engine discovery endpoints list the public routes', async ({ reques
   expect(await sitemap.text()).toContain('/blog/gamedevjs-2026');
 });
 
-test('the decorative galaxy stays unloaded for passive visitors', async ({ page }) => {
+test('the galaxy starts on its own after load, without blocking the page', async ({
+  page,
+  request,
+}) => {
+  // Nothing renderer-related ships with the prerendered first paint…
+  const html = await (await request.get('/')).text();
+  expect(html).not.toContain('galaxy-canvas');
+
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
-  await page.waitForTimeout(4_000);
-  await expect(page.locator('canvas')).toHaveCount(0);
+  // …then, once the main thread is idle, the hero mounts and hands its
+  // canvas to the worker.
+  await expect(page.locator('canvas.galaxy-canvas')).toHaveCount(1, { timeout: 15_000 });
+  await expect(page.getByRole('heading', { level: 1, name: 'About me' })).toBeVisible();
+  expect(errors).toEqual([]);
 });
 
 test('client navigation restores route-specific titles', async ({ page }) => {
@@ -47,7 +59,6 @@ test('client navigation restores route-specific titles', async ({ page }) => {
 
 test('controls and blog cards have accessible names', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('button', { name: /monochrome|full color/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /dark theme|light theme/i })).toBeVisible();
 
   await page.goto('/blog');

@@ -11,7 +11,7 @@
   <title>About this site | {SITE_DATA.siteTitle}</title>
   <meta
     name="description"
-    content="How Eugene Draitsev built this SvelteKit portfolio: procedural WebGL, custom shaders, progressive loading and measured performance."
+    content="How Eugene Draitsev built this SvelteKit portfolio: a TypeGPU renderer in a worker, procedural worlds, progressive loading and measured performance."
   />
   <link rel="canonical" href={canonicalUrl} />
   <meta property="og:title" content={`About this site | ${SITE_DATA.siteTitle}`} />
@@ -32,9 +32,9 @@
         <h1 class="blog-title">A CV with an unnecessarily explorable galaxy</h1>
         <p class="blog-lead">
           This site has two jobs: make the experience behind my CV easy to evaluate, and show the
-          kind of engineering I enjoy. The content is prerendered and usable without WebGL; the
-          galaxy is a progressively loaded enhancement built with Threlte, Three.js and custom
-          shaders.
+          kind of engineering I enjoy. The content is prerendered and usable without a GPU; the
+          galaxy is a progressively loaded enhancement: a small renderer of its own, written with
+          TypeGPU and WGSL, that runs on WebGPU (or WebGL2) inside a worker thread.
         </p>
       </header>
 
@@ -47,10 +47,11 @@
         </p>
         <p>
           The part I like most is the least visible: terrain height and biome blending are
-          implemented twice, once in GLSL for rendering and once in TypeScript for placing plants
-          and keeping the camera above ground. They have to agree, or plants float and you fly
-          through hills. Unit tests compare CPU samples against recorded values so the two cannot
-          quietly drift apart.
+          implemented twice, once in WGSL for the GPU and once in TypeScript for the camera, landing
+          sites and level-of-detail decisions. They have to agree, or the ground you see is not the
+          ground you stand on. Both use the same integer-hashed noise, so they match to about a
+          metre, and the renderer never stalls the page: the canvas is handed to a worker after
+          load, which is why the galaxy can start on its own and still score 100 on mobile.
         </p>
       </section>
 
@@ -85,8 +86,9 @@
             class="text-keyword underline"
             target="_blank"
             rel="noreferrer">Three.js Journey lesson</a
-          >. The current scene extends that starting point with navigation, generated star systems,
-          planet surfaces and a free-flight mode.
+          >. The current engine has moved far from that starting point: a raymarched galaxy volume,
+          ray-traced star systems, streamed planet terrain with atmospheres, plants and shadows, and
+          one continuous flight between them.
         </p>
       </section>
 

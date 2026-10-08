@@ -19,12 +19,9 @@
     "verify": "bun run format:check && bun run lint && bun run check && bun run test:unit && bun run build"
   },
   "dependencies": {
-    "@threlte/core": "^8.6.0",
-    "@threlte/extras": "^9.21.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
-    "svelte-tweakpane-ui": "^1.6.0",
-    "three": "^0.186.0"
+    "typegpu": "0.12.7"
   },
   "overrides": {
     "cookie": "^0.7.2"
@@ -38,8 +35,8 @@
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.5.1",
-    "@types/three": "^0.186.0",
     "@typescript/native": "npm:typescript@^7.0.2",
+    "@webgpu/types": "^0.1.74",
     "oxfmt": "^0.67.0",
     "oxlint": "^1.82.0",
     "svelte": "^5.57.0",
@@ -47,7 +44,6 @@
     "tailwindcss": "^4.3.3",
     "typescript": "~6",
     "vite": "^8.3.0",
-    "vite-plugin-glsl": "^1.6.1",
     "vitest": "^5.0.0"
   }
 }

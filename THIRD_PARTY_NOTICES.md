@@ -1,20 +1,27 @@
 # Third-party notices
 
-## Simplex noise
+## Noise
 
-The terrain shaders include simplex-noise code derived from the Ashima Arts / Stefan
-Gustavson `webgl-noise` implementations. Those implementations are distributed under the
-MIT License. The adapted shader chunks are identified in
-`src/lib/components/three/chunks/` and mirrored by the CPU implementation in
-`src/lib/components/three/noise.ts`.
+Earlier versions of the terrain shaders adapted simplex-noise code from the Ashima Arts /
+Stefan Gustavson `webgl-noise` implementations (MIT License). The current renderer no longer
+uses it: its gradient, fractal, ridged and cellular noise in
+`src/lib/galaxy/shaders/noise.wgsl` and the CPU twin in `src/lib/galaxy/world/noise.ts` hash
+integer lattice coordinates with the PCG3D hash described by Jarzynski and Olano, "Hash
+Functions for GPU Rendering" (JCGT, 2020).
 
-Source: <https://github.com/ashima/webgl-noise>
+Source of the earlier code: <https://github.com/ashima/webgl-noise>
+
+## Atmosphere
+
+The atmosphere shaders use the analytic Chapman-function approximation for optical depth
+popularised by Christian Schüler ("An Approximation to the Chapman Grazing-Incidence
+Function for Atmospheric Scattering", GPU Pro 3, 2012).
 
 ## Galaxy study
 
 The original galaxy study was inspired by Bruno Simon's Three.js Journey animated-galaxy
-lesson. The current implementation adds its own procedural system generation, navigation,
-terrain, flight and performance-loading architecture.
+lesson. The current implementation is a separate TypeGPU renderer with its own procedural
+system generation, navigation, terrain, flight and loading architecture.
 
 Reference: <https://threejs-journey.com/lessons/animated-galaxy>
 
