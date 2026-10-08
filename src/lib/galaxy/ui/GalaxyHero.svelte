@@ -30,8 +30,9 @@
   // Bumped to mount a brand-new canvas element for a WebGL2 restart.
   let canvasKey = $state(0);
   let restarted = false;
-  // Worker start-up retries (failed or stale chunk fetches).
+  // Start-up retries (failed or stale chunk fetches, in a worker or in-page).
   let startAttempts = 0;
+  let cancelRestart: (() => void) | null = null;
   let lastRenderer: 'auto' | 'webgl' = 'auto';
   let shown = $state(false);
   // Start-up progress from the engine; null while its chunk still downloads.
@@ -311,8 +312,16 @@
         syncHost();
       })
       .catch((error) => {
-        console.error(error);
-        failed = true;
+        if (disposed) return;
+        // In-page, the engine chunk itself failed to load (often a transient
+        // network error): retry like a worker that never started.
+        if (startAttempts < 3) {
+          console.warn('[galaxy] Renderer did not start, retrying:', error);
+          scheduleRestart();
+        } else {
+          console.error(error);
+          failed = true;
+        }
       });
   }
 
@@ -336,18 +345,24 @@
     if (!disposed) launch(renderer);
   }
 
-  /** Retry a worker that never started: after a pause, or once back online. */
+  /** Retry a renderer that never started: after a pause, or once back online. */
   function scheduleRestart() {
     startAttempts += 1;
     host?.dispose();
     host = null;
-    const retry = () => {
+    cancelRestart?.();
+    const cancel = () => {
       window.removeEventListener('online', retry);
       clearTimeout(timer);
+      cancelRestart = null;
+    };
+    const retry = () => {
+      cancel();
       if (!disposed) void remount(lastRenderer);
     };
     const timer = setTimeout(retry, 1500 * 2 ** startAttempts);
     window.addEventListener('online', retry);
+    cancelRestart = cancel;
   }
 
   onMount(() => {
@@ -384,6 +399,7 @@
     hookHost.galaxyHook = hook;
     return () => {
       disposed = true;
+      cancelRestart?.();
       resize.disconnect();
       visibility.disconnect();
       document.removeEventListener('visibilitychange', updateVisibility);

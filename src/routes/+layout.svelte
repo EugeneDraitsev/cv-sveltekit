@@ -7,6 +7,7 @@
   import { injectAnalytics } from '@vercel/analytics/sveltekit';
 
   import { SITE_DATA } from '$lib/constants';
+  import { importAgain } from '$lib/importAgain';
   import Footer from '$lib/components/Footer.svelte';
   import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
   import type GalaxyHeroType from '$lib/galaxy/ui/GalaxyHero.svelte';
@@ -109,7 +110,7 @@
     if (galaxyLoadStarted || !galaxyAllowed) return;
     galaxyLoadStarted = true;
     try {
-      const { default: Hero } = await import('$lib/galaxy/ui/GalaxyHero.svelte');
+      const { default: Hero } = await importAgain(() => import('$lib/galaxy/ui/GalaxyHero.svelte'));
       GalaxyHero = Hero;
     } catch (error) {
       galaxyLoadStarted = false;
