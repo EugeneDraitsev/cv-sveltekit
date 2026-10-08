@@ -721,9 +721,15 @@
       text-align: right;
     }
 
-    .scene-viewport,
-    .scene-viewport.tall {
+    .scene-viewport {
       height: 430px;
+    }
+
+    /* A portrait frame no taller than 500px reads as a phone on its side to some pages
+       (the character creator puts its panel beside a sliver of stage), so the tall
+       scenes stay taller than that. */
+    .scene-viewport.tall {
+      height: min(600px, 80svh);
     }
 
     .scene-viewport.desktop-overview iframe {
