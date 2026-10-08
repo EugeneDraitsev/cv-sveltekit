@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OrbitRig, centreDisk, orbitPose, poseBasis, type Pose } from './camera';
+import { OrbitRig, centreDisk, orbitPose, poseBasis, projectDisk, type Pose } from './camera';
 import type { Vec3 } from './math';
 
 /** Vertical and horizontal middle of a disk's projected rim, in NDC. */
@@ -55,5 +55,28 @@ describe('centreDisk', () => {
     rig.disk = { radius: 13, aspect: 1.5 };
     rig.set({ yaw: 0.55, pitch: 0.5, roll: 0.2, fov: 38, distance: 14 }, true);
     expect(rig.pose()).toEqual(orbitPose([0, 0, 0], 0.55, 0.5, 14, 0.2, 38));
+  });
+});
+
+describe('projectDisk', () => {
+  const tanHalf = Math.tan((38 * Math.PI) / 360);
+
+  it('sees a disk from straight above as a circle', () => {
+    const pose = orbitPose([0, 0, 0], 0, 1.45, 60, 0, 38);
+    const disk = projectDisk(pose.eye, poseBasis(pose), tanHalf, 1.5, 13)!;
+    expect(disk.b / disk.a).toBeGreaterThan(0.95);
+    expect(Math.hypot(disk.cx, disk.cy)).toBeLessThan(0.01);
+  });
+
+  it('flattens a tilted disk into a wide ellipse', () => {
+    const pose = orbitPose([0, 0, 0], 0.55, 0.5, 34, 0, 38);
+    const disk = projectDisk(pose.eye, poseBasis(pose), tanHalf, 1.5, 13)!;
+    expect(disk.a / disk.b).toBeGreaterThan(1.6);
+    expect(Math.abs(disk.angle)).toBeLessThan(0.3);
+  });
+
+  it('gives up once the camera is inside the disk', () => {
+    const pose = orbitPose([0, 0, 0], 0.55, 0.2, 6, 0, 38);
+    expect(projectDisk(pose.eye, poseBasis(pose), tanHalf, 1.5, 13)).toBeNull();
   });
 });

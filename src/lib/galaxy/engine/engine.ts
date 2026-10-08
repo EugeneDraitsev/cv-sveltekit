@@ -2,7 +2,7 @@ import type { Backend } from '../gpu/backend';
 import { BlockData } from '../gpu/blocks';
 import { WebGlBackend } from '../gpu/webgl';
 import { GalaxyBlock, PlanetBlock, PostBlock, SystemBlock } from './blocks';
-import { OrbitRig, flightPose, orbitPose, poseBasis, type Pose } from './camera';
+import { OrbitRig, flightPose, orbitPose, poseBasis, projectDisk, type Pose } from './camera';
 import {
   add,
   clamp,
@@ -22,6 +22,7 @@ import {
   type HudInfo,
   type Mode,
   type Settings,
+  type Theme,
   type ToEngine,
   type TouchFlight,
 } from './protocol';
@@ -125,6 +126,7 @@ export class Engine {
   private cssHeight = 1;
   private dpr = 1;
   private adaptive = 1;
+  private theme: Theme = 'dark';
   private reducedMotion = false;
   private visible = true;
   private playing = true;
@@ -211,6 +213,7 @@ export class Engine {
 
   async init(message: Extract<ToEngine, { type: 'init' }>) {
     this.hints = message.hints;
+    this.theme = message.theme;
     this.reducedMotion = message.reducedMotion;
     this.playing = !message.reducedMotion;
     this.cssWidth = message.width;
@@ -339,7 +342,8 @@ export class Engine {
         this.kick();
         break;
       case 'theme':
-        // Space looks the same in both themes (see PAGE).
+        this.theme = message.theme;
+        this.kick();
         break;
       case 'playing':
         this.playing = message.playing;
@@ -1456,10 +1460,18 @@ export class Engine {
     const surfaceExposure = 1.5 - sunUp * 0.9 - (sunUp - daylight) * 0.12;
     const orbitExposure = inPlanet ? 1.6 / 2.6 : 1;
     const exposure = this.settings.exposure * lerp(orbitExposure, surfaceExposure, surfaceWeight);
+    // The paper holds on while the cloud grows around the approaching camera,
+    // then gives way to space for the second half of the dive.
+    const lightMix = (this.theme === 'light' ? 1 : 0) * (1 - smoothstep(0.4, 1, presence));
+    const cloud =
+      lightMix > 0 ? projectDisk(eyeG, basis, tanHalf, w / h, GALAXY_DISK_RADIUS) : null;
     this.postData
       .set('viewport', w, h, this.time, 0)
-      .set('look', exposure, this.settings.bloom, 0, 0)
-      .vec('paper', PAGE, 0.36);
+      // Light theme, galaxy view: the page stays white around a cloud of space
+      // shaped like the galaxy's projected disk (or filling the view up close).
+      .set('look', exposure, this.settings.bloom, lightMix, cloud?.angle ?? 0)
+      .vec('paper', PAGE, 0.36)
+      .set('cloud', cloud?.cx ?? 0, cloud?.cy ?? 0, cloud?.a ?? 1e3, cloud?.b ?? 1e3);
     this.renderer.render({
       galaxy: this.galaxyData,
       volume: daylight < 0.98,

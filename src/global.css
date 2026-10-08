@@ -144,10 +144,15 @@ body {
   background: var(--galaxy-bg, var(--color-base-100));
 }
 
-/* Space stays dark in the light theme too. The hero and its stand-in keep the
-   dark palette (so does the nav while it floats over them) and fade into the
-   white page at the bottom, where the canvas fades out as well. */
-[data-theme='light'] :is(.galaxy-app, .galaxy-placeholder, nav.over-hero) {
+/* Light theme. In the galaxy view the page stays white and the renderer draws
+   space as a cloud around the galaxy. Inside a system, on a planet and in
+   flight space fills the frame: the hero (and the nav while it floats over it) takes the
+   dark palette and fades into the white page at the bottom, where the canvas
+   fades out as well. */
+[data-theme='light']
+  :is(.galaxy-app:not([data-mode='galaxy']), .galaxy-app[data-travelling='true']),
+[data-theme='light']:has(.galaxy-app:not([data-mode='galaxy']), .galaxy-app[data-travelling='true'])
+  nav.over-hero {
   --color-constant: #d694f9;
   --color-declaration: #ffc66d;
   --color-string: #a4c591;
@@ -272,6 +277,29 @@ body {
 .galaxy-app.shown .galaxy-backdrop {
   opacity: 0;
   visibility: hidden;
+}
+
+/* Light theme: the same cloud of space the renderer draws on the white page,
+   a dark ellipse a third larger than the disk with a violet rim, around the
+   warm core. The page-wide star field would only speckle the paper. */
+[data-theme='light'] .galaxy-backdrop {
+  --bd-star: transparent;
+  --bd-star-warm: transparent;
+  --bd-star-blue: transparent;
+  mask-image: none;
+}
+
+[data-theme='light'] .galaxy-backdrop::before {
+  transform: translate(-50%, -50%) rotate(11.6deg) scale(1.35);
+  background:
+    radial-gradient(ellipse 30% 30% at 50% 50%, rgb(132 150 214 / 0.18), transparent 70%),
+    radial-gradient(
+      ellipse 50% 50% at 50% 50%,
+      #121212 52%,
+      rgb(28 18 60 / 0.85) 68%,
+      rgb(90 30 90 / 0.35) 84%,
+      transparent
+    );
 }
 
 /* Start-up progress under the silhouette: a hairline bar and a short label.
