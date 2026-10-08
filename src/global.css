@@ -97,8 +97,9 @@ body {
   background: color-mix(in srgb, var(--color-base-100) 28%, transparent);
 }
 
+/* The ASCII footer already prints on the page colour: only a light veil. */
 [data-theme='light'] .footer-galaxy-overlay {
-  background: color-mix(in srgb, var(--color-base-100) 42%, transparent);
+  background: color-mix(in srgb, var(--color-base-100) 12%, transparent);
 }
 
 .footer-link {

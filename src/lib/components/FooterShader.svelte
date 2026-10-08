@@ -185,6 +185,8 @@
       float ink = texture2D(uAtlas, atlasUv).a;
 
       float strength = 0.45 + 0.55 * smoothstep(0.05, 0.6, level) + touch * 0.35;
+      // Dark ink on white needs more coverage than light on black to read.
+      strength = mix(strength, min(1.0, strength + 0.4), uIsLight);
       vec3 base = mix(uBase, uCool, mix(0.03, 0.012, uIsLight));
       vec3 finalColor = mix(base, color, clamp(ink * strength, 0.0, 1.0));
 
@@ -299,7 +301,9 @@
     const context = atlas.getContext('2d');
     if (!context) return atlas;
     const family = getComputedStyle(document.body).fontFamily || 'monospace';
-    context.font = `${Math.round(height * 0.84)}px ${family}`;
+    // Thin strokes vanish on a white page: the light theme prints in bold.
+    const weight = themeStore.theme === 'light' ? 700 : 400;
+    context.font = `${weight} ${Math.round(height * 0.84)}px ${family}`;
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillStyle = '#fff';
@@ -510,6 +514,8 @@
       untrack(() => {
         if (targetCanvas) {
           updateColorsFromDocument();
+          // The glyph weight follows the theme too.
+          if (atlasReady) uploadAtlas();
           draw(performance.now());
         }
       });
