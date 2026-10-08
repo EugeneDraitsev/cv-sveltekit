@@ -94,7 +94,8 @@ fn vs(vsIn: VertexIn) -> Varyings {
   o.corner = q;
   let local: vec3f = star.position * vec3f(1.0, galaxy.detail.z, 1.0);
   // Stars turn with the gas around them, arm twist included.
-  let world: vec3f = rotateY(local, galaxy.detail.y + armTwist(local.xz, twistShape()));
+  let twist: f32 = armTwist(local.xz, twistShape());
+  let world: vec3f = rotateY(local, galaxy.detail.y + twist);
   let s: vec4f = starScreen(world, star.size, 24.0);
   // Stars of the system being entered make way for its real sun.
   let focusFade: f32 = 1.0 - galaxy.focus.w * (1.0 - smoothstep(0.0, 0.25, length(world - galaxy.focus.xyz)));
@@ -105,7 +106,7 @@ fn vs(vsIn: VertexIn) -> Varyings {
     return o;
   }
   o.position = vec4f(s.xy + q * s.z * 2.0 / galaxy.viewport.xy, 0.5, 1.0);
-  let occlusion: f32 = dustOcclusion(star.position, rotateY(galaxy.eye.xyz, -galaxy.detail.y));
+  let occlusion: f32 = dustOcclusion(rotateY(star.position, twist), rotateY(galaxy.eye.xyz, -galaxy.detail.y));
   o.tint = vec4f(star.color, star.brightness * galaxy.detail.w * occlusion * starEnergy(star.size, s.w, s.z, 24.0) * visibility);
   return o;
 }

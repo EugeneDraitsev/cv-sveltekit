@@ -93,8 +93,11 @@ fn skyStar(index: u32) -> Star {
   return star;
 }
 
-// Optical depth of dust between a galaxy-space star and the eye.
+// Optical depth of dust between a galaxy-space star and the eye. `star` is
+// where the star is drawn (arm twist included); the dust is sampled through the
+// same twist as renderGalaxy, so lanes dim the stars that lie behind them.
 fn dustOcclusion(star: vec3f, eye: vec3f) -> f32 {
+  let shape: vec3f = twistShape();
   let ray: vec3f = eye - star;
   let distance: f32 = length(ray);
   let dir: vec3f = ray / max(distance, 0.0001);
@@ -113,7 +116,7 @@ fn dustOcclusion(star: vec3f, eye: vec3f) -> f32 {
   var depth: f32 = 0.0;
   for (var i: i32 = 0; i < 6; i = i + 1) {
     let p: vec3f = star + dir * (start + (f32(i) + 0.5) * stepLength);
-    depth = depth + sampleVolume(p).a * stepLength;
+    depth = depth + sampleVolume(rotateY(p, -armTwist(p.xz, shape))).a * stepLength;
   }
   return exp(-depth * galaxy.look.w);
 }

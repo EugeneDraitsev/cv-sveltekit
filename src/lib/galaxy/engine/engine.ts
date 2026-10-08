@@ -141,6 +141,11 @@ export class Engine {
   private angle = 0;
   /** The deep sky's turn about its tilted axis (radians). */
   private skyAngle = 0;
+  /**
+   * Clock of the sky's shimmer and cloud flow. Unlike `time`, which a planet's
+   * surface keeps running, it stops with playback (and so for reduced motion).
+   */
+  private skyTime = 0;
   /** The galaxy camera's idle float: its own clock, and how much of it shows (0..1). */
   private floatTime = 0;
   private floatWeight = 0;
@@ -1202,6 +1207,7 @@ export class Engine {
     const elapsed = this.last ? (now - this.last) / 1000 : 1 / 60;
     this.last = now;
     const dt = Math.min(elapsed, 0.05);
+    if (this.playing) this.skyTime += dt;
     if (this.playing || this.mode === 'planet') {
       this.time += dt;
       if (this.mode === 'galaxy' && !this.flight) {
@@ -1481,7 +1487,7 @@ export class Engine {
         presence * (1 - daylight),
       )
       .set('focus', focus[0], focus[1], focus[2], this.site ? presence : 0)
-      .set('adapt', (1 - presence * 0.94) * (1 - daylight), 1, this.skyAngle, 0);
+      .set('adapt', (1 - presence * 0.94) * (1 - daylight), 1, this.skyAngle, this.skyTime);
     // Exposure follows the sun itself (airless worlds have a black sky but a
     // harshly lit ground) and opens up at night like dark-adapted eyes.
     // Surface exposure fades back to the space value with altitude, so the

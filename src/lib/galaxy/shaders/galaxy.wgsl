@@ -98,7 +98,7 @@ fn starLayer(face: vec3f, n: f32, seed: f32, density: f32, flux: f32, pixel: f32
   let sigma: f32 = pixel * 0.65;
   let b: f32 = flux * (0.12 + pow(h2.z, 7.0));
   // A slow shimmer, each star on its own beat: the field breathes, it does not flash.
-  let twinkle: f32 = 1.0 + 0.3 * sin(galaxy.viewport.z * (0.7 + h2.x * 1.6) + h2.y * TAU);
+  let twinkle: f32 = 1.0 + 0.3 * sin(galaxy.adapt.w * (0.7 + h2.x * 1.6) + h2.y * TAU);
   let color: vec3f = kelvinColor(2800.0 + hash31(vec3f(cell, seed + 3.0)) * 9500.0);
   return color * (b * twinkle * exp(-(radians * radians) / (sigma * sigma)));
 }
@@ -149,7 +149,7 @@ fn skyClouds(rd: vec3f) -> vec4f {
   let c: f32 = exp(-(1.0 - dot(rd, normalize(vec3f(0.62, 0.38, 0.69)))) * 4.0);
   let field: f32 = a + b * 0.8 + c * 0.6;
   // The gas slowly flows through its own shapes.
-  let flow: vec3f = vec3f(0.0, 0.0035, 0.0025) * galaxy.viewport.z;
+  let flow: vec3f = vec3f(0.0, 0.0035, 0.0025) * galaxy.adapt.w;
   let warp: vec3f = vec3f(fbm3(rd * 3.0 + vec3f(1.3) + flow), fbm3(rd * 3.0 + vec3f(7.1) - flow), fbm3(rd * 3.0 + vec3f(4.7) + flow.zyx));
   let q: vec3f = rd * 5.5 + warp * 1.6;
   let gas: f32 = smoothstep(0.42, 0.82, fbm3(q));
