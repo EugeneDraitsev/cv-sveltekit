@@ -34,19 +34,23 @@ fn composite(uv: vec2f, pixel: vec2f) -> vec4f {
     + textureSampleLevel(bloom1, linearSampler, uv, 0.0).rgb * 0.24
     + textureSampleLevel(bloom2, linearSampler, uv, 0.0).rgb * 0.28
     + textureSampleLevel(bloom3, linearSampler, uv, 0.0).rgb * 0.30;
-  var col: vec3f = acesFilm((hdr + glow * post.look.y) * post.look.x);
-  // Light theme: the same image printed as coloured ink on the page.
   let lightMix: f32 = post.look.z;
+  // Printed, a soft glow would only grey the paper: keep a little of it.
+  var col: vec3f = acesFilm((hdr + glow * post.look.y * (1.0 - 0.7 * lightMix)) * post.look.x);
+  // Light theme: the same image printed on the page. Inks multiply (each one
+  // a deep version of the colour it stands for: blue arms, amber core, pink
+  // nebulae), denser where the emission is brighter, and the paper stays
+  // clean where nothing glows. Mixing them additively in linear light would
+  // wash every mid tone out to near white once gamma is applied.
   if (lightMix > 0.001) {
     let l: f32 = max(col.r, max(col.g, col.b));
     let hue: vec3f = col / max(l, 0.0001);
-    // Two inks: a cool one for arms, dust and stars, a warm sepia that takes
-    // over in the bright core so it prints as a glow rather than a blot.
-    let cool: vec3f = mix(post.ink.rgb, hue * 0.22 + post.ink.rgb * 0.5, 0.65);
-    let warm: vec3f = vec3f(0.66, 0.36, 0.16);
-    let ink: vec3f = mix(cool, warm, smoothstep(0.5, 0.97, l) * 0.9);
-    let density: f32 = pow(smoothstep(0.0, 0.9, l), 0.75) * (1.0 - smoothstep(0.75, 1.0, l) * 0.3);
-    let printed: vec3f = mix(post.paper.rgb, ink, density);
+    let neutral: f32 = 1.0 - (l - min(col.r, min(col.g, col.b))) / max(l, 0.0001);
+    var ink: vec3f = clamp(pow(hue, vec3f(4.0)) * 0.3 + post.ink.rgb * 0.1, vec3f(0.004), vec3f(0.85));
+    // The overexposed core is nearly white: print it in warm amber, not grey.
+    ink = mix(ink, vec3f(0.52, 0.24, 0.05), smoothstep(0.75, 1.0, l) * neutral);
+    let density: f32 = pow(smoothstep(0.02, 1.0, l), 0.85) * 1.45;
+    let printed: vec3f = pow(post.paper.rgb, vec3f(2.2)) * pow(ink, vec3f(density));
     col = mix(col, printed, lightMix);
   }
   let centered: vec2f = uv - vec2f(0.5);
