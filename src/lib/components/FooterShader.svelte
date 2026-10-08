@@ -123,12 +123,16 @@
       }
 
       // The planet: a banded gas giant with a ring, lit from the upper left.
-      // Wide footers keep it to the right of the links; narrow ones let it
-      // peek in from the bottom-right corner.
-      float wide = step(3.0, aspect);
-      float radius = mix(0.22, 0.36, wide);
+      // Wide footers (about 940 px and up) have room for it right of the links;
+      // narrower ones (tablets, phones) show it whole and small in the top-right
+      // corner, across from the "End of file" label, above the links.
+      float wide = step(5.5, aspect);
+      // Phones stack the labels over the links and leave the planet more room.
+      float phone = 1.0 - step(3.0, aspect);
+      float radius = mix(mix(0.155, 0.2, phone), 0.36, wide);
+      vec2 corner = mix(vec2(2.45, 1.15), vec2(2.6, 1.45), phone);
       vec2 planet = mix(
-        vec2(aspect * 0.5 - radius * 0.45, -0.5 + radius * 0.55),
+        vec2(aspect * 0.5 - radius * corner.x, 0.5 - radius * corner.y),
         vec2(aspect * 0.5 - radius * 3.1, -0.03),
         wide
       );
