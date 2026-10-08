@@ -9,7 +9,7 @@
 @source './routes/+error.svelte';
 @source './lib/components/*.svelte';
 @source not './lib/components/ZoomableImage.svelte';
-@source not './lib/components/WebGLSceneEmbed.svelte';
+@source not './lib/components/LiveSceneEmbed.svelte';
 
 html {
   scrollbar-gutter: auto;

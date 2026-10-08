@@ -5,7 +5,7 @@
   import { resolve } from '$app/paths';
   import Icon from '$lib/components/Icon.svelte';
   import { onMount } from 'svelte';
-  import WebGLSceneEmbed from '$lib/components/WebGLSceneEmbed.svelte';
+  import LiveSceneEmbed from '$lib/components/LiveSceneEmbed.svelte';
   import ZoomableImage from '$lib/components/ZoomableImage.svelte';
   import { getBlogPost, serializeJsonLd } from '$lib/blog';
   import { SITE_DATA } from '$lib/constants';
@@ -37,7 +37,7 @@
 
   const laserSceneUrl = $derived(sceneUrl('weapons-playground--laser'));
   const bossSceneUrl = $derived(sceneUrl('playgrounds-combat--boss-gate-keeper'));
-  const finaleSceneUrl = $derived(sceneUrl('playgrounds-outside-finale--unlocked-entrance'));
+  const roomsSceneUrl = $derived(sceneUrl('playgrounds-rooms--treasure'));
   const loadoutSceneUrl = $derived(sceneUrl('playgrounds-loadout-modules--try-on-playground'));
 
   onMount(() => {
@@ -388,47 +388,51 @@
         </div>
 
         <div class="mb-7">
-          <WebGLSceneEmbed
+          <LiveSceneEmbed
             label="Scene 01 · Laser"
             title="Charge-up laser, live"
             src={laserSceneUrl}
             poster="/blog/gamedevjs-2026/posters/laser.webp"
             desktopOverview
             tall
+            waitForScene
             description="The Laser Beam module in its weapon lab. Hold fire to charge, sweep the beam through targets, switch to the other five builds (default rivet, split arc, wave, lob and rockets) in the panel. The electric windup you hear is synthesized in Web Audio. Arseny Yankovski built the charge-up and this weapons playground."
           />
         </div>
 
         <div class="scene-pair">
           <article>
-            <WebGLSceneEmbed
+            <LiveSceneEmbed
               label="Scene 02 · Final boss"
               title="Gate Keeper sandbox"
               src={bossSceneUrl}
               poster="/blog/gamedevjs-2026/posters/boss.webp"
-              description="The final boss with its full moveset, without the run to reach it: triple shots, and a sweeping arc laser you jump over like the world's angriest skipping rope. This fixture is where its timings were tuned."
+              waitForScene
+              description="The final boss with its full moveset, without the run to reach it: triple shots, and a sweeping arc laser you jump over like the world's angriest skipping rope. This fixture is where its timings were tuned. The Combat Preset panel swaps in the other eleven fights, from a line of scrap runners to the Mine Herald."
             />
           </article>
 
           <article>
-            <WebGLSceneEmbed
-              label="Scene 03 · The finale"
-              title="Castle road, unlocked"
-              src={finaleSceneUrl}
-              poster="/blog/gamedevjs-2026/posters/finale.webp"
-              description="What the whole run points at: the outside world past the broken dome. Seeded terrain chunks, road and grass shaders, and the gate that opens once the Gate Keeper is down."
+            <LiveSceneEmbed
+              label="Scene 03 · Rooms"
+              title="All 29 rooms, one dropdown"
+              src={roomsSceneUrl}
+              poster="/blog/gamedevjs-2026/posters/rooms.webp"
+              waitForScene
+              description="Every room is a JSON template checked by a Zod schema, and this previewer builds any of the 29 the way a run would. It opens on the treasure vault, relief-mapped floor and a module on the pedestal; the panel swaps in lava lanes, catwalks, the forgeyard, the shop or the boss arenas, enemies included."
             />
           </article>
         </div>
 
         <div>
-          <WebGLSceneEmbed
+          <LiveSceneEmbed
             label="Scene 04 · Loadout"
             title="Try-on bay with live stats"
             src={loadoutSceneUrl}
             poster="/blog/gamedevjs-2026/posters/loadout.webp"
             desktopOverview
             tall
+            waitForScene
             description="The module try-on fixture: swap any of the 10 modules and watch the character model, damage, fire rate, health, magazine and reload react instantly. Seeing the numbers next to the model caught bugs in both."
           />
         </div>

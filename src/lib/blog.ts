@@ -11,7 +11,7 @@ export const BLOG_POSTS = [
     imageMode: 'cover',
     socialImage: '/og/rainroam.jpg',
     description:
-      'A souls-lite adventure for phones, played with one thumb, that switches between soft 3D and pixel art mid-fight. Six weeks from first sketch to the web, Galaxy Store and the Mac App Store.',
+      'A souls-lite adventure for phones, played with one thumb, that switches between soft 3D and pixel art mid-fight. Six weeks from first sketch to the web, Galaxy Store and the Mac App Store, and four of its scenes run live in the post.',
     tags: ['TypeGPU', 'WebGPU', 'Phaser', 'Capacitor', 'RevenueCat'],
   },
   {

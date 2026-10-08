@@ -4,6 +4,7 @@
   import { resolve } from '$app/paths';
   import Icon from '$lib/components/Icon.svelte';
   import ZoomableImage from '$lib/components/ZoomableImage.svelte';
+  import LiveSceneEmbed from '$lib/components/LiveSceneEmbed.svelte';
   import { getBlogPost, serializeJsonLd } from '$lib/blog';
   import { SITE_DATA } from '$lib/constants';
 
@@ -12,6 +13,75 @@
   const appStoreUrl = 'https://apps.apple.com/app/id6813862126';
   const devpostUrl = 'https://devpost.com/software/rainroam';
   const trailerUrl = 'https://www.youtube.com/watch?v=VofgRBF6jP4';
+
+  // The game's test arena starts any fight or dungeon from a self-contained link, without a save.
+  const arenaVigil = {
+    level: 1,
+    embers: 0,
+    attrs: { vigor: 0, might: 0, endurance: 0, arcana: 0, agility: 0 },
+    oaths: [],
+    tempered: 0,
+    remnant: null,
+  };
+  const arenaUrl = (config: {
+    hero: 'cat' | 'frog';
+    weapon: string;
+    skill: string;
+    mode?: 'arena' | 'dungeon';
+    biome?: number;
+    site?: string;
+    groups?: { kind: string; count: number; guardian?: string }[];
+  }) => {
+    const params = new URLSearchParams({
+      v: '1',
+      seed: '42',
+      hero: config.hero,
+      mode: config.mode ?? 'arena',
+      shape: 'pillars',
+      biome: String(config.biome ?? 0),
+      weapon: config.weapon,
+      skill: config.skill,
+      site: config.site ?? '1:0',
+      floor: '1',
+      scaling: 'level',
+      threat: '1',
+      slots: '6',
+      // Invulnerable, so a visitor's fight never ends on a death screen.
+      god: '1',
+      groups: JSON.stringify(config.groups ?? [{ kind: 'slime', count: 6 }]),
+      relics: '{}',
+      gear: JSON.stringify({ coat: 'raincoat', footwear: 'worn-soles', hat: 'original-headwear' }),
+      vigil: JSON.stringify(arenaVigil),
+    });
+    return `${playUrl}?lang=en#/debug/arena/play?${params}`;
+  };
+
+  const forgeSceneUrl = `${playUrl}tools/character-builder/`;
+  const guardianSceneUrl = arenaUrl({
+    hero: 'cat',
+    weapon: 'sword',
+    skill: 'throw',
+    biome: 1,
+    groups: [{ kind: 'boss', guardian: 'kiln', count: 1 }],
+  });
+  const dungeonSceneUrl = arenaUrl({
+    hero: 'frog',
+    weapon: 'staff',
+    skill: 'comet',
+    mode: 'dungeon',
+    site: '4:2',
+  });
+  const packSceneUrl = arenaUrl({
+    hero: 'cat',
+    weapon: 'sword',
+    skill: 'throw',
+    biome: 2,
+    groups: [
+      { kind: 'sakura-mantis', count: 3 },
+      { kind: 'petal-widow', count: 2 },
+    ],
+  });
+  const noWebGPUGame = 'This browser has no WebGPU, so the game will draw it in pixel art.';
 
   const post = getBlogPost('rainroam');
   const canonicalUrl = new URL(`/blog/${post.slug}`, SITE_DATA.siteUrl).href;
@@ -270,6 +340,70 @@
       </section>
 
       <section class="mb-12">
+        <h2 class="section-heading">Play a little of it here</h2>
+        <p class="mb-6">
+          These scenes run the real game from rainroam.pages.dev. The fights and the dungeon come
+          from its test arena, built for trying fights out: it starts any battle from a link,
+          without touching a save. The hero cannot die in them. WASD or the arrows walk, standing
+          still strikes, Space dashes, F casts the spell, and P redraws everything in pixel art and
+          back, in the middle of a fight too. On a phone, drag to move. Each one is a full WebGPU
+          app, so only one runs at a time.
+        </p>
+
+        <div class="mb-7">
+          <LiveSceneEmbed
+            label="Scene 01 · Characters"
+            title="The character creator"
+            src={forgeSceneUrl}
+            poster="/blog/rainroam/posters/forge.webp"
+            renderer="WebGPU"
+            withoutWebGPU="This browser has no WebGPU, which the character creator needs."
+            desktopOverview
+            tall
+            description="Where the heroes and the residents of their kinds are made, on the same TypeGPU renderer as the game. Pick a body, a species and clothes, recolour each piece, then reshape the face: eye size and tilt, snout, ears, jaw, a mood. The animation tab plays the seven clips the game uses, talking included, and Random (or R) rolls a whole new hero. The cats, frogs and the crane you meet in the game were dressed here."
+          />
+        </div>
+
+        <div class="scene-pair">
+          <article>
+            <LiveSceneEmbed
+              label="Scene 02 · Guardian"
+              title="The Brass Kiln"
+              src={guardianSceneUrl}
+              poster="/blog/rainroam/posters/kiln.webp"
+              renderer="WebGPU"
+              withoutWebGPU={noWebGPUGame}
+              description="The cat knight against the guardian of Emberwell Foundry. Every ring on the ground is the exact reach of a blow about to land, so the fight is about reading them and dashing out in time."
+            />
+          </article>
+
+          <article>
+            <LiveSceneEmbed
+              label="Scene 03 · Dungeon"
+              title="Mushroom Chapel"
+              src={dungeonSceneUrl}
+              poster="/blog/rainroam/posters/chapel.webp"
+              renderer="WebGPU"
+              withoutWebGPU={noWebGPUGame}
+              description="A seeded dungeon floor with the frog Rainkeeper, who fights from range with a staff: ten enemies, and five lanterns to light, marked on the map. Press P to see the same cave in pixel art."
+            />
+          </article>
+        </div>
+
+        <div>
+          <LiveSceneEmbed
+            label="Scene 04 · A crowd"
+            title="Mantises in Mossmere"
+            src={packSceneUrl}
+            poster="/blog/rainroam/posters/mantis.webp"
+            renderer="WebGPU"
+            withoutWebGPU={noWebGPUGame}
+            description="Three sakura mantises and two petal widows at once, which is where the outlines on the ground earn their keep: several attacks overlap, and the safe spot moves with each of them."
+          />
+        </div>
+      </section>
+
+      <section class="mb-12">
         <h2 class="section-heading">Problems worth writing down</h2>
         <div class="rulelist">
           {#each problems as problem, index (problem.title)}
@@ -359,6 +493,18 @@
 </main>
 
 <style>
+  .scene-pair {
+    display: grid;
+    gap: 1.75rem;
+    margin-bottom: 1.75rem;
+  }
+
+  @media (min-width: 1024px) {
+    .scene-pair {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
   .trailer {
     position: relative;
   }
