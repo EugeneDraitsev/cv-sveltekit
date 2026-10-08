@@ -7,7 +7,7 @@
 @source './';
 @source '../about';
 @source '../../lib/components/ZoomableImage.svelte';
-@source '../../lib/components/WebGLSceneEmbed.svelte';
+@source '../../lib/components/LiveSceneEmbed.svelte';
 
 .blog-page {
   @apply text-[15px] sm:text-base;
