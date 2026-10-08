@@ -67,6 +67,11 @@
     top: 3.6rem;
     z-index: 9;
     width: min(17rem, calc(100% - 2.5rem));
+    /* Ends above the content that overlaps the hero; scroll for the rest. */
+    max-height: calc(100% - 3.6rem - var(--galaxy-inset-bottom) - 0.75rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
     padding: 0.75rem 0.9rem 0.85rem;
     border-radius: 0.8rem;
     border: 1px solid color-mix(in srgb, var(--color-identifier) 20%, transparent);
@@ -108,6 +113,12 @@
   input[type='range'] {
     width: 100%;
     accent-color: var(--color-primary);
+  }
+  /* Narrow screens keep the dock in the bottom-right corner: stop above it. */
+  @media (max-width: 900px) {
+    .tune {
+      max-height: calc(100% - 3.6rem - 5.4rem - 3rem);
+    }
   }
   select {
     width: 100%;
