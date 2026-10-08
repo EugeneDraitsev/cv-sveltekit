@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SocialImage from '$lib/components/SocialImage.svelte';
   import { resolve } from '$app/paths';
   import Icon from '$lib/components/Icon.svelte';
   import ZoomableImage from '$lib/components/ZoomableImage.svelte';
@@ -7,7 +8,7 @@
 
   const post = getBlogPost('mowfleet-dashboard');
   const canonicalUrl = new URL(`/blog/${post.slug}`, SITE_DATA.siteUrl).href;
-  const socialImageUrl = new URL(post.image, SITE_DATA.siteUrl).href;
+  const socialImageUrl = new URL(post.socialImage, SITE_DATA.siteUrl).href;
   const postSchema = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -179,14 +180,14 @@
   <meta property="og:description" content={post.description} />
   <meta property="og:type" content="article" />
   <meta property="og:url" content={canonicalUrl} />
-  <meta property="og:image" content={socialImageUrl} />
   <meta property="article:published_time" content={post.datePublished} />
   <meta property="article:modified_time" content={post.dateModified} />
-  <meta name="twitter:card" content="summary_large_image" />
   <svelte:element this={"script"} type="application/ld+json">
     {serializeJsonLd(postSchema)}
   </svelte:element>
 </svelte:head>
+
+<SocialImage src={post.socialImage} alt={post.title} />
 
 <main id="main-content" class="overlapped blog-page" tabindex="-1">
   <article class="relative mx-auto mt-[-72px] max-w-4xl px-3 pb-10 sm:px-4">

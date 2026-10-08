@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SocialImage from '$lib/components/SocialImage.svelte';
   import AboutMe from '$lib/components/AboutMe.svelte';
   import Experience from '$lib/components/Experience.svelte';
   import Abilities from '$lib/components/Abilities.svelte';
@@ -31,11 +32,15 @@
   <meta property="og:description" content={SITE_DATA.siteDescription} />
   <meta property="og:type" content="profile" />
   <meta property="og:url" content={canonicalUrl} />
-  <meta name="twitter:card" content="summary" />
   <svelte:element this={"script"} type="application/ld+json">
     {JSON.stringify(personSchema).replace(/</g, '\\u003c')}
   </svelte:element>
 </svelte:head>
+
+<SocialImage
+  src="/og/home.jpg"
+  alt={`${SITE_DATA.details.name}, ${SITE_DATA.details.position}, in front of a spiral galaxy`}
+/>
 
 <main id="main-content" class="overlapped" tabindex="-1">
   <div class="relative mx-auto mt-[-72px] flex max-w-[900px] flex-col items-center px-4 pb-5">
