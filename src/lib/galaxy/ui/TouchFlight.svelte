@@ -55,17 +55,49 @@
     send();
   }
 
-  function hold(key: 'up' | 'down' | 'boost', on: boolean) {
+  type Action = 'up' | 'down' | 'boost';
+  /** Boost switched on by a keyboard, switch control or screen reader. */
+  let boostLatched = $state(false);
+  const pulses: Partial<Record<Action, ReturnType<typeof setTimeout>>> = {};
+
+  function hold(key: Action, on: boolean) {
     return (event: PointerEvent) => {
-      input[key] = on;
+      // Letting go of boost falls back to the latched state, if any.
+      input[key] = on || (key === 'boost' && boostLatched);
       if (on) (event.currentTarget as Element).setPointerCapture(event.pointerId);
       event.preventDefault();
       send();
     };
   }
 
+  /**
+   * A click with no pointer press behind it (detail 0) is a keyboard,
+   * switch control or screen reader activating the button: boost toggles,
+   * up and down give a short push. Taps are already handled as holds.
+   */
+  function activate(key: Action) {
+    return (event: MouseEvent) => {
+      if (event.detail !== 0) return;
+      if (key === 'boost') {
+        boostLatched = !boostLatched;
+        input.boost = boostLatched;
+        send();
+        return;
+      }
+      clearTimeout(pulses[key]);
+      input[key] = true;
+      send();
+      pulses[key] = setTimeout(() => {
+        input[key] = false;
+        send();
+      }, 450);
+    };
+  }
+
   onMount(() => {
     const releaseAll = () => {
+      for (const timer of Object.values(pulses)) clearTimeout(timer);
+      boostLatched = false;
       input.up = input.down = input.boost = false;
       release();
     };
@@ -110,10 +142,12 @@
       <button
         type="button"
         aria-label={label}
-        onpointerdown={hold(key as 'up' | 'down' | 'boost', true)}
-        onpointerup={hold(key as 'up' | 'down' | 'boost', false)}
-        onpointercancel={hold(key as 'up' | 'down' | 'boost', false)}
-        onlostpointercapture={hold(key as 'up' | 'down' | 'boost', false)}
+        aria-pressed={key === 'boost' ? boostLatched : undefined}
+        onpointerdown={hold(key as Action, true)}
+        onpointerup={hold(key as Action, false)}
+        onpointercancel={hold(key as Action, false)}
+        onlostpointercapture={hold(key as Action, false)}
+        onclick={activate(key as Action)}
       >
         <Icon {icon} width="22" height="22" />
       </button>
@@ -207,8 +241,13 @@
     width: 40px;
     height: 40px;
   }
-  button:active {
+  button:active,
+  button[aria-pressed='true'] {
     background: rgb(255 217 160 / 0.22);
     color: #ffd9a0;
+  }
+  button:focus-visible {
+    outline: 2px solid rgb(255 217 160 / 0.7);
+    outline-offset: 2px;
   }
 </style>
