@@ -1,17 +1,24 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
-  import { BLOG_POSTS } from '$lib/blog';
+  import { BLOG_POSTS, sortPosts } from '$lib/blog';
   import type { GitHubRepository } from '$lib/types/github';
 
-  // Home-page framing for each post, keyed by slug. Built by walking
-  // BLOG_POSTS so these cards always list in the same order as the blog.
+  // Home-page framing for each post, keyed by slug. Listed newest first, in
+  // the same order as the blog.
   const cardCopy = {
+    rainroam: {
+      href: '/blog/rainroam',
+      eyebrow: 'RevenueCat Shipaton 2026',
+      title: 'Rainroam: an action RPG in 3D and pixel art',
+      text: 'A souls-lite adventure played with one thumb. A WebGPU renderer and a Phaser renderer draw the same game state, so the style switches mid-fight.',
+      signal: 'Web · Galaxy Store · Mac App Store',
+    },
     'telegram-bot-app': {
       href: '/blog/telegram-bot-app',
       eyebrow: 'Long-running side project',
       title: 'The Telegram bot that grew up with the web',
       text: 'A 2015 chat utility that evolved into an asynchronous agent system with reply gating, tools, memory, fallbacks, metrics and a companion UI.',
-      signal: '10+ years of real use',
+      signal: 'Since 2015 · still running',
     },
     'gamedevjs-2026': {
       href: '/blog/gamedevjs-2026',
@@ -22,15 +29,15 @@
     },
     'mowfleet-dashboard': {
       href: '/blog/mowfleet-dashboard',
-      eyebrow: 'Production B2B product',
+      eyebrow: 'Hobby-freelance project',
       title: 'MowFleet Control Center',
       text: 'A from-scratch dashboard and serverless backend that turn autonomous mower telemetry into zone coverage, operational insight and reports.',
-      signal: 'Full-stack ownership · Low-touch ops',
+      signal: 'Since 2023 · still maintained',
     },
     // `as const` keeps each href a literal route, which resolve() requires.
   } as const;
 
-  const featuredProjects = BLOG_POSTS.map((post) => ({
+  const featuredProjects = sortPosts(BLOG_POSTS, 'added').map((post) => ({
     card: cardCopy[post.slug],
     tags: post.tags,
   }));
@@ -53,10 +60,9 @@
 <div>
   <h2 class="mb-2 text-3xl font-normal text-declaration">Featured project stories</h2>
   <p class="mb-6 max-w-3xl text-sm leading-6 text-identifier/75">
-    Not just the stack and a screenshot: what I owned, how each system works and which trade-offs
-    survived contact with real users.
+    What I built and owned in each project, how it works and the trade-offs behind it.
   </p>
-  <div class="mb-10 grid gap-4 md:grid-cols-3">
+  <div class="mb-10 grid gap-4 md:grid-cols-2">
     {#each featuredProjects as { card, tags } (card.href)}
       <article class="project-card">
         <p class="mb-3 text-[11px] tracking-wide text-keyword uppercase">{card.eyebrow}</p>
