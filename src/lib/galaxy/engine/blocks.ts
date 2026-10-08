@@ -19,7 +19,11 @@ export const GalaxyBlock = uniformBlock('GalaxyParams', {
   atlas: 'vec4',
   /** xyz: galaxy-space position of the system being entered, w: its fade (0..1). */
   focus: 'vec4',
-  /** x: galaxy brightness (eye adaptation inside a system), y: background star field strength. */
+  /**
+   * x: galaxy brightness (eye adaptation inside a system), y: background star field strength,
+   * z: the deep sky's turn about its tilted axis (radians), w: the sky's own clock (seconds),
+   * which runs only while the scene plays (star shimmer, cloud flow).
+   */
   adapt: 'vec4',
 });
 

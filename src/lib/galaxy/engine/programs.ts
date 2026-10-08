@@ -92,7 +92,10 @@ fn vs(vsIn: VertexIn) -> Varyings {
   let star: Star = galaxyStar(vsIn.instanceIndex);
   let q: vec2f = starCorner(vsIn.vertexIndex);
   o.corner = q;
-  let world: vec3f = rotateY(star.position * vec3f(1.0, galaxy.detail.z, 1.0), galaxy.detail.y);
+  let local: vec3f = star.position * vec3f(1.0, galaxy.detail.z, 1.0);
+  // Stars turn with the gas around them, arm twist included.
+  let twist: f32 = armTwist(local.xz, twistShape());
+  let world: vec3f = rotateY(local, galaxy.detail.y + twist);
   let s: vec4f = starScreen(world, star.size, 24.0);
   // Stars of the system being entered make way for its real sun.
   let focusFade: f32 = 1.0 - galaxy.focus.w * (1.0 - smoothstep(0.0, 0.25, length(world - galaxy.focus.xyz)));
@@ -103,7 +106,7 @@ fn vs(vsIn: VertexIn) -> Varyings {
     return o;
   }
   o.position = vec4f(s.xy + q * s.z * 2.0 / galaxy.viewport.xy, 0.5, 1.0);
-  let occlusion: f32 = dustOcclusion(star.position, rotateY(galaxy.eye.xyz, -galaxy.detail.y));
+  let occlusion: f32 = dustOcclusion(rotateY(star.position, twist), rotateY(galaxy.eye.xyz, -galaxy.detail.y));
   o.tint = vec4f(star.color, star.brightness * galaxy.detail.w * occlusion * starEnergy(star.size, s.w, s.z, 24.0) * visibility);
   return o;
 }
@@ -180,14 +183,16 @@ fn vs(vsIn: VertexIn) -> Varyings {
   let star: Star = skyStar(vsIn.instanceIndex);
   let q: vec2f = starCorner(vsIn.vertexIndex);
   o.corner = q;
-  let z: f32 = dot(star.position, galaxy.forward.xyz);
+  // Turned with the deep sky, so both star fields stay one sky.
+  let dir: vec3f = worldFromSky(star.position);
+  let z: f32 = dot(dir, galaxy.forward.xyz);
   if (z < 0.01 || galaxy.atlas.w < 0.0001) {
     o.position = vec4f(2.0, 2.0, 2.0, 1.0);
     o.tint = vec4f(0.0);
     return o;
   }
   let tanHalf: f32 = galaxy.eye.w;
-  let ndc: vec2f = vec2f(dot(star.position, galaxy.right.xyz) / (tanHalf * galaxy.viewport.w), dot(star.position, galaxy.up.xyz) / tanHalf) / z;
+  let ndc: vec2f = vec2f(dot(dir, galaxy.right.xyz) / (tanHalf * galaxy.viewport.w), dot(dir, galaxy.up.xyz) / tanHalf) / z;
   let pixels: f32 = sqrt(star.size * star.size + 2.2);
   o.position = vec4f(ndc + q * pixels * 2.0 / galaxy.viewport.xy, 0.5, 1.0);
   o.tint = vec4f(star.color, star.brightness * galaxy.atlas.w * (star.size * star.size + 0.4) / (pixels * pixels) * 0.12);

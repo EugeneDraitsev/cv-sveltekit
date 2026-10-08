@@ -55,7 +55,19 @@ fn coreDensity(p: vec3f) -> vec3f {
     + vec3f(1.1, 0.73, 0.42) * exp(-dot(c, c)) * 0.070;
 }
 
-// ─── The sky behind the galaxy, fixed to the world ─────────────────────────
+// ─── The sky behind the galaxy ─────────────────────────────────────────────
+
+// The deep sky turns slowly about a tilted axis (its angle is adapt.z), so the
+// background drifts behind the spinning disk instead of standing still.
+const SKY_AXIS: vec3f = vec3f(0.188, 0.972, 0.141);
+
+fn skyFromWorld(rd: vec3f) -> vec3f {
+  return rotateAxis(rd, SKY_AXIS, -galaxy.adapt.z);
+}
+
+fn worldFromSky(p: vec3f) -> vec3f {
+  return rotateAxis(p, SKY_AXIS, galaxy.adapt.z);
+}
 
 // Cube-face coordinates of a direction: xy in -1..1, z = face id (0..5).
 fn skyFace(rd: vec3f) -> vec3f {
@@ -85,8 +97,10 @@ fn starLayer(face: vec3f, n: f32, seed: f32, density: f32, flux: f32, pixel: f32
   let radians: f32 = length(offset) * (2.0 / n) / (1.0 + dot(face.xy, face.xy));
   let sigma: f32 = pixel * 0.65;
   let b: f32 = flux * (0.12 + pow(h2.z, 7.0));
+  // A slow shimmer, each star on its own beat: the field breathes, it does not flash.
+  let twinkle: f32 = 1.0 + 0.3 * sin(galaxy.adapt.w * (0.7 + h2.x * 1.6) + h2.y * TAU);
   let color: vec3f = kelvinColor(2800.0 + hash31(vec3f(cell, seed + 3.0)) * 9500.0);
-  return color * (b * exp(-(radians * radians) / (sigma * sigma)));
+  return color * (b * twinkle * exp(-(radians * radians) / (sigma * sigma)));
 }
 
 // Distant galaxies: sparse, tiny and faint; ellipticals and inclined spirals.
@@ -134,7 +148,9 @@ fn skyClouds(rd: vec3f) -> vec4f {
   let b: f32 = exp(-(1.0 - dot(rd, normalize(vec3f(0.05, -0.62, -0.78)))) * 6.0);
   let c: f32 = exp(-(1.0 - dot(rd, normalize(vec3f(0.62, 0.38, 0.69)))) * 4.0);
   let field: f32 = a + b * 0.8 + c * 0.6;
-  let warp: vec3f = vec3f(fbm3(rd * 3.0 + vec3f(1.3)), fbm3(rd * 3.0 + vec3f(7.1)), fbm3(rd * 3.0 + vec3f(4.7)));
+  // The gas slowly flows through its own shapes.
+  let flow: vec3f = vec3f(0.0, 0.0035, 0.0025) * galaxy.adapt.w;
+  let warp: vec3f = vec3f(fbm3(rd * 3.0 + vec3f(1.3) + flow), fbm3(rd * 3.0 + vec3f(7.1) - flow), fbm3(rd * 3.0 + vec3f(4.7) + flow.zyx));
   let q: vec3f = rd * 5.5 + warp * 1.6;
   let gas: f32 = smoothstep(0.42, 0.82, fbm3(q));
   let fine: f32 = fbm3(q * 4.0 + vec3f(2.0));
@@ -161,9 +177,32 @@ fn deepSky(rd: vec3f) -> vec3f {
   return base + (clouds.rgb + (stars + farGalaxies(face, pixel)) * field) * clouds.w;
 }
 
+// ─── A disk that does not turn like a picture ──────────────────────────────
+
+// The disk's material turns a little more or less than the disk as a whole:
+// the arms slowly wind and unwind (the core leads, then lags) and one side of
+// the disk runs a few degrees ahead of the other, a lead that travels round.
+// Bounded on purpose: true differential rotation would wind the arms into
+// rings within minutes. It follows the disk's own angle, so it stops with the
+// spin. twistShape() is per frame; armTwist() is the extra turn at a point.
+fn twistShape() -> vec3f {
+  let spin: f32 = galaxy.detail.y;
+  let psi: f32 = spin * 4.0 + 1.0;
+  return vec3f(0.22 * sin(spin * 7.0), cos(psi), sin(psi));
+}
+
+fn armTwist(xz: vec2f, shape: vec3f) -> f32 {
+  let r: f32 = length(xz);
+  // 0 at mid-disk (r = 6), about -0.66 at the core and +0.34 at the rim.
+  let wind: f32 = (log(1.0 + r / 1.4) - 1.665) * 0.483 * shape.x;
+  // sin(phi - psi) without atan2.
+  let lead: f32 = (xz.y * shape.y - xz.x * shape.z) / max(r, 0.001);
+  return wind + 0.06 * smoothstep(1.5, 9.0, r) * lead;
+}
+
 // Integrate gas, dust and bulge light along a ray in galaxy space.
 fn renderGalaxy(eye: vec3f, rdWorld: vec3f, pixel: vec2f) -> vec3f {
-  let background: vec3f = deepSky(rdWorld);
+  let background: vec3f = deepSky(skyFromWorld(rdWorld));
   let ro: vec3f = rotateY(eye, -galaxy.detail.y);
   let rd: vec3f = rotateY(rdWorld, -galaxy.detail.y);
   let bounds: vec3f = vec3f(GALAXY_BOUNDS.x, GALAXY_BOUNDS.y * galaxy.detail.z, GALAXY_BOUNDS.z);
@@ -185,12 +224,13 @@ fn renderGalaxy(eye: vec3f, rdWorld: vec3f, pixel: vec2f) -> vec3f {
   var color: vec3f = coreIntegral(ro, rd, start);
   let coreAfter: vec3f = max(coreIntegral(ro, rd, 1000.0) - coreIntegral(ro, rd, end), vec3f(0.0));
   let squash: vec3f = vec3f(1.0, 1.0 / galaxy.detail.z, 1.0);
+  let shape: vec3f = twistShape();
   for (var i: i32 = 0; i < 160; i = i + 1) {
     if (f32(i) >= steps) {
       break;
     }
     let p: vec3f = ro + rd * t;
-    let gas: vec4f = sampleVolume(p * squash);
+    let gas: vec4f = sampleVolume(rotateY(p, -armTwist(p.xz, shape)) * squash);
     let extinction: vec3f = vec3f(0.70, 1.04, 1.42) * gas.a * galaxy.look.w + vec3f(0.0001);
     let attenuation: vec3f = exp(-extinction * dt);
     let emission: vec3f = gas.rgb * galaxy.look.z * 2.8 + coreDensity(p);

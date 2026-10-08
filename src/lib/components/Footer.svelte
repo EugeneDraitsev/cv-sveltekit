@@ -118,28 +118,52 @@
   </div>
   <div class="footer-galaxy-overlay pointer-events-none absolute inset-0 z-[1]"></div>
 
-  <div
-    class="pointer-events-none relative z-10 mx-auto flex max-w-325 flex-col gap-5 px-4 pt-8 sm:px-6"
-  >
-    <div class="w-fit max-w-full">
-      <p class="text-sm text-keyword uppercase">End of file</p>
-      <nav class="mt-4 flex flex-wrap gap-2" aria-label="Footer links">
-        {#each links as link (link.href)}
-          <a
-            class={`footer-link pointer-events-auto inline-flex items-center gap-2 rounded border border-base-300 bg-base-100/55 px-3 py-2 text-sm text-identifier backdrop-blur-[1px] ${link.hoverClass}`}
-            href={link.href}
-            target={link.href.startsWith('http') ? '_blank' : undefined}
-            rel={link.href.startsWith('http') ? 'noreferrer' : undefined}
-          >
-            <Icon icon={link.icon} height="18" width="18" />
-            {link.label}
-          </a>
-        {/each}
-      </nav>
-    </div>
+  <!-- Phones: the label and the place on the left, the planet across from them, then a row of icon buttons. -->
+  <div class="pointer-events-none relative z-10 px-4 pt-8 pb-8 sm:hidden">
+    <p class="text-sm text-keyword uppercase">End of file</p>
+    <p class="mt-1 text-sm text-identifier/80">Stockholm {currentYear}</p>
+    <nav class="mt-7 flex gap-2" aria-label="Footer links">
+      {#each links as link (link.href)}
+        <a
+          class={`footer-link pointer-events-auto grid size-12 place-items-center rounded border border-base-300 bg-base-100/55 text-identifier backdrop-blur-[1px] ${link.hoverClass}`}
+          aria-label={link.label}
+          title={link.label}
+          href={link.href}
+          target={link.href.startsWith('http') ? '_blank' : undefined}
+          rel={link.href.startsWith('http') ? 'noreferrer' : undefined}
+        >
+          {#if link.label === 'CV'}
+            <span class="text-sm font-bold">CV</span>
+          {:else}
+            <Icon icon={link.icon} height="22" width="22" />
+          {/if}
+        </a>
+      {/each}
+    </nav>
   </div>
 
-  <p class="pointer-events-none relative z-10 mt-3 pb-8 text-center text-sm text-identifier/80">
-    Stockholm {currentYear}
-  </p>
+  <div class="hidden sm:block">
+    <div class="pointer-events-none relative z-10 mx-auto flex max-w-325 flex-col gap-5 px-6 pt-8">
+      <div class="w-fit max-w-full">
+        <p class="text-sm text-keyword uppercase">End of file</p>
+        <nav class="mt-4 flex flex-wrap gap-2" aria-label="Footer links">
+          {#each links as link (link.href)}
+            <a
+              class={`footer-link pointer-events-auto inline-flex items-center gap-2 rounded border border-base-300 bg-base-100/55 px-3 py-2 text-sm text-identifier backdrop-blur-[1px] ${link.hoverClass}`}
+              href={link.href}
+              target={link.href.startsWith('http') ? '_blank' : undefined}
+              rel={link.href.startsWith('http') ? 'noreferrer' : undefined}
+            >
+              <Icon icon={link.icon} height="18" width="18" />
+              {link.label}
+            </a>
+          {/each}
+        </nav>
+      </div>
+    </div>
+
+    <p class="pointer-events-none relative z-10 mt-3 pb-8 text-center text-sm text-identifier/80">
+      Stockholm {currentYear}
+    </p>
+  </div>
 </footer>

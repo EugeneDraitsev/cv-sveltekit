@@ -117,6 +117,11 @@ export class OrbitRig {
    * (see centreDisk); fades out as the camera closes in on it.
    */
   disk: { radius: number; aspect: number } | null = null;
+  /**
+   * Added to pitch and roll when the pose is built, never to the rig's own
+   * state, so drags and flights are unaffected: the galaxy view's idle float.
+   */
+  drift = { pitch: 0, roll: 0 };
 
   set(values: Partial<OrbitRig['want']>, snap = false) {
     Object.assign(this.want, values);
@@ -162,8 +167,17 @@ export class OrbitRig {
     );
   }
 
-  pose(): Pose {
-    const pose = orbitPose(this.target, this.yaw, this.pitch, this.distance, this.roll, this.fov);
+  /** The pose shown; `withDrift: false` gives the rig's own, without the idle float. */
+  pose(withDrift = true): Pose {
+    const drift = withDrift ? this.drift : { pitch: 0, roll: 0 };
+    const pose = orbitPose(
+      this.target,
+      this.yaw,
+      this.pitch + drift.pitch,
+      this.distance,
+      this.roll + drift.roll,
+      this.fov,
+    );
     if (!this.disk) return pose;
     const { radius, aspect } = this.disk;
     const weight = clamp((this.distance / radius - 1.4) / 0.8, 0, 1);
