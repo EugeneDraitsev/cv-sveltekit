@@ -12,13 +12,15 @@ export const SITE_DATA = {
     'ai-agents',
     'webgl',
   ],
-  authorDescription: `I enjoy the awkward middle between a promising idea and a system people can trust.
-  Since 2011 I have worked across commerce, identity, cloud platforms, AI agents and real-time graphics—shaping
-  the first useful version, making trade-offs visible, shipping it, then hardening what survives contact with
-  real users.`,
+  authorDescription: `Hi, I'm Eugene, a full-stack engineer based in Stockholm. I've been building software
+  professionally since 2011 and got my systems engineering degree from BSUIR in 2013. I like math, algorithms,
+  good UX and other boring things. Most of my work has been full-stack: Node and Java on the backend, React and
+  Svelte on the frontend, running on Kubernetes and AWS/GCP. These days I spend a lot of time on security and
+  passkeys, AI agents and real-time graphics with WebGL/WebGPU. I enjoy taking a messy product or platform
+  problem, building the first version that works, and turning it into something a team can run and improve.`,
   profileHighlights: [
-    'I work across the full delivery loop: discovery, scoping, architecture, implementation, rollout and the unglamorous fixes after launch.',
-    'Current rabbit holes: security and passkeys, Kubernetes, AI agent reliability, tool execution, observability and real-time graphics.',
+    'End-to-end delivery: scoping, architecture, implementation, rollout and support after launch.',
+    'Currently into security and passkeys, Kubernetes, AI agents, observability and real-time graphics.',
   ],
   deliveryHighlights: [
     {

@@ -40,12 +40,6 @@
     <p class="my-8">
       {SITE_DATA.authorDescription}
     </p>
-    <p class="my-6">
-      Prefer the one-page version? My
-      <a class="cursor-pointer text-declaration underline" href={SITE_DATA.pdf} target="_blank">
-        detailed CV is available as a PDF
-      </a>
-    </p>
     <a
       class="inline-block rounded border border-declaration px-3 py-2 text-sm text-declaration transition-colors hover:bg-declaration/10"
       href={SITE_DATA.pdf}
