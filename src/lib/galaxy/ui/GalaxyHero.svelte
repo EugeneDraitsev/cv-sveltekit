@@ -285,6 +285,7 @@
     host.send({ type: 'theme', theme: themeStore.theme === 'light' ? 'light' : 'dark' });
     host.send({ type: 'playing', playing });
     host.send({ type: 'settings', settings: { ...settings } });
+    if (showSystems && !catalog) host.send({ type: 'catalog' });
   }
 
   function launch(renderer: 'auto' | 'webgl') {
