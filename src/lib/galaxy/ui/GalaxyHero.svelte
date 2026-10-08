@@ -909,30 +909,63 @@
     color: var(--color-identifier);
     font-size: 0.8rem;
   }
-  @media (max-width: 640px) {
+  /* Narrow screens: where you are becomes a small chip in the top-left
+     corner (the dock takes the bottom-right one), leaving the scene the
+     middle of the frame. */
+  @media (max-width: 900px) {
     .crumbs {
       top: 3rem;
-      gap: 0.15rem;
+      left: 0.75rem;
+      transform: none;
+      gap: 0.1rem;
+      max-width: calc(100% - 1.5rem);
+      padding: 0.2rem;
     }
+    .nav-back,
+    .nav-action,
+    .help {
+      height: 2.25rem;
+    }
+    .nav-back,
+    .help {
+      width: 2.25rem;
+    }
+    .nav-action {
+      width: 2.25rem;
+      padding: 0;
+    }
+    .nav-action span,
     .path {
       display: none;
+    }
+    .trail {
+      padding-inline: 0.45rem 0.6rem;
     }
     .here {
       flex-direction: column;
       gap: 0;
+      line-height: 1.2;
     }
     .here b {
-      font-size: 0.82rem;
+      font-size: 0.8rem;
     }
     .here small {
-      font-size: 0.66rem;
+      font-size: 0.64rem;
     }
-    .nav-action span {
-      display: none;
+    /* The chip hugs the left edge: open the tip from there. */
+    .help {
+      position: static;
     }
-    .nav-action {
-      width: 2.5rem;
-      padding: 0;
+    .tip {
+      left: 0;
+      right: auto;
+      top: calc(100% + 0.5rem);
+    }
+    .planet-list {
+      top: 6.3rem;
+      left: 0.75rem;
+      transform: none;
+      width: min(40rem, calc(100% - 1.5rem));
     }
   }
 </style>

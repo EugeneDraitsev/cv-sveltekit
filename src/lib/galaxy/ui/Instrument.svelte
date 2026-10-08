@@ -87,10 +87,14 @@
   .fast {
     color: #ffd9a0;
   }
-  @media (max-width: 600px) {
+  /* Narrow screens: readings sit under the where-you-are chip. */
+  @media (max-width: 900px) {
     .instrument {
-      top: 6.6rem;
+      top: 6.3rem;
       bottom: auto;
+      left: 0.75rem;
+      transform: none;
+      max-width: calc(100% - 1.5rem);
     }
   }
 </style>

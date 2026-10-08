@@ -234,14 +234,25 @@
     margin-inline: 0.1rem;
     background: var(--dock-edge);
   }
-  @media (max-width: 520px) {
+  /* Narrow screens: a slim row of icons tucked into the bottom-right corner,
+     so the scene keeps the centre (where you are sits top-left). */
+  @media (max-width: 900px) {
+    .dock-wrap {
+      left: auto;
+      right: 0.75rem;
+    }
+    .dock {
+      gap: 0.1rem;
+      padding: 0.15rem;
+    }
+    .separator,
     button span,
     button em {
       display: none;
     }
     button {
-      width: 2.5rem;
-      height: 2.5rem;
+      width: 2.4rem;
+      height: 2.4rem;
       padding: 0;
     }
   }

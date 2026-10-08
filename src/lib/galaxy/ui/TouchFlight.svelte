@@ -181,9 +181,14 @@
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
   }
+  /* The stick drops to the bottom-left corner; the buttons stay clear of the
+     dock in the bottom-right one. */
   .compact {
-    bottom: 8.4rem;
-    padding: 0 0.6rem;
+    bottom: 5.4rem;
+    padding: 0 0.75rem;
+  }
+  .compact .actions {
+    margin-bottom: 3.4rem;
   }
   .compact .pad {
     width: 84px;
