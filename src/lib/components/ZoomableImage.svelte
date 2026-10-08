@@ -11,6 +11,7 @@
 
   type Props = {
     src: string;
+    /** A version drawn for the dark page; shown instead of `src` when given. */
     darkSrc?: string;
     alt: string;
     caption?: string;
@@ -38,6 +39,9 @@
     loading = 'lazy',
     aspect = 'auto',
   }: Props = $props();
+
+  // The site is dark only.
+  const shownSrc = $derived(darkSrc ?? src);
 
   let isOpen = $state(false);
   let isPanning = $state(false);
@@ -318,12 +322,7 @@
     onclick={open}
     aria-label={`Open image: ${alt}`}
   >
-    <picture>
-      {#if darkSrc}
-        <source srcset={darkSrc} media="(prefers-color-scheme: dark)" />
-      {/if}
-      <img {src} {alt} class={imageClass} {loading} />
-    </picture>
+    <img src={shownSrc} {alt} class={imageClass} {loading} />
     <span
       aria-hidden="true"
       class="pointer-events-none absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-black/70 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
@@ -369,18 +368,13 @@
         onpointercancel={handlePointerUp}
         ondblclick={handleDoubleClick}
       >
-        <picture>
-          {#if darkSrc}
-            <source srcset={darkSrc} media="(prefers-color-scheme: dark)" />
-          {/if}
-          <img
-            bind:this={modalImage}
-            {src}
-            {alt}
-            draggable="false"
-            class="block rounded-lg border border-white/15 bg-base-100 object-contain shadow-2xl {modalImageClass}"
-          />
-        </picture>
+        <img
+          bind:this={modalImage}
+          src={shownSrc}
+          {alt}
+          draggable="false"
+          class="block rounded-lg border border-white/15 bg-base-100 object-contain shadow-2xl {modalImageClass}"
+        />
       </div>
     </div>
     <div

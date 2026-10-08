@@ -2,7 +2,7 @@ import type { Backend } from '../gpu/backend';
 import { BlockData } from '../gpu/blocks';
 import { WebGlBackend } from '../gpu/webgl';
 import { GalaxyBlock, PlanetBlock, PostBlock, SystemBlock } from './blocks';
-import { OrbitRig, flightPose, orbitPose, poseBasis, projectDisk, type Pose } from './camera';
+import { OrbitRig, flightPose, orbitPose, poseBasis, type Pose } from './camera';
 import {
   add,
   clamp,
@@ -22,7 +22,6 @@ import {
   type HudInfo,
   type Mode,
   type Settings,
-  type Theme,
   type ToEngine,
   type TouchFlight,
 } from './protocol';
@@ -47,9 +46,8 @@ type Post = (message: FromEngine) => void;
 type Frame = 'G' | 'S' | 'P';
 
 /**
- * The dark page colour (--color-base-100), which space's black is lifted to so
- * the hero has no seam. Space is drawn the same in both themes; in the light
- * one the page CSS keeps the hero dark and fades it into white below.
+ * The page colour (--color-base-100), which space's black is lifted to so the
+ * hero has no seam against the page.
  */
 const PAGE: [number, number, number] = [0.0706, 0.0706, 0.0706];
 
@@ -126,7 +124,6 @@ export class Engine {
   private cssHeight = 1;
   private dpr = 1;
   private adaptive = 1;
-  private theme: Theme = 'dark';
   private reducedMotion = false;
   private visible = true;
   private playing = true;
@@ -141,7 +138,7 @@ export class Engine {
   private surfaceFailed = false;
   /** Bumped by every planet chosen while its shaders compile: the last wins. */
   private planetRequest = 0;
-  /** A one-off frame is owed (theme, settings, resize) while nothing animates. */
+  /** A one-off frame is owed (settings, resize) while nothing animates. */
   private redraw = false;
   private disposed = false;
   /** Delayed compile of the planet pipelines; cancelled on dispose. */
@@ -213,7 +210,6 @@ export class Engine {
 
   async init(message: Extract<ToEngine, { type: 'init' }>) {
     this.hints = message.hints;
-    this.theme = message.theme;
     this.reducedMotion = message.reducedMotion;
     this.playing = !message.reducedMotion;
     this.cssWidth = message.width;
@@ -339,10 +335,6 @@ export class Engine {
       case 'visibility':
         this.visible = message.visible;
         if (!message.visible) this.keys.clear();
-        this.kick();
-        break;
-      case 'theme':
-        this.theme = message.theme;
         this.kick();
         break;
       case 'playing':
@@ -1460,18 +1452,10 @@ export class Engine {
     const surfaceExposure = 1.5 - sunUp * 0.9 - (sunUp - daylight) * 0.12;
     const orbitExposure = inPlanet ? 1.6 / 2.6 : 1;
     const exposure = this.settings.exposure * lerp(orbitExposure, surfaceExposure, surfaceWeight);
-    // The paper holds on while the cloud grows around the approaching camera,
-    // then gives way to space for the second half of the dive.
-    const lightMix = (this.theme === 'light' ? 1 : 0) * (1 - smoothstep(0.4, 1, presence));
-    const cloud =
-      lightMix > 0 ? projectDisk(eyeG, basis, tanHalf, w / h, GALAXY_DISK_RADIUS) : null;
     this.postData
       .set('viewport', w, h, this.time, 0)
-      // Light theme, galaxy view: the page stays white around a cloud of space
-      // shaped like the galaxy's projected disk (or filling the view up close).
-      .set('look', exposure, this.settings.bloom, lightMix, cloud?.angle ?? 0)
-      .vec('paper', PAGE, 0.36)
-      .set('cloud', cloud?.cx ?? 0, cloud?.cy ?? 0, cloud?.a ?? 1e3, cloud?.b ?? 1e3);
+      .set('look', exposure, this.settings.bloom, 0, 0)
+      .vec('paper', PAGE, 0.36);
     this.renderer.render({
       galaxy: this.galaxyData,
       volume: daylight < 0.98,

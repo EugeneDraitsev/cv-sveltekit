@@ -68,8 +68,7 @@ numbers are a little worse, as before; compare like with like.
 - GPU/CPU terrain parity was checked by reading the patch atlas back and comparing it with
   the CPU twin: near the camera they agree within a few metres.
 - Headless Chrome with the real GPU (WebGPU) and with `?renderer=webgl` covered the galaxy,
-  system and planet views, landings on every archetype, a full day/night cycle, and the light
-  theme.
+  system and planet views, landings on every archetype and a full day/night cycle.
 
 ## Known limits
 

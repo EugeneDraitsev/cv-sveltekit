@@ -99,50 +99,6 @@ export function centreDisk(
   return { ...pose, eye: add(pose.eye, add(across, up)) };
 }
 
-/**
- * The ellipse a disk (`radius` around the origin in the y = 0 plane) projects
- * to, in screen units (NDC with x scaled by the aspect ratio): centre, semi-
- * axes and the major axis's angle. Null when part of the rim is beside or
- * behind the eye, i.e. the disk fills the view.
- */
-export function projectDisk(
-  eye: Vec3,
-  basis: Basis,
-  tanHalf: number,
-  aspect: number,
-  radius: number,
-): { cx: number; cy: number; a: number; b: number; angle: number } | null {
-  const points: [number, number][] = [];
-  for (let i = 0; i < 48; i++) {
-    const t = (i / 48) * Math.PI * 2;
-    const rel = sub([Math.cos(t) * radius, 0, Math.sin(t) * radius], eye);
-    const z = dot(rel, basis.forward);
-    if (z < radius * 0.1) return null;
-    points.push([dot(rel, basis.right) / (z * tanHalf), dot(rel, basis.up) / (z * tanHalf)]);
-  }
-  const n = points.length;
-  const cx = points.reduce((s, p) => s + p[0], 0) / n;
-  const cy = points.reduce((s, p) => s + p[1], 0) / n;
-  let xx = 0;
-  let yy = 0;
-  let xy = 0;
-  for (const [x, y] of points) {
-    xx += (x - cx) ** 2 / n;
-    yy += (y - cy) ** 2 / n;
-    xy += ((x - cx) * (y - cy)) / n;
-  }
-  // Points spread evenly around an ellipse have variance a²/2 along an axis.
-  const mean = (xx + yy) / 2;
-  const spread = Math.sqrt(((xx - yy) / 2) ** 2 + xy * xy);
-  return {
-    cx,
-    cy,
-    a: Math.sqrt(2 * (mean + spread)),
-    b: Math.sqrt(2 * Math.max(mean - spread, 1e-6)),
-    angle: 0.5 * Math.atan2(2 * xy, xx - yy),
-  };
-}
-
 /** An orbit rig around a target: drag to rotate, wheel / pinch to zoom. */
 export class OrbitRig {
   target: Vec3 = [0, 0, 0];

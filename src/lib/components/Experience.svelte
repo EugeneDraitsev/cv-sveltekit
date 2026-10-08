@@ -157,8 +157,4 @@
     border-radius: 4px;
     padding: 0.25rem 0.5rem;
   }
-
-  :global([data-theme='light']) .delivery-card {
-    background: color-mix(in srgb, var(--color-base-200) 86%, transparent);
-  }
 </style>

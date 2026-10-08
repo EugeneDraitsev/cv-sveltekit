@@ -1,7 +1,4 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
-  import themeStore from '$lib/stores/theme.svelte';
-
   type ColorTuple = [number, number, number];
   type FooterColors = {
     base: ColorTuple;
@@ -10,7 +7,6 @@
     mist: ColorTuple;
     warm: ColorTuple;
     hot: ColorTuple;
-    isLight: number;
   };
 
   let { active = false } = $props<{ active?: boolean }>();
@@ -34,7 +30,6 @@
     mist: [0.84, 0.58, 0.98],
     warm: [0.8, 0.47, 0.2],
     hot: [1, 0.78, 0.43],
-    isLight: 0,
   };
 
   const vertexShaderSource = `
@@ -64,7 +59,6 @@
     uniform vec3 uMist;
     uniform vec3 uWarm;
     uniform vec3 uHot;
-    uniform float uIsLight;
 
     const float GLYPHS = ${GLYPHS.length.toFixed(1)};
     const float RAMP = ${RAMP.toFixed(1)};
@@ -185,9 +179,7 @@
       float ink = texture2D(uAtlas, atlasUv).a;
 
       float strength = 0.45 + 0.55 * smoothstep(0.05, 0.6, level) + touch * 0.35;
-      // Dark ink on white needs more coverage than light on black to read.
-      strength = mix(strength, min(1.0, strength + 0.4), uIsLight);
-      vec3 base = mix(uBase, uCool, mix(0.03, 0.012, uIsLight));
+      vec3 base = mix(uBase, uCool, 0.03);
       vec3 finalColor = mix(base, color, clamp(ink * strength, 0.0, 1.0));
 
       gl_FragColor = vec4(clamp(finalColor, 0.0, 1.0), 1.0);
@@ -289,7 +281,6 @@
       mist: read('--color-constant', colors.mist),
       warm: read('--color-keyword', colors.warm),
       hot: read('--color-declaration', colors.hot),
-      isLight: themeStore.theme === 'light' ? 1 : 0,
     };
   }
 
@@ -301,9 +292,7 @@
     const context = atlas.getContext('2d');
     if (!context) return atlas;
     const family = getComputedStyle(document.body).fontFamily || 'monospace';
-    // Thin strokes vanish on a white page: the light theme prints in bold.
-    const weight = themeStore.theme === 'light' ? 700 : 400;
-    context.font = `${weight} ${Math.round(height * 0.84)}px ${family}`;
+    context.font = `${Math.round(height * 0.84)}px ${family}`;
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillStyle = '#fff';
@@ -396,7 +385,6 @@
       warm: gl.getUniformLocation(program, 'uWarm'),
       hot: gl.getUniformLocation(program, 'uHot'),
     };
-    const isLightLocation = gl.getUniformLocation(program, 'uIsLight');
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let animationFrame: number | undefined;
@@ -489,7 +477,6 @@
       gl.uniform3fv(colorLocations.mist, colors.mist);
       gl.uniform3fv(colorLocations.warm, colors.warm);
       gl.uniform3fv(colorLocations.hot, colors.hot);
-      gl.uniform1f(isLightLocation, colors.isLight);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
@@ -507,19 +494,6 @@
       if (animationFrame !== undefined) return;
       animationFrame = requestAnimationFrame(render);
     }
-
-    $effect(() => {
-      void themeStore.theme;
-
-      untrack(() => {
-        if (targetCanvas) {
-          updateColorsFromDocument();
-          // The glyph weight follows the theme too.
-          if (atlasReady) uploadAtlas();
-          draw(performance.now());
-        }
-      });
-    });
 
     updateColorsFromDocument();
     resize();

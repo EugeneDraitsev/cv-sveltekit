@@ -120,10 +120,8 @@ export const FloraDrawBlock = uniformBlock('FloraDraw', {
 export const PostBlock = uniformBlock('PostParams', {
   /** HDR target width, height, time, unused. */
   viewport: 'vec4',
-  /** exposure, bloom strength, light-theme mix, angle of the space cloud. */
+  /** exposure, bloom strength, unused, unused. */
   look: 'vec4',
   /** page colour space's black is lifted to (sRGB), vignette strength. */
   paper: 'vec4',
-  /** Light theme: the galaxy disk's projected ellipse (screen units): centre, semi-axes. */
-  cloud: 'vec4',
 });
