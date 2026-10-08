@@ -76,6 +76,8 @@ export class PlanetLayer {
   /** Reused every frame for the caster list of one cascade. */
   private shadowData: Float32Array;
   private shadowsOn = false;
+  /** Whether this frame's uniforms ask the shaders to sample the maps. */
+  private shadowsLive = false;
 
   constructor(
     private readonly backend: Backend,
@@ -372,6 +374,7 @@ export class PlanetLayer {
     });
     data.set('shadow', SHADOW_DEPTH_RANGE / meters, this.shadowSize, enabled ? 1 : 0, 0);
     this.backend.writeUniform(this.uniform, s);
+    this.shadowsLive = enabled;
     if (enabled) this.selectShadowCasters(x, y, eye, meters);
     else this.shadowCounts.fill(0);
   }
@@ -421,8 +424,13 @@ export class PlanetLayer {
     this.flora.place(this.uniform, planetTex);
   }
 
-  /** Depth from the sun for both cascades (terrain and plants). */
+  /**
+   * Depth from the sun for both cascades (terrain and plants). Skipped while
+   * shadows are off (low preset, night, high above the ground): the shaders
+   * then never read the maps, and the two depth passes would be pure cost.
+   */
   drawShadows(planetTex: Texture) {
+    if (!this.shadowsLive) return;
     for (let c = 0; c < 2; c++) {
       const pass = this.backend.beginPass({
         color: [],
