@@ -7,8 +7,15 @@
  * and Firefox do), fetch it again under a fresh URL; otherwise rethrow.
  * Other chunks that import the failed one by its original URL still fail, so
  * this recovers the chunk itself, not every later importer of it.
+ *
+ * `name` is an export only the requested module has. The error may name a
+ * dependency that failed instead; its namespace lacks `name`, and the original
+ * error is rethrown rather than handing back the wrong module.
  */
-export async function importAgain<T>(load: () => Promise<T>): Promise<T> {
+export async function importAgain<T extends object>(
+  load: () => Promise<T>,
+  name: keyof T & string,
+): Promise<T> {
   try {
     return await load();
   } catch (error) {
@@ -18,6 +25,8 @@ export async function importAgain<T>(load: () => Promise<T>): Promise<T> {
     if (!url) throw error;
     const fresh = new URL(url, location.href);
     fresh.searchParams.set('retry', String(Date.now()));
-    return (await import(/* @vite-ignore */ fresh.href)) as T;
+    const module: object = await import(/* @vite-ignore */ fresh.href);
+    if (!(name in module)) throw error;
+    return module as T;
   }
 }

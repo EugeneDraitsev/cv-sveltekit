@@ -110,7 +110,10 @@
     if (galaxyLoadStarted || !galaxyAllowed) return;
     galaxyLoadStarted = true;
     try {
-      const { default: Hero } = await importAgain(() => import('$lib/galaxy/ui/GalaxyHero.svelte'));
+      const { GalaxyHero: Hero } = await importAgain(
+        () => import('$lib/galaxy/ui/lazy'),
+        'GalaxyHero',
+      );
       GalaxyHero = Hero;
     } catch (error) {
       galaxyLoadStarted = false;

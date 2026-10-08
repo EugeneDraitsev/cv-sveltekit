@@ -80,7 +80,7 @@ export async function startGalaxy(options: HostOptions): Promise<GalaxyHost> {
     };
   }
   // A failed chunk fetch is retried by the hero; make sure it really refetches.
-  const { Engine } = await importAgain(() => import('./engine/engine'));
+  const { Engine } = await importAgain(() => import('./engine/engine'), 'Engine');
   const engine = new Engine((message) => options.onMessage(message));
   // Debug handle for in-page runs (?thread=main).
   (window as unknown as { galaxyEngine?: unknown }).galaxyEngine = engine;
