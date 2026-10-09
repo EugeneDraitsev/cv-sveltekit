@@ -148,20 +148,27 @@ fn skyClouds(rd: vec3f) -> vec4f {
   let b: f32 = exp(-(1.0 - dot(rd, normalize(vec3f(0.05, -0.62, -0.78)))) * 6.0);
   let c: f32 = exp(-(1.0 - dot(rd, normalize(vec3f(0.62, 0.38, 0.69)))) * 4.0);
   // A portrait or square hero (a phone) shows the sky only above and below the
-  // disk, where the clouds above miss: two more lobes sit there in the opening
-  // view (upper right, lower left), faded out on wide screens.
+  // disk, where the clouds above miss. Two more lobes frame the opening view
+  // there (upper right, lower left), faded out on wide screens. They hold
+  // still around the galaxy while the sky turns, so the gas drifts through
+  // them instead of carrying them out of the frame.
   let narrow: f32 = 1.0 - smoothstep(1.2, 1.8, galaxy.viewport.w);
-  let d: f32 = exp(-(1.0 - dot(rd, vec3f(-0.428, -0.284, -0.858))) * 9.0);
-  let e: f32 = exp(-(1.0 - dot(rd, vec3f(-0.459, -0.66, -0.595))) * 9.0);
-  let field: f32 = a + b * 0.8 + c * 0.6 + (d * 0.9 + e * 0.8) * narrow;
+  let world: vec3f = worldFromSky(rd);
+  let d: f32 = exp(-(1.0 - dot(world, vec3f(-0.331, -0.261, -0.907))) * 30.0);
+  let e: f32 = exp(-(1.0 - dot(world, vec3f(-0.545, -0.626, -0.576))) * 30.0);
+  let lobes: f32 = (d * 1.5 + e) * narrow;
+  let field: f32 = a + b * 0.8 + c * 0.6 + lobes * 0.6;
   // The gas slowly flows through its own shapes.
   let flow: vec3f = vec3f(0.0, 0.0035, 0.0025) * galaxy.adapt.w;
   let warp: vec3f = vec3f(fbm3(rd * 3.0 + vec3f(1.3) + flow), fbm3(rd * 3.0 + vec3f(7.1) - flow), fbm3(rd * 3.0 + vec3f(4.7) + flow.zyx));
   let q: vec3f = rd * 5.5 + warp * 1.6;
-  let gas: f32 = smoothstep(0.42, 0.82, fbm3(q));
+  let density: f32 = fbm3(q);
+  // Inside those lobes the noise shapes the gas but never empties it (it can
+  // leave a whole corner bare), and it glows hydrogen red, not oxygen teal.
+  let gas: f32 = max(smoothstep(0.42, 0.82, density), lobes * (0.3 + 0.7 * smoothstep(0.2, 0.8, density)));
   let fine: f32 = fbm3(q * 4.0 + vec3f(2.0));
   let knots: f32 = fine * fine * 2.2;
-  let oxygen: f32 = smoothstep(0.45, 0.75, fbm3(q * 1.7 + vec3f(9.2)));
+  let oxygen: f32 = smoothstep(0.45, 0.75, fbm3(q * 1.7 + vec3f(9.2))) * (1.0 - 0.8 * min(lobes, 1.0));
   // Dust: soft dark clouds with wispy edges, darkest where the gas is.
   let soot: f32 = smoothstep(0.5, 0.72, fbm3(q * 1.6 + warp * 0.8 + vec3f(5.5)));
   let dust: f32 = 1.0 - soot * 0.6 * smoothstep(0.05, 0.4, field);

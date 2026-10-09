@@ -153,8 +153,9 @@ fn vs(vsIn: VertexIn) -> Varyings {
     o.ring = vec2f(0.0);
     return o;
   }
-  // Rings stay a readable size; the core keeps physical scale.
-  let ringPixels: f32 = max(s.z * 1.8, 9.0 + vsIn.flags.x * 5.0);
+  // Rings stay a readable size (set in CSS pixels, but never thinner than the
+  // render pixels a reduced-resolution target has); the core keeps physical scale.
+  let ringPixels: f32 = max(s.z * 1.8, (9.0 + vsIn.flags.x * 5.0) * max(galaxy.screen.x, 1.0));
   let pixels: f32 = select(s.z, ringPixels, vsIn.flags.x > 0.01 || vsIn.flags.y > 0.01);
   o.position = vec4f(s.xy + q * pixels * 2.0 / galaxy.viewport.xy, 0.5, 1.0);
   let occlusion: f32 = mix(dustOcclusion(vsIn.site.xyz, rotateY(galaxy.eye.xyz, -galaxy.detail.y)), 1.0, 0.55);
