@@ -76,12 +76,16 @@ fn starScreen(world: vec3f, size: f32, maxPixels: f32) -> vec4f {
   let ndc: vec2f = vec2f(dot(rel, galaxy.right.xyz) / (tanHalf * galaxy.viewport.w), dot(rel, galaxy.up.xyz) / tanHalf) / max(z, 0.0001);
   let raw: f32 = size * galaxy.viewport.y / (max(z, 0.08) * tanHalf);
   // Convolve tiny stars with a pixel footprint instead of dropping their energy.
-  let pixels: f32 = min(sqrt(raw * raw + 3.24), maxPixels);
+  // Footprint and cap are in CSS pixels (screen.x render pixels each), so a star
+  // covers the same share of the screen at every pixel density.
+  let k: f32 = galaxy.screen.x;
+  let pixels: f32 = min(sqrt(raw * raw + 3.24 * k * k), maxPixels * k);
   return vec4f(ndc, pixels, z);
 }
 fn starEnergy(size: f32, z: f32, pixels: f32, maxPixels: f32) -> f32 {
-  let raw: f32 = min(size * galaxy.viewport.y / (max(z, 0.08) * galaxy.eye.w), maxPixels);
-  return max(raw * raw, 0.65) / (pixels * pixels);
+  let k: f32 = galaxy.screen.x;
+  let raw: f32 = min(size * galaxy.viewport.y / (max(z, 0.08) * galaxy.eye.w), maxPixels * k);
+  return max(raw * raw, 0.65 * k * k) / (pixels * pixels);
 }`;
 
 export const galaxyStarsProgram = (): PipelineDesc => ({
@@ -193,9 +197,13 @@ fn vs(vsIn: VertexIn) -> Varyings {
   }
   let tanHalf: f32 = galaxy.eye.w;
   let ndc: vec2f = vec2f(dot(dir, galaxy.right.xyz) / (tanHalf * galaxy.viewport.w), dot(dir, galaxy.up.xyz) / tanHalf) / z;
-  let pixels: f32 = sqrt(star.size * star.size + 2.2);
+  // Sizes are in CSS pixels (screen.x render pixels each), so the field looks
+  // the same at every pixel density.
+  let k: f32 = galaxy.screen.x;
+  let size: f32 = star.size * k;
+  let pixels: f32 = sqrt(size * size + 2.2 * k * k);
   o.position = vec4f(ndc + q * pixels * 2.0 / galaxy.viewport.xy, 0.5, 1.0);
-  o.tint = vec4f(star.color, star.brightness * galaxy.atlas.w * (star.size * star.size + 0.4) / (pixels * pixels) * 0.12);
+  o.tint = vec4f(star.color, star.brightness * galaxy.atlas.w * (size * size + 0.4 * k * k) / (pixels * pixels) * 0.12);
   return o;
 }
 ${STAR_FS}`,

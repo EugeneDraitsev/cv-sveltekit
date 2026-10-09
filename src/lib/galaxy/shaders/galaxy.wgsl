@@ -166,7 +166,8 @@ fn skyClouds(rd: vec3f) -> vec4f {
 
 // Everything behind the disk: clouds, distant galaxies and two layers of stars.
 fn deepSky(rd: vec3f) -> vec3f {
-  let pixel: f32 = 2.0 * galaxy.eye.w / galaxy.viewport.y;
+  // The angle of one CSS pixel, so stars keep their size at every pixel density.
+  let pixel: f32 = 2.0 * galaxy.eye.w * galaxy.screen.x / galaxy.viewport.y;
   let face: vec3f = skyFace(rd);
   let clouds: vec4f = skyClouds(rd);
   var stars: vec3f = starLayer(face, 260.0, 11.0, 0.7, 0.03, pixel);

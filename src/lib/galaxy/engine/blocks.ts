@@ -25,6 +25,12 @@ export const GalaxyBlock = uniformBlock('GalaxyParams', {
    * which runs only while the scene plays (star shimmer, cloud flow).
    */
   adapt: 'vec4',
+  /**
+   * x: render pixels per CSS pixel (1 at DPR 1, about 1.5 on a phone). Star
+   * footprints and energies are set in CSS pixels, so a star looks the same
+   * on every screen density; yzw unused.
+   */
+  screen: 'vec4',
 });
 
 /** A star system around the eye: every position is relative to the camera. */
