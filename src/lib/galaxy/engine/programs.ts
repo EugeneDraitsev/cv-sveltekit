@@ -77,9 +77,11 @@ fn starScreen(world: vec3f, size: f32, maxPixels: f32) -> vec4f {
   let raw: f32 = size * galaxy.viewport.y / (max(z, 0.08) * tanHalf);
   // Convolve tiny stars with a pixel footprint instead of dropping their energy.
   // Footprint and cap are in CSS pixels (screen.x render pixels each), so a star
-  // covers the same share of the screen at every pixel density.
+  // covers the same share of the screen at every pixel density. Rendering below
+  // CSS resolution, the footprint still spans at least 1.8 render pixels.
   let k: f32 = galaxy.screen.x;
-  let pixels: f32 = min(sqrt(raw * raw + 3.24 * k * k), maxPixels * k);
+  let foot: f32 = 1.8 * max(k, 1.0);
+  let pixels: f32 = min(sqrt(raw * raw + foot * foot), max(maxPixels * k, foot));
   return vec4f(ndc, pixels, z);
 }
 fn starEnergy(size: f32, z: f32, pixels: f32, maxPixels: f32) -> f32 {
@@ -201,7 +203,7 @@ fn vs(vsIn: VertexIn) -> Varyings {
   // the same at every pixel density.
   let k: f32 = galaxy.screen.x;
   let size: f32 = star.size * k;
-  let pixels: f32 = sqrt(size * size + 2.2 * k * k);
+  let pixels: f32 = sqrt(size * size + 2.2 * max(k * k, 1.0));
   o.position = vec4f(ndc + q * pixels * 2.0 / galaxy.viewport.xy, 0.5, 1.0);
   o.tint = vec4f(star.color, star.brightness * galaxy.atlas.w * (size * size + 0.4 * k * k) / (pixels * pixels) * 0.12);
   return o;
