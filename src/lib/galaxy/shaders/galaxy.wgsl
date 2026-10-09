@@ -147,7 +147,13 @@ fn skyClouds(rd: vec3f) -> vec4f {
   let a: f32 = exp(-(1.0 - dot(rd, normalize(vec3f(-0.78, -0.18, -0.6)))) * 5.0);
   let b: f32 = exp(-(1.0 - dot(rd, normalize(vec3f(0.05, -0.62, -0.78)))) * 6.0);
   let c: f32 = exp(-(1.0 - dot(rd, normalize(vec3f(0.62, 0.38, 0.69)))) * 4.0);
-  let field: f32 = a + b * 0.8 + c * 0.6;
+  // A portrait or square hero (a phone) shows the sky only above and below the
+  // disk, where the clouds above miss: two more lobes sit there in the opening
+  // view (upper right, lower left), faded out on wide screens.
+  let narrow: f32 = 1.0 - smoothstep(1.2, 1.8, galaxy.viewport.w);
+  let d: f32 = exp(-(1.0 - dot(rd, vec3f(-0.428, -0.284, -0.858))) * 9.0);
+  let e: f32 = exp(-(1.0 - dot(rd, vec3f(-0.459, -0.66, -0.595))) * 9.0);
+  let field: f32 = a + b * 0.8 + c * 0.6 + (d * 0.9 + e * 0.8) * narrow;
   // The gas slowly flows through its own shapes.
   let flow: vec3f = vec3f(0.0, 0.0035, 0.0025) * galaxy.adapt.w;
   let warp: vec3f = vec3f(fbm3(rd * 3.0 + vec3f(1.3) + flow), fbm3(rd * 3.0 + vec3f(7.1) - flow), fbm3(rd * 3.0 + vec3f(4.7) + flow.zyx));
