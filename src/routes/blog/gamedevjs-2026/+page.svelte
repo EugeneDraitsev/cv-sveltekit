@@ -114,41 +114,18 @@
     },
   ];
 
-  const ownership = [
-    {
-      title: 'What stayed mine',
-      items: [
-        'Scope: what the game is, and the growing list of what it is not',
-        'System boundaries between combat, rooms, progression and UI',
-        'Review of every change, plus integration and browser playtesting',
-        'Game feel: timing, camera, feedback — tuned by hand, repeatedly',
-        'The release call and the competition submission',
-      ],
-    },
-    {
-      title: 'What agents did',
-      items: [
-        'Implementation passes across Svelte, Threlte, Three.js and Rapier',
-        'First drafts of combat behaviors, room templates, enemies and UI',
-        'Mechanical refactors across many files',
-        'Storybook fixtures that pin runtime state for review',
-        'Codebase archaeology: "where does the damage number actually come from?"',
-      ],
-    },
-  ];
-
   const lessons = [
     {
       title: 'One observable behavior per loop',
-      text: 'The unit of work that survived: one behavior, one implementation pass, one browser check. Every time I batched more into a prompt, review cost grew faster than the code was worth.',
+      text: 'The unit of work that survived: one behavior, one implementation pass, one browser check. Every time I batched more into one change, review cost grew faster than the code was worth.',
     },
     {
       title: 'Correct is not the same as good',
-      text: 'Agents will happily ship combat that satisfies every stated rule and still feels like hitting cardboard. Feel only comes from playtesting and tuning, over and over.',
+      text: 'Combat can satisfy every stated rule and still feel like hitting cardboard. Feel only comes from playtesting and tuning, over and over.',
     },
     {
       title: 'Storybook was the highest-leverage tool',
-      text: 'Deterministic fixtures turned "run to the boss and hope" into "mount the boss with fixed state". Most agent output got reviewed inside these scenes — the same ones embedded above.',
+      text: 'Deterministic fixtures turned "run to the boss and hope" into "mount the boss with fixed state". Most changes got reviewed inside these scenes — the same ones embedded above.',
     },
     {
       title: 'Innovation cannot be patched in later',
@@ -161,7 +138,7 @@
   <title>Orb Knight: a 3D roguelite in 13 days | Eugene Draitsev</title>
   <meta
     name="description"
-    content="Building Orb Knight for Gamedev.js Jam 2026: a Svelte and Three.js action roguelite made in 13 days with AI coding agents, 6th in Gameplay. Build log and live WebGL scenes."
+    content="Building Orb Knight for Gamedev.js Jam 2026: a Svelte and Three.js action roguelite made in 13 days, 6th in Gameplay and 12th overall. Build log and live WebGL scenes."
   />
   <link rel="canonical" href={canonicalUrl} />
   <meta property="og:title" content={post.title} />
@@ -189,20 +166,17 @@
       </a>
 
       <header class="mt-6 mb-8">
-        <p class="mb-3 text-xs text-keyword uppercase sm:text-sm">
-          Game jam · 13 days · built with AI agents
-        </p>
+        <p class="mb-3 text-xs text-keyword uppercase sm:text-sm">Gamedev.js Jam 2026 · 13 days</p>
         <h1 class="blog-title">Orb Knight: a 3D browser roguelite in 13 days</h1>
         <p class="post-meta">
           <PostDates added={post.datePublished} updated={post.dateModified} />
         </p>
         <p class="blog-lead">
           Gamedev.js Jam 2026 gave everyone the same theme, <em>Machines</em>, and the same 13 days.
-          I had a decade of production web work behind me and no shipped games, so the plan was to
-          build a real-time 3D action game in the browser, let coding agents write most of the code,
-          and keep architecture, review and playtesting myself. A friend, Arseny Yankovski, added
-          the laser charge-up and three enemies. The result is Orb Knight: a brass machine with a
-          sword, a gun and a laser, cutting its way out of a foundry. It took
+          I had a decade of production web work behind me and no shipped games, so I set out to
+          build a real-time 3D action game that runs in a browser tab. A friend, Arseny Yankovski,
+          added the laser charge-up and three enemies. The result is Orb Knight: a brass machine
+          with a sword, a gun and a laser, cutting its way out of a foundry. It took
           <strong>6th in Gameplay</strong> and <strong>12th overall</strong> out of 483 ranked entries.
         </p>
         <div class="mt-5 flex flex-wrap gap-4 text-sm">
@@ -439,30 +413,15 @@
       </section>
 
       <section class="mb-12" aria-labelledby="roles-heading">
-        <p class="section-kicker">05 · The workflow</p>
-        <h2 id="roles-heading" class="section-heading">How the agents and I split the work</h2>
-        <p class="mb-6">
-          Codex and Claude Code wrote most of this game; two of the merged branches are literally
-          named <code>codex/*</code>. My job shifted to splitting systems into tasks small enough to
-          review, keeping state boundaries clean so a bad implementation was cheap to throw away,
-          and playtesting every change, because no agent can tell you the camera feels wrong. The
-          split, roughly:
+        <p class="section-kicker">05 · How it was built</p>
+        <h2 id="roles-heading" class="section-heading">One change, one playtest</h2>
+        <p>
+          Codex and Claude Code wrote a lot of the code. What decided the result was everything
+          around it: cutting systems into changes small enough to review, keeping the boundaries
+          between combat, rooms, progression and UI clean so a bad implementation was cheap to throw
+          away, and playing after every change, because only playing tells you the camera feels
+          wrong. Scope, game feel and the release call stayed with me.
         </p>
-        <div class="grid gap-5 md:grid-cols-2">
-          {#each ownership as column (column)}
-            <article class="detail-card">
-              <h3 class="text-lg text-constant">{column.title}</h3>
-              <ul class="mt-4 space-y-2">
-                {#each column.items as item (item)}
-                  <li class="flex gap-2 text-sm">
-                    <span class="text-keyword" aria-hidden="true">→</span>
-                    <span>{item}</span>
-                  </li>
-                {/each}
-              </ul>
-            </article>
-          {/each}
-        </div>
       </section>
 
       <section aria-labelledby="lessons-heading">
@@ -588,14 +547,5 @@
     .scene-pair {
       grid-template-columns: 1fr 1fr;
     }
-  }
-
-  code {
-    padding: 0.1rem 0.35rem;
-    border-radius: 4px;
-    border: 1px solid var(--color-base-300);
-    background: color-mix(in srgb, var(--color-base-100) 70%, transparent);
-    color: var(--color-string);
-    font-size: 0.85em;
   }
 </style>

@@ -5,9 +5,9 @@ export const BLOG_POSTS = [
     label: 'RevenueCat Shipaton 2026 · 2nd place',
     datePublished: '2026-10-08',
     dateModified: '2026-10-21',
-    image: '/blog/rainroam/hero-split.webp',
-    imageAlt:
-      'The same evening in Bellwether, drawn in 3D on the left and in pixel art on the right',
+    // The winner card's left half, padded so any crop of the list cell keeps it whole.
+    image: '/blog/rainroam/shipaton-2nd-place-thumb.webp',
+    imageAlt: 'Shipaton 2026 winner card: Rainroam, 2nd place, Best App for Galaxy',
     imageMode: 'cover',
     socialImage: '/og/rainroam.jpg',
     description:
@@ -31,16 +31,16 @@ export const BLOG_POSTS = [
   {
     slug: 'gamedevjs-2026',
     title: 'Orb Knight: a 3D browser roguelite in 13 days',
-    label: 'Game jam · built with AI agents',
+    label: 'Gamedev.js Jam 2026 · 6th in Gameplay',
     datePublished: '2026-05-12',
-    dateModified: '2026-10-08',
+    dateModified: '2026-10-21',
     image: '/blog/gamedevjs-2026/orb-knight-splash.webp',
     imageAlt: 'Orb Knight facing a mechanical castle on the game title screen',
     socialImage: '/og/gamedevjs-2026.jpg',
     imageMode: 'cover',
     description:
-      'A machine knight with a sword, a gun and a chargeable laser, 6th in Gameplay of 483 ranked jam entries. Build log, scores and live WebGL scenes from the game, embedded in the post.',
-    tags: ['Codex', 'Claude Code', 'SvelteKit', 'Three.js', 'Rapier'],
+      'A machine knight with a sword, a gun and a chargeable laser, cutting its way out of a foundry: 6th in Gameplay and 12th overall of 483 ranked jam entries. Build log, scores and live WebGL scenes from the game, embedded in the post.',
+    tags: ['Three.js', 'Threlte', 'Rapier', 'SvelteKit', 'Web Audio'],
   },
   {
     slug: 'mowfleet-dashboard',
