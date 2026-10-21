@@ -5,9 +5,11 @@ export const BLOG_POSTS = [
     label: 'RevenueCat Shipaton 2026 · 2nd place',
     datePublished: '2026-10-08',
     dateModified: '2026-10-21',
-    // The winner card's left half, padded so any crop of the list cell keeps it whole.
-    image: '/blog/rainroam/shipaton-2nd-place-thumb.webp',
-    imageAlt: 'Shipaton 2026 winner card: Rainroam, 2nd place, Best App for Galaxy',
+    // The White Stair with the Shipaton badge from the winner card, kept inside the
+    // area every crop of the list cell shows.
+    image: '/blog/rainroam/shipaton-cover.webp',
+    imageAlt:
+      'The White Stair in Rainroam, under a Shipaton 2026 badge: 2nd place, Best App for Galaxy',
     imageMode: 'cover',
     socialImage: '/og/rainroam.jpg',
     description:

@@ -55,6 +55,7 @@
 
   const scores = [
     { label: 'Gameplay', rank: '#6', score: 4.027 },
+    { label: 'Overall', rank: '#12', score: 3.67 },
     { label: 'Graphics', rank: '#34', score: 3.811 },
     { label: 'Theme', rank: '#25', score: 3.784 },
     { label: 'Audio', rank: '#29', score: 3.486 },
@@ -129,7 +130,7 @@
     },
     {
       title: 'Innovation cannot be patched in later',
-      text: 'Gameplay ranked 6th; Innovation ranked 79th. Both are fair. A competent roguelite loop is buildable in 13 days — a distinctive mechanic has to be there from day one, and mine was not.',
+      text: 'A competent roguelite loop is buildable in 13 days — a distinctive mechanic has to be there from day one, and mine was not.',
     },
   ];
 </script>
@@ -211,11 +212,11 @@
 
       <section class="mb-12" aria-labelledby="outcome-heading">
         <p class="section-kicker">01 · The result</p>
-        <h2 id="outcome-heading" class="section-heading">6th in Gameplay, 79th in Innovation</h2>
+        <h2 id="outcome-heading" class="section-heading">6th in Gameplay, 12th overall</h2>
         <p class="mb-6 max-w-3xl">
           The category I care about most is Gameplay: how the game feels in your hands. Orb Knight
           scored <strong>4.027/5</strong> there, 6th across the whole jam, and players mostly praised
-          the controls and the feel. Innovation was the weak spot.
+          the controls and the feel. Overall it finished 12th of 483 ranked entries.
         </p>
 
         <div class="mb-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -269,14 +270,14 @@
           </figure>
           <aside class="result-note">
             <p class="text-xs tracking-wide text-keyword uppercase">Reading the board</p>
-            <h3 class="mt-2 text-xl text-constant">Strong loop, familiar idea</h3>
+            <h3 class="mt-2 text-xl text-constant">Top 3% overall</h3>
             <p class="mt-3 text-sm">
               Gameplay at 6th means the moment-to-moment feel of dodging, hitting and getting hit
-              worked. Graphics, Theme and Audio all finished in the top 7%.
+              worked.
             </p>
             <p class="mt-3 text-sm">
-              Innovation at 79th is fair: Orb Knight is a well-made roguelite, not a new idea.
-              Players didn't mark it down on Gameplay for that; the cost showed up in Innovation.
+              12th overall puts it in the top 3% of 483 ranked entries, and Theme, Audio and
+              Graphics all finished in the top 7%.
             </p>
           </aside>
         </div>
