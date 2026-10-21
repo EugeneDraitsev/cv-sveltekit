@@ -8,7 +8,7 @@
   const cardCopy = {
     rainroam: {
       href: '/blog/rainroam',
-      eyebrow: 'RevenueCat Shipaton 2026',
+      eyebrow: 'RevenueCat Shipaton 2026 · 2nd place',
       title: 'Rainroam: an action RPG in 3D and pixel art',
       text: 'A souls-lite adventure played with one thumb. A WebGPU renderer and a Phaser renderer draw the same game state, so the style switches mid-fight.',
       signal: '#2 Best App for Galaxy · App Store · Galaxy Store',
@@ -22,10 +22,10 @@
     },
     'gamedevjs-2026': {
       href: '/blog/gamedevjs-2026',
-      eyebrow: 'Game jam · AI-assisted build',
-      title: 'Orb Knight: shipping my first 3D game with AI agents',
-      text: 'A browser 3D action game built through tight agent and playtest loops. It placed 12th overall and 6th in Gameplay at Gamedev.js Jam 2026.',
-      signal: '#6 Gameplay · 37 ratings',
+      eyebrow: 'Gamedev.js Jam 2026',
+      title: 'Orb Knight: a 3D browser roguelite in 13 days',
+      text: 'A machine knight with a sword, a gun and a chargeable laser, cutting its way out of a foundry. Real-time 3D in a browser tab, made in 13 days for the jam.',
+      signal: '#6 Gameplay · #12 Overall · 483 ranked',
     },
     'mowfleet-dashboard': {
       href: '/blog/mowfleet-dashboard',

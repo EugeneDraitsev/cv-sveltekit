@@ -18,7 +18,7 @@
   <title>Blog | Eugene Draitsev</title>
   <meta
     name="description"
-    content="Build notes by Eugene Draitsev: Rainroam, a one-thumb action RPG in 3D and pixel art; Orb Knight, a 3D browser game built in 13 days with coding agents; a Telegram agent running since 2015; and a robot-mower fleet dashboard."
+    content="Build notes by Eugene Draitsev: Rainroam, a one-thumb action RPG in 3D and pixel art; Orb Knight, a 3D browser roguelite built in 13 days for Gamedev.js Jam; a Telegram agent running since 2015; and a robot-mower fleet dashboard."
   />
   <link rel="canonical" href={canonicalUrl} />
   <meta property="og:title" content="Blog | Eugene Draitsev" />

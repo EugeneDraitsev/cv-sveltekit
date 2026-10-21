@@ -55,6 +55,7 @@
 
   const scores = [
     { label: 'Gameplay', rank: '#6', score: 4.027 },
+    { label: 'Overall', rank: '#12', score: 3.67 },
     { label: 'Graphics', rank: '#34', score: 3.811 },
     { label: 'Theme', rank: '#25', score: 3.784 },
     { label: 'Audio', rank: '#29', score: 3.486 },
@@ -114,45 +115,22 @@
     },
   ];
 
-  const ownership = [
-    {
-      title: 'What stayed mine',
-      items: [
-        'Scope: what the game is, and the growing list of what it is not',
-        'System boundaries between combat, rooms, progression and UI',
-        'Review of every change, plus integration and browser playtesting',
-        'Game feel: timing, camera, feedback — tuned by hand, repeatedly',
-        'The release call and the competition submission',
-      ],
-    },
-    {
-      title: 'What agents did',
-      items: [
-        'Implementation passes across Svelte, Threlte, Three.js and Rapier',
-        'First drafts of combat behaviors, room templates, enemies and UI',
-        'Mechanical refactors across many files',
-        'Storybook fixtures that pin runtime state for review',
-        'Codebase archaeology: "where does the damage number actually come from?"',
-      ],
-    },
-  ];
-
   const lessons = [
     {
       title: 'One observable behavior per loop',
-      text: 'The unit of work that survived: one behavior, one implementation pass, one browser check. Every time I batched more into a prompt, review cost grew faster than the code was worth.',
+      text: 'The unit of work that survived: one behavior, one implementation pass, one browser check. Every time I batched more into one change, review cost grew faster than the code was worth.',
     },
     {
       title: 'Correct is not the same as good',
-      text: 'Agents will happily ship combat that satisfies every stated rule and still feels like hitting cardboard. Feel only comes from playtesting and tuning, over and over.',
+      text: 'Combat can satisfy every stated rule and still feel like hitting cardboard. Feel only comes from playtesting and tuning, over and over.',
     },
     {
       title: 'Storybook was the highest-leverage tool',
-      text: 'Deterministic fixtures turned "run to the boss and hope" into "mount the boss with fixed state". Most agent output got reviewed inside these scenes — the same ones embedded above.',
+      text: 'Deterministic fixtures turned "run to the boss and hope" into "mount the boss with fixed state". Most changes got reviewed inside these scenes — the same ones embedded above.',
     },
     {
       title: 'Innovation cannot be patched in later',
-      text: 'Gameplay ranked 6th; Innovation ranked 79th. Both are fair. A competent roguelite loop is buildable in 13 days — a distinctive mechanic has to be there from day one, and mine was not.',
+      text: 'A competent roguelite loop is buildable in 13 days — a distinctive mechanic has to be there from day one, and mine was not.',
     },
   ];
 </script>
@@ -161,7 +139,7 @@
   <title>Orb Knight: a 3D roguelite in 13 days | Eugene Draitsev</title>
   <meta
     name="description"
-    content="Building Orb Knight for Gamedev.js Jam 2026: a Svelte and Three.js action roguelite made in 13 days with AI coding agents, 6th in Gameplay. Build log and live WebGL scenes."
+    content="Building Orb Knight for Gamedev.js Jam 2026: a Svelte and Three.js action roguelite made in 13 days, 6th in Gameplay and 12th overall. Build log and live WebGL scenes."
   />
   <link rel="canonical" href={canonicalUrl} />
   <meta property="og:title" content={post.title} />
@@ -189,20 +167,17 @@
       </a>
 
       <header class="mt-6 mb-8">
-        <p class="mb-3 text-xs text-keyword uppercase sm:text-sm">
-          Game jam · 13 days · built with AI agents
-        </p>
+        <p class="mb-3 text-xs text-keyword uppercase sm:text-sm">Gamedev.js Jam 2026 · 13 days</p>
         <h1 class="blog-title">Orb Knight: a 3D browser roguelite in 13 days</h1>
         <p class="post-meta">
           <PostDates added={post.datePublished} updated={post.dateModified} />
         </p>
         <p class="blog-lead">
           Gamedev.js Jam 2026 gave everyone the same theme, <em>Machines</em>, and the same 13 days.
-          I had a decade of production web work behind me and no shipped games, so the plan was to
-          build a real-time 3D action game in the browser, let coding agents write most of the code,
-          and keep architecture, review and playtesting myself. A friend, Arseny Yankovski, added
-          the laser charge-up and three enemies. The result is Orb Knight: a brass machine with a
-          sword, a gun and a laser, cutting its way out of a foundry. It took
+          I had a decade of production web work behind me and no shipped games, so I set out to
+          build a real-time 3D action game that runs in a browser tab. A friend, Arseny Yankovski,
+          added the laser charge-up and three enemies. The result is Orb Knight: a brass machine
+          with a sword, a gun and a laser, cutting its way out of a foundry. It took
           <strong>6th in Gameplay</strong> and <strong>12th overall</strong> out of 483 ranked entries.
         </p>
         <div class="mt-5 flex flex-wrap gap-4 text-sm">
@@ -237,11 +212,11 @@
 
       <section class="mb-12" aria-labelledby="outcome-heading">
         <p class="section-kicker">01 · The result</p>
-        <h2 id="outcome-heading" class="section-heading">6th in Gameplay, 79th in Innovation</h2>
+        <h2 id="outcome-heading" class="section-heading">6th in Gameplay, 12th overall</h2>
         <p class="mb-6 max-w-3xl">
           The category I care about most is Gameplay: how the game feels in your hands. Orb Knight
           scored <strong>4.027/5</strong> there, 6th across the whole jam, and players mostly praised
-          the controls and the feel. Innovation was the weak spot.
+          the controls and the feel. Overall it finished 12th of 483 ranked entries.
         </p>
 
         <div class="mb-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -295,14 +270,14 @@
           </figure>
           <aside class="result-note">
             <p class="text-xs tracking-wide text-keyword uppercase">Reading the board</p>
-            <h3 class="mt-2 text-xl text-constant">Strong loop, familiar idea</h3>
+            <h3 class="mt-2 text-xl text-constant">Top 3% overall</h3>
             <p class="mt-3 text-sm">
               Gameplay at 6th means the moment-to-moment feel of dodging, hitting and getting hit
-              worked. Graphics, Theme and Audio all finished in the top 7%.
+              worked.
             </p>
             <p class="mt-3 text-sm">
-              Innovation at 79th is fair: Orb Knight is a well-made roguelite, not a new idea.
-              Players didn't mark it down on Gameplay for that; the cost showed up in Innovation.
+              12th overall puts it in the top 3% of 483 ranked entries, and Theme, Audio and
+              Graphics all finished in the top 7%.
             </p>
           </aside>
         </div>
@@ -439,30 +414,15 @@
       </section>
 
       <section class="mb-12" aria-labelledby="roles-heading">
-        <p class="section-kicker">05 · The workflow</p>
-        <h2 id="roles-heading" class="section-heading">How the agents and I split the work</h2>
-        <p class="mb-6">
-          Codex and Claude Code wrote most of this game; two of the merged branches are literally
-          named <code>codex/*</code>. My job shifted to splitting systems into tasks small enough to
-          review, keeping state boundaries clean so a bad implementation was cheap to throw away,
-          and playtesting every change, because no agent can tell you the camera feels wrong. The
-          split, roughly:
+        <p class="section-kicker">05 · How it was built</p>
+        <h2 id="roles-heading" class="section-heading">One change, one playtest</h2>
+        <p>
+          Codex and Claude Code wrote a lot of the code. What decided the result was everything
+          around it: cutting systems into changes small enough to review, keeping the boundaries
+          between combat, rooms, progression and UI clean so a bad implementation was cheap to throw
+          away, and playing after every change, because only playing tells you the camera feels
+          wrong. Scope, game feel and the release call stayed with me.
         </p>
-        <div class="grid gap-5 md:grid-cols-2">
-          {#each ownership as column (column)}
-            <article class="detail-card">
-              <h3 class="text-lg text-constant">{column.title}</h3>
-              <ul class="mt-4 space-y-2">
-                {#each column.items as item (item)}
-                  <li class="flex gap-2 text-sm">
-                    <span class="text-keyword" aria-hidden="true">→</span>
-                    <span>{item}</span>
-                  </li>
-                {/each}
-              </ul>
-            </article>
-          {/each}
-        </div>
       </section>
 
       <section aria-labelledby="lessons-heading">
@@ -588,14 +548,5 @@
     .scene-pair {
       grid-template-columns: 1fr 1fr;
     }
-  }
-
-  code {
-    padding: 0.1rem 0.35rem;
-    border-radius: 4px;
-    border: 1px solid var(--color-base-300);
-    background: color-mix(in srgb, var(--color-base-100) 70%, transparent);
-    color: var(--color-string);
-    font-size: 0.85em;
   }
 </style>
