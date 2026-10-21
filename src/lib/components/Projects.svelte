@@ -11,7 +11,7 @@
       eyebrow: 'RevenueCat Shipaton 2026',
       title: 'Rainroam: an action RPG in 3D and pixel art',
       text: 'A souls-lite adventure played with one thumb. A WebGPU renderer and a Phaser renderer draw the same game state, so the style switches mid-fight.',
-      signal: 'Web · Galaxy Store · Mac App Store',
+      signal: '#2 Best App for Galaxy · App Store · Galaxy Store',
     },
     'telegram-bot-app': {
       href: '/blog/telegram-bot-app',
