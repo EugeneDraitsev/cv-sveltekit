@@ -10,7 +10,11 @@
 
   const playUrl = 'https://rainroam.pages.dev/';
   const galaxyUrl = 'https://galaxystore.samsung.com/detail/com.eugenedraitsev.rainroam';
+  // One App Store listing for iPhone, iPad and Mac; mt=12 opens its Mac page.
   const appStoreUrl = 'https://apps.apple.com/app/id6813862126';
+  const macAppStoreUrl = 'https://apps.apple.com/app/rainroam/id6813862126?mt=12';
+  const winnersUrl =
+    'https://www.revenuecat.com/blog/company/shipaton-2026-winners#2nd-place-rainroam';
   const devpostUrl = 'https://devpost.com/software/rainroam';
   const trailerUrl = 'https://www.youtube.com/watch?v=VofgRBF6jP4';
 
@@ -99,10 +103,10 @@
   };
 
   const highlights = [
+    { value: '2nd', label: 'Best App for Galaxy, Shipaton' },
     { value: '13 days', label: 'first build to Galaxy Store' },
     { value: '2', label: 'renderers, one game state' },
     { value: '13', label: 'dungeons and caves' },
-    { value: '3', label: 'languages' },
   ];
 
   const content = [
@@ -147,8 +151,12 @@
       text: 'Galaxy Store approved version 1.0.1, and the game was entered in RevenueCat Shipaton 2026 for the Best Game, RevenueCat Design and Best App for Galaxy awards.',
     },
     {
-      title: 'October: the Mac App Store and the Wishing Well',
-      text: 'The Mac version went live on the App Store, and version 1.1 added the Wishing Well, a hardcore roguelike mode in beta. The iPhone and iPad version is in its third round of App Store review.',
+      title: 'Early October: the App Store and the Wishing Well',
+      text: 'The Mac version went live on the App Store, and version 1.1 added the Wishing Well, a hardcore roguelike mode in beta. On October 9 the iPhone and iPad version followed, on the same App Store listing.',
+    },
+    {
+      title: 'October 20: 2nd place for Best App for Galaxy',
+      text: 'RevenueCat announced the Shipaton 2026 winners, 58 apps picked from 3,985 projects, and Rainroam took 2nd place in Best App for Galaxy.',
     },
   ];
 
@@ -167,7 +175,7 @@
   <title>Rainroam: one action RPG, two renderers | Eugene Draitsev</title>
   <meta
     name="description"
-    content="How Rainroam was built: a one-thumb action RPG for phones with a WebGPU/TypeGPU 3D renderer and a Phaser pixel-art renderer drawing the same game state, shipped to the web, Galaxy Store and the Mac App Store."
+    content="How Rainroam was built: a one-thumb action RPG for phones with a WebGPU/TypeGPU 3D renderer and a Phaser pixel-art renderer drawing the same game state, shipped to the web, Galaxy Store and the App Store, and 2nd for Best App for Galaxy at RevenueCat Shipaton 2026."
   />
   <link rel="canonical" href={canonicalUrl} />
   <meta property="og:title" content={post.title} />
@@ -196,7 +204,7 @@
 
       <header class="mt-6 mb-8">
         <p class="mb-3 text-xs text-keyword uppercase sm:text-sm">
-          RevenueCat Shipaton 2026 · with Hanna Shcharbakova
+          RevenueCat Shipaton 2026 · 2nd place, Best App for Galaxy · with Hanna Shcharbakova
         </p>
         <h1 class="blog-title">Rainroam: one action RPG, drawn by two renderers</h1>
         <p class="post-meta">
@@ -208,8 +216,8 @@
           at the end of them, all with one thumb on a phone held upright. The whole game can be
           drawn in soft-lit 3D or in pixel art, and you can switch between them at any moment, even
           in the middle of a fight. It went from a plan in August to the web, Galaxy Store and the
-          Mac App Store in about six weeks; the iPhone version is in its third round of App Store
-          review.
+          Mac App Store in about six weeks, reached iPhone and iPad on October 9, and took 2nd place
+          for Best App for Galaxy at RevenueCat Shipaton 2026.
         </p>
         <div class="mt-5 flex flex-wrap gap-4 text-sm">
           <a class="text-constant underline" href={playUrl} target="_blank" rel="noreferrer"
@@ -219,7 +227,13 @@
             >Galaxy Store</a
           >
           <a class="text-constant underline" href={appStoreUrl} target="_blank" rel="noreferrer"
+            >App Store: iPhone and iPad</a
+          >
+          <a class="text-constant underline" href={macAppStoreUrl} target="_blank" rel="noreferrer"
             >Mac App Store</a
+          >
+          <a class="text-constant underline" href={winnersUrl} target="_blank" rel="noreferrer"
+            >Shipaton results</a
           >
           <a class="text-constant underline" href={devpostUrl} target="_blank" rel="noreferrer"
             >Devpost submission</a
@@ -247,6 +261,29 @@
         loading="eager"
         caption="The same evening in Bellwether, drawn twice: 3D on the left, pixel art on the right."
       />
+
+      <section class="mb-12">
+        <h2 class="section-heading">2nd place for Best App for Galaxy</h2>
+        <p class="mb-6">
+          On October 20 RevenueCat announced the Shipaton 2026 winners: 58 apps picked from 3,985
+          projects. Rainroam took 2nd place in Best App for Galaxy. The write-up points to the
+          switch between 3D and pixel art in the middle of a fight, and to the work on Galaxy
+          foldables: folding, unfolding and multi-window play.
+        </p>
+        <ZoomableImage
+          src="/blog/rainroam/shipaton-2nd-place.webp"
+          alt="Shipaton 2026 winner card: Rainroam, 2nd place, Best App for Galaxy"
+          figureClass="mb-3 overflow-hidden rounded border border-base-300"
+          imageClass="w-full"
+          caption="Rainroam's card from the winners announcement."
+        />
+        <a
+          class="text-sm text-constant underline"
+          href={winnersUrl}
+          target="_blank"
+          rel="noreferrer">Read RevenueCat's announcement</a
+        >
+      </section>
 
       <section class="mb-12">
         <h2 class="section-heading">Played with one thumb</h2>

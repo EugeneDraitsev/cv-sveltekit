@@ -2,16 +2,16 @@ export const BLOG_POSTS = [
   {
     slug: 'rainroam',
     title: 'Rainroam: one action RPG, drawn by two renderers',
-    label: 'RevenueCat Shipaton 2026',
+    label: 'RevenueCat Shipaton 2026 · 2nd place',
     datePublished: '2026-10-08',
-    dateModified: '2026-10-08',
+    dateModified: '2026-10-21',
     image: '/blog/rainroam/hero-split.webp',
     imageAlt:
       'The same evening in Bellwether, drawn in 3D on the left and in pixel art on the right',
     imageMode: 'cover',
     socialImage: '/og/rainroam.jpg',
     description:
-      'A souls-lite adventure for phones, played with one thumb, that switches between soft 3D and pixel art mid-fight. Six weeks from first sketch to the web, Galaxy Store and the Mac App Store, and four of its scenes run live in the post.',
+      'A souls-lite adventure for phones, played with one thumb, that switches between soft 3D and pixel art mid-fight. 2nd place for Best App for Galaxy at Shipaton 2026, out on the web, Galaxy Store and the App Store, and four of its scenes run live in the post.',
     tags: ['TypeGPU', 'WebGPU', 'Phaser', 'Capacitor', 'RevenueCat'],
   },
   {
