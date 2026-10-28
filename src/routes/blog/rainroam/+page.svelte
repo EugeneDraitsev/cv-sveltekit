@@ -103,7 +103,7 @@
   };
 
   const highlights = [
-    { value: '2nd', label: 'Best App for Galaxy, Shipaton' },
+    { value: '2nd', label: 'Best App for Galaxy, RevenueCat Shipaton 2026' },
     { value: '13 days', label: 'first build to Galaxy Store' },
     { value: '2', label: 'renderers, one game state' },
     { value: '13', label: 'dungeons and caves' },
@@ -147,7 +147,7 @@
       text: 'A cat knight in a voxel dungeon, deployed to Cloudflare Pages on day one. Everything after that shipped continuously from the same TypeScript codebase.',
     },
     {
-      title: 'September 30: Galaxy Store and Shipaton',
+      title: 'September 30: Galaxy Store and RevenueCat Shipaton 2026',
       text: 'Galaxy Store approved version 1.0.1, and the game was entered in RevenueCat Shipaton 2026 for the Best Game, RevenueCat Design and Best App for Galaxy awards.',
     },
     {
@@ -156,7 +156,7 @@
     },
     {
       title: 'October 20: 2nd place for Best App for Galaxy',
-      text: 'RevenueCat announced the Shipaton 2026 winners, 58 apps picked from 3,985 projects, and Rainroam took 2nd place in Best App for Galaxy.',
+      text: 'The RevenueCat Shipaton 2026 winners were announced: 58 apps picked from 3,985 projects in a hackathon with more than 28,000 participants, and Rainroam took 2nd place in Best App for Galaxy.',
     },
   ];
 
@@ -175,7 +175,7 @@
   <title>Rainroam: one action RPG, two renderers | Eugene Draitsev</title>
   <meta
     name="description"
-    content="How Rainroam was built: a one-thumb action RPG for phones with a WebGPU/TypeGPU 3D renderer and a Phaser pixel-art renderer drawing the same game state, shipped to the web, Galaxy Store and the App Store, and 2nd for Best App for Galaxy at RevenueCat Shipaton 2026."
+    content="How Rainroam was built: a one-thumb action RPG for phones with a WebGPU/TypeGPU 3D renderer and a Phaser pixel-art renderer drawing the same game state, shipped to the web, Galaxy Store and the App Store, and 2nd for Best App for Galaxy at RevenueCat Shipaton 2026, a hackathon with more than 28,000 participants."
   />
   <link rel="canonical" href={canonicalUrl} />
   <meta property="og:title" content={post.title} />
@@ -217,7 +217,8 @@
           drawn in soft-lit 3D or in pixel art, and you can switch between them at any moment, even
           in the middle of a fight. It went from a plan in August to the web, Galaxy Store and the
           Mac App Store in about six weeks, reached iPhone and iPad on October 9, and took 2nd place
-          for Best App for Galaxy at RevenueCat Shipaton 2026.
+          for Best App for Galaxy at RevenueCat Shipaton 2026, a hackathon with more than 28,000
+          participants.
         </p>
         <div class="mt-5 flex flex-wrap gap-4 text-sm">
           <a class="text-constant underline" href={playUrl} target="_blank" rel="noreferrer"
@@ -233,7 +234,7 @@
             >Mac App Store</a
           >
           <a class="text-constant underline" href={winnersUrl} target="_blank" rel="noreferrer"
-            >Shipaton results</a
+            >RevenueCat Shipaton 2026 results</a
           >
           <a class="text-constant underline" href={devpostUrl} target="_blank" rel="noreferrer"
             >Devpost submission</a
@@ -265,14 +266,15 @@
       <section class="mb-12">
         <h2 class="section-heading">2nd place for Best App for Galaxy</h2>
         <p class="mb-6">
-          On October 20 RevenueCat announced the Shipaton 2026 winners: 58 apps picked from 3,985
-          projects. Rainroam took 2nd place in Best App for Galaxy. The write-up points to the
-          switch between 3D and pixel art in the middle of a fight, and to the work on Galaxy
-          foldables: folding, unfolding and multi-window play.
+          On October 20 RevenueCat announced the winners of RevenueCat Shipaton 2026: 58 apps picked
+          from 3,985 projects, in a hackathon with more than 28,000 participants. Rainroam took 2nd
+          place in Best App for Galaxy. The write-up points to the switch between 3D and pixel art
+          in the middle of a fight, and to the work on Galaxy foldables: folding, unfolding and
+          multi-window play.
         </p>
         <ZoomableImage
           src="/blog/rainroam/shipaton-2nd-place.webp"
-          alt="Shipaton 2026 winner card: Rainroam, 2nd place, Best App for Galaxy"
+          alt="RevenueCat Shipaton 2026 winner card: Rainroam, 2nd place, Best App for Galaxy"
           figureClass="mb-3 overflow-hidden rounded border border-base-300"
           imageClass="w-full"
           caption="Rainroam's card from the winners announcement."

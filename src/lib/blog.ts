@@ -4,16 +4,16 @@ export const BLOG_POSTS = [
     title: 'Rainroam: one action RPG, drawn by two renderers',
     label: 'RevenueCat Shipaton 2026 · 2nd place',
     datePublished: '2026-10-08',
-    dateModified: '2026-10-21',
-    // The White Stair with the Shipaton badge from the winner card, kept inside the
-    // area every crop of the list cell shows.
+    dateModified: '2026-10-28',
+    // The White Stair with the RevenueCat and Shipaton logos and the 2nd-place badge
+    // from the winner card, kept inside the area every crop of the list cell shows.
     image: '/blog/rainroam/shipaton-cover.webp',
     imageAlt:
-      'The White Stair in Rainroam, under a Shipaton 2026 badge: 2nd place, Best App for Galaxy',
+      'The White Stair in Rainroam, under a RevenueCat Shipaton 2026 badge: 2nd place, Best App for Galaxy',
     imageMode: 'cover',
     socialImage: '/og/rainroam.jpg',
     description:
-      'A souls-lite adventure for phones, played with one thumb, that switches between soft 3D and pixel art mid-fight. 2nd place for Best App for Galaxy at Shipaton 2026, out on the web, Galaxy Store and the App Store, and four of its scenes run live in the post.',
+      'A souls-lite adventure for phones, played with one thumb, that switches between soft 3D and pixel art mid-fight. 2nd place for Best App for Galaxy at RevenueCat Shipaton 2026, a hackathon with more than 28,000 participants. Out on the web, Galaxy Store and the App Store, and four of its scenes run live in the post.',
     tags: ['TypeGPU', 'WebGPU', 'Phaser', 'Capacitor', 'RevenueCat'],
   },
   {
