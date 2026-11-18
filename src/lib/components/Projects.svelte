@@ -6,6 +6,13 @@
   // Home-page framing for each post, keyed by slug. Listed newest first, in
   // the same order as the blog.
   const cardCopy = {
+    'agent-evals': {
+      href: '/blog/agent-evals',
+      eyebrow: 'Telegram agent · evaluation notes',
+      title: 'From incident to eval',
+      text: 'One real abuse request became a classifier in front of the agent and a labelled set of cases that runs against the live model, plus the bypass that set missed.',
+      signal: '36 labelled cases · 15 must block · 21 must pass',
+    },
     rainroam: {
       href: '/blog/rainroam',
       eyebrow: 'RevenueCat Shipaton 2026 · 2nd place',
@@ -17,7 +24,7 @@
       href: '/blog/telegram-bot-app',
       eyebrow: 'Long-running side project',
       title: 'The Telegram bot that grew up with the web',
-      text: 'A 2015 chat utility that evolved into an asynchronous agent system with reply gating, tools, memory, fallbacks, metrics and a companion UI.',
+      text: 'A 2015 chat utility that evolved into an asynchronous agent system with reply gating, budgeted tools, memory, per-role models with fallbacks, metrics and a companion UI.',
       signal: 'Since 2015 · still running',
     },
     'gamedevjs-2026': {

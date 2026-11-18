@@ -18,13 +18,13 @@
   <title>Blog | Eugene Draitsev</title>
   <meta
     name="description"
-    content="Build notes by Eugene Draitsev: Rainroam, a one-thumb action RPG in 3D and pixel art; Orb Knight, a 3D browser roguelite built in 13 days for Gamedev.js Jam; a Telegram agent running since 2015; and a robot-mower fleet dashboard."
+    content="Build notes by Eugene Draitsev: a Telegram agent running since 2015 and the evaluation that grew out of one abuse request; Rainroam, a one-thumb action RPG in 3D and pixel art; Orb Knight, a 3D browser roguelite built in 13 days; and a robot-mower fleet dashboard."
   />
   <link rel="canonical" href={canonicalUrl} />
   <meta property="og:title" content="Blog | Eugene Draitsev" />
   <meta
     property="og:description"
-    content="Build notes on two browser games, a Telegram agent and a robot-mower fleet dashboard."
+    content="Build notes on a Telegram agent and its evals, two browser games and a robot-mower fleet dashboard."
   />
   <meta property="og:type" content="website" />
   <meta property="og:url" content={canonicalUrl} />
@@ -39,9 +39,10 @@
         <p class="mb-3 text-xs text-keyword uppercase sm:text-sm">Blog</p>
         <h1 class="blog-title">Build notes</h1>
         <p class="blog-lead">
-          Write-ups about things I built and still run: two browser games, a Telegram agent that has
-          been in the same group chats since 2015, and a dashboard for a fleet of robot mowers. What
-          was built, how, and what went wrong along the way.
+          Write-ups about things I built and still run: a Telegram agent that has been in the same
+          group chats since 2015 and the evaluation that grew out of one bad request, two browser
+          games, and a dashboard for a fleet of robot mowers. What was built, how, and what went
+          wrong along the way.
         </p>
       </div>
 
