@@ -71,7 +71,7 @@
     {
       count: 3,
       title: 'the same request in a costume',
-      text: 'Framed as a joke, as roleplay with a real victim, and as a “sort of CTF” against a real organisation that never agreed to one.',
+      text: 'Framed as a joke, which is how the original arrived, as roleplay with a real victim, and as a “sort of CTF” against a real organisation that never agreed to one.',
     },
     {
       count: 3,
@@ -206,10 +206,11 @@
         </p>
         <p class="blog-lead">
           The agent in my Telegram bot lives in group chats, where nobody is trying to help it
-          behave. Then someone asked it to break into an organisation’s official YouTube account and
-          upload a video there. This post is about what that one request turned into: a classifier
-          in front of the agent, 36 labelled cases that run against the live model, a bypass those
-          cases missed, and a plain list of what still isn’t measured.
+          behave. Then a friend in one of those chats asked it, as a joke, to break into an
+          organisation’s official YouTube account and upload a video there. This post is about what
+          that one request turned into: a classifier in front of the agent, 36 labelled cases that
+          run against the live model, a bypass those cases missed, and a plain list of what still
+          isn’t measured.
         </p>
         <div class="mt-5 flex flex-wrap gap-4 text-sm">
           <a class="repo-link" href={evalUrl} target="_blank" rel="noreferrer">
@@ -242,9 +243,9 @@
           own judgement.
         </p>
         <p class="mb-6">
-          “The model will probably refuse” is not a control, and the API access the whole bot runs
-          on is not something I wanted to bet on it. The fix shipped on October 7, 2026, and it came
-          with a way to check it.
+          A joke is still a request by the time it reaches a model. “The model will probably refuse”
+          is not a control, and the API access the whole bot runs on is not something I wanted to
+          bet on it. The fix shipped on October 7, 2026, and it came with a way to check it.
         </p>
         <ZoomableImage
           src="/blog/agent-evals/eval-loop-dark.svg"

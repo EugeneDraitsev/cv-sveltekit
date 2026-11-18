@@ -401,13 +401,13 @@
       </p>
       <ul>
         <li>
-          <b>Evaluation from a real incident.</b> After a user asked the bot to break into a third
-          party's account, put a cyber-abuse classifier (OpenAI Decisions API) in front of agent
-          commands and wrote a <b>36-case labelled eval that runs against the live model</b>:
-          injection and obfuscation attacks on the classifier itself, requests that point at earlier
-          messages, and 21 benign look-alikes that must pass. Later closed a bypass through chat
-          history the cases had missed.
-          <a href="https://eugene-draitsev.vercel.app/blog/agent-evals">Write-up</a>.
+          <b>Evaluation from a real incident.</b> After a chat member asked the bot, as a joke, to
+          break into a third party's account, put a cyber-abuse classifier (OpenAI Decisions API) in
+          front of agent commands and wrote a
+          <b>36-case labelled eval that runs against the live model</b>: injection and obfuscation
+          attacks on the classifier itself, requests that point at earlier messages, and 21 benign
+          look-alikes that must pass. Later closed a bypass through chat history the cases had
+          missed. <a href="https://eugene-draitsev.vercel.app/blog/agent-evals">Write-up</a>.
         </li>
         <li>
           <b>Reply gate.</b> One cheap structured engage-or-ignore call per message, ignoring by
