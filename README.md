@@ -141,7 +141,9 @@ Three notes on that toolchain.
 
 SvelteKit 3 has no `svelte.config.js`: its options go to `sveltekit()` in `vite.config.ts`, and
 `$lib` is `#lib`, resolved through the `imports` field of `package.json` with the file extension
-written out. It needs Node 22.17 or newer.
+written out. It needs Node 22.17 or newer. Vercel's analytics and speed-insights packages still
+read the removed `$app/stores` in their `/sveltekit` entries, which throws on a deployed host only,
+so [src/lib/insights.ts](src/lib/insights.ts) calls their generic injectors instead.
 
 Oxlint and Oxfmt are the only linter and formatter here — ESLint and Prettier are gone. Oxlint
 reads the `<script>` block of a `.svelte` file but not the template, so Svelte-specific template
