@@ -1,6 +1,6 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { SITE_DATA } from '$lib/constants';
-import { isGitHubRepository, type GitHubRepository } from '$lib/types/github';
+import type { RequestHandler } from '@sveltejs/kit';
+import { SITE_DATA } from '#lib/constants.ts';
+import { isGitHubRepository, type GitHubRepository } from '#lib/types/github.ts';
 
 let cachedData: GitHubRepository[] | null = null;
 let lastFetchTime = 0;
@@ -34,7 +34,7 @@ export const GET: RequestHandler = async ({ fetch }) => {
     }
   }
 
-  return json(cachedData ?? [], {
+  return Response.json(cachedData ?? [], {
     headers: {
       'Cache-Control': CACHE_CONTROL,
     },

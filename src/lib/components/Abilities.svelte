@@ -1,6 +1,6 @@
 <script lang="ts">
-  import StarRating from '$lib/components/StarRating.svelte';
-  import { SITE_DATA } from '$lib/constants';
+  import StarRating from '#lib/components/StarRating.svelte';
+  import { SITE_DATA } from '#lib/constants.ts';
 </script>
 
 <div>

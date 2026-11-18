@@ -77,17 +77,17 @@ describe('Renderer planet layer', () => {
   });
 });
 
-describe('PlanetLayer shadows', () => {
-  /** Shadow passes recorded for one frame with the sun along `sun`. */
-  function shadowPasses(q: typeof quality, sun: Vec3, altitude: number) {
-    const { backend, passes } = countingBackend();
-    const layer = new PlanetLayer(backend, q);
-    const data = new BlockData(PlanetBlock).vec('sun0', sun, 0);
-    layer.writeUniform(data, [0, 1 + altitude, 0], 6_000_000);
-    layer.drawShadows(backend.createTexture({ width: 1, height: 1, format: 'rgba32float' }));
-    return passes.filter((label) => label.startsWith('shadow')).length;
-  }
+/** Shadow passes recorded for one frame with the sun along `sun`. */
+function shadowPasses(q: typeof quality, sun: Vec3, altitude: number) {
+  const { backend, passes } = countingBackend();
+  const layer = new PlanetLayer(backend, q);
+  const data = new BlockData(PlanetBlock).vec('sun0', sun, 0);
+  layer.writeUniform(data, [0, 1 + altitude, 0], 6_000_000);
+  layer.drawShadows(backend.createTexture({ width: 1, height: 1, format: 'rgba32float' }));
+  return passes.filter((label) => label.startsWith('shadow')).length;
+}
 
+describe('PlanetLayer shadows', () => {
   it('renders both cascades by day near the ground', () => {
     expect(shadowPasses(quality, [0, 1, 0], 0.001)).toBe(2);
   });

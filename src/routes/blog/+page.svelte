@@ -1,9 +1,9 @@
 <script lang="ts">
-  import SocialImage from '$lib/components/SocialImage.svelte';
+  import SocialImage from '#lib/components/SocialImage.svelte';
   import { resolve } from '$app/paths';
-  import PostDates from '$lib/components/PostDates.svelte';
-  import { BLOG_POSTS, sortPosts, type PostOrder } from '$lib/blog';
-  import { SITE_DATA } from '$lib/constants';
+  import PostDates from '#lib/components/PostDates.svelte';
+  import { BLOG_POSTS, sortPosts, type PostOrder } from '#lib/blog.ts';
+  import { SITE_DATA } from '#lib/constants.ts';
 
   const canonicalUrl = new URL('blog', SITE_DATA.siteUrl).href;
   const orders: { value: PostOrder; label: string }[] = [

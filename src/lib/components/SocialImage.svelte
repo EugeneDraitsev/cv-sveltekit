@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { SITE_DATA } from '$lib/constants';
+  import { SITE_DATA } from '#lib/constants.ts';
 
   // A 1200 x 630 JPEG card from static/og/ (rendered from the site itself),
   // with the tags link previews read: Open Graph and the large Twitter card.

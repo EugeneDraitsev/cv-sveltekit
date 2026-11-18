@@ -1,6 +1,6 @@
 <script lang="ts">
-  import SocialImage from '$lib/components/SocialImage.svelte';
-  import { SITE_DATA } from '$lib/constants';
+  import SocialImage from '#lib/components/SocialImage.svelte';
+  import { SITE_DATA } from '#lib/constants.ts';
   import '../blog/blog.css';
 
   const canonicalUrl = new URL('about', SITE_DATA.siteUrl).href;

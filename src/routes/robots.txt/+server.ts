@@ -1,4 +1,4 @@
-import { SITE_DATA } from '$lib/constants';
+import { SITE_DATA } from '#lib/constants.ts';
 
 export const prerender = true;
 

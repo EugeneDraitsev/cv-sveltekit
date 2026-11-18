@@ -1,5 +1,5 @@
-import { BLOG_POSTS } from '$lib/blog';
-import { SITE_DATA } from '$lib/constants';
+import { BLOG_POSTS } from '#lib/blog.ts';
+import { SITE_DATA } from '#lib/constants.ts';
 
 export const prerender = true;
 

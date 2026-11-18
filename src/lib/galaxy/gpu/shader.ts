@@ -159,6 +159,10 @@ export function pruneFunctions(
   return out + code.slice(cursor);
 }
 
+/** GLSL needs `flat` spelled out on integer varyings; WGSL infers it. */
+const flat = (v: { type: VaryingType; flat?: boolean }) =>
+  v.flat || isInteger(v.type) ? 'flat ' : '';
+
 /** Vertex and fragment GLSL for the WebGL2 backend. */
 export function buildGlsl(desc: PipelineDesc): { vertex: string; fragment: string } {
   const { textures } = bindingLayout(desc);
@@ -198,8 +202,6 @@ export function buildGlsl(desc: PipelineDesc): { vertex: string; fragment: strin
     depthTextures: textures.filter((t) => t.kind === 'depth').map((t) => t.name),
   });
 
-  const flat = (v: { type: VaryingType; flat?: boolean }) =>
-    v.flat || isInteger(v.type) ? 'flat ' : '';
   const vertexMain = [
     ...attrs.map((a) => `in ${glslType(a.type).base} a_${a.name};`),
     ...desc.varyings.map((v) => `${flat(v)}out ${glslType(v.type).base} v_${v.name};`),

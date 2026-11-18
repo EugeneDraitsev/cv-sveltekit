@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import Icon from '$lib/components/Icon.svelte';
+  import Icon from '#lib/components/Icon.svelte';
   import type { TouchFlight } from '../engine/protocol';
 
   const {
@@ -94,13 +94,14 @@
     };
   }
 
+  function releaseAll() {
+    for (const timer of Object.values(pulses)) clearTimeout(timer);
+    boostLatched = false;
+    input.up = input.down = input.boost = false;
+    release();
+  }
+
   onMount(() => {
-    const releaseAll = () => {
-      for (const timer of Object.values(pulses)) clearTimeout(timer);
-      boostLatched = false;
-      input.up = input.down = input.boost = false;
-      release();
-    };
     window.addEventListener('blur', releaseAll);
     return () => {
       window.removeEventListener('blur', releaseAll);

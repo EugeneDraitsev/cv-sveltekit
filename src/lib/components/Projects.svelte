@@ -1,7 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
-  import { BLOG_POSTS, sortPosts } from '$lib/blog';
-  import type { GitHubRepository } from '$lib/types/github';
+  import { BLOG_POSTS, sortPosts } from '#lib/blog.ts';
+  import type { GitHubRepository } from '#lib/types/github.ts';
 
   // Home-page framing for each post, keyed by slug. Listed newest first, in
   // the same order as the blog.

@@ -137,7 +137,11 @@ The downloadable CV has its source here too: `bun run cv:pdf` renders
 [cv/eugene-draitsev.html](cv/eugene-draitsev.html) to `static/eugene-draitsev.pdf` with headless
 Chromium. Open the HTML in a browser to preview it; the Lato files come from `node_modules`.
 
-Two notes on that toolchain.
+Three notes on that toolchain.
+
+SvelteKit 3 has no `svelte.config.js`: its options go to `sveltekit()` in `vite.config.ts`, and
+`$lib` is `#lib`, resolved through the `imports` field of `package.json` with the file extension
+written out. It needs Node 22.17 or newer.
 
 Oxlint and Oxfmt are the only linter and formatter here — ESLint and Prettier are gone. Oxlint
 reads the `<script>` block of a `.svelte` file but not the template, so Svelte-specific template

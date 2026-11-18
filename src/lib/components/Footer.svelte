@@ -1,9 +1,9 @@
 <script lang="ts">
-  import Icon from '$lib/components/Icon.svelte';
+  import Icon from '#lib/components/Icon.svelte';
   import type { Component, ComponentProps } from 'svelte';
 
-  import { SITE_DATA } from '$lib/constants';
-  import type FooterShaderType from '$lib/components/FooterShader.svelte';
+  import { SITE_DATA } from '#lib/constants.ts';
+  import type FooterShaderType from '#lib/components/FooterShader.svelte';
 
   let shaderActive = $state(false);
 
@@ -12,7 +12,7 @@
   let FooterShader = $state<Component<ComponentProps<typeof FooterShaderType>>>();
   $effect(() => {
     if (shaderActive && !FooterShader) {
-      import('$lib/components/FooterShader.svelte').then((m) => (FooterShader = m.default));
+      import('#lib/components/FooterShader.svelte').then((m) => (FooterShader = m.default));
     }
   });
 

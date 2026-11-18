@@ -1,11 +1,11 @@
 <script lang="ts">
-  import SocialImage from '$lib/components/SocialImage.svelte';
-  import PostDates from '$lib/components/PostDates.svelte';
+  import SocialImage from '#lib/components/SocialImage.svelte';
+  import PostDates from '#lib/components/PostDates.svelte';
   import { resolve } from '$app/paths';
-  import Icon from '$lib/components/Icon.svelte';
-  import ZoomableImage from '$lib/components/ZoomableImage.svelte';
-  import { getBlogPost, serializeJsonLd } from '$lib/blog';
-  import { SITE_DATA } from '$lib/constants';
+  import Icon from '#lib/components/Icon.svelte';
+  import ZoomableImage from '#lib/components/ZoomableImage.svelte';
+  import { getBlogPost, serializeJsonLd } from '#lib/blog.ts';
+  import { SITE_DATA } from '#lib/constants.ts';
 
   const repoUrl = 'https://github.com/EugeneDraitsev/telegram-bot-app';
   const uiUrl = 'https://github.com/EugeneDraitsev/telegram-bot-ui';

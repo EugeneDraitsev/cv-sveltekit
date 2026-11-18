@@ -1,5 +1,5 @@
 <script>
-  import { SITE_DATA } from '$lib/constants';
+  import { SITE_DATA } from '#lib/constants.ts';
 
   const { careers, educations } = SITE_DATA;
   const deliveryLabels = ['partner launch', 'AI agents', 'authorization', 'commerce systems'];

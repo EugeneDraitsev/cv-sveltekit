@@ -1,4 +1,4 @@
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
 
 // Every route is static content — prerender the whole site at build time.

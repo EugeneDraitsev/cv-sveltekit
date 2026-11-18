@@ -1,15 +1,13 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import type { Component, ComponentProps } from 'svelte';
   import { page } from '$app/state';
   import { resolve } from '$app/paths';
-  import { browser } from '$app/environment';
+  import { browser } from '$app/env';
   import { injectAnalytics } from '@vercel/analytics/sveltekit';
 
-  import { SITE_DATA } from '$lib/constants';
-  import { importAgain } from '$lib/importAgain';
-  import Footer from '$lib/components/Footer.svelte';
-  import type GalaxyHeroType from '$lib/galaxy/ui/GalaxyHero.svelte';
+  import { SITE_DATA } from '#lib/constants.ts';
+  import { importAgain } from '#lib/importAgain.ts';
+  import Footer from '#lib/components/Footer.svelte';
   import '../global.css';
 
   // Vercel analytics scripts only exist on real deployments — skip them locally so
@@ -20,7 +18,7 @@
 
   const headerLinks = SITE_DATA.headerLinks;
   const { children } = $props();
-  let GalaxyHero = $state<Component<ComponentProps<typeof GalaxyHeroType>>>();
+  let GalaxyHero = $state<(typeof import('#lib/galaxy/ui/lazy.ts'))['GalaxyHero']>();
   let galaxyLoadStarted = false;
   let galaxyAttempts = 0;
   // Every retry failed: stop promising a galaxy.
@@ -110,7 +108,7 @@
     galaxyLoadStarted = true;
     try {
       const { GalaxyHero: Hero } = await importAgain(
-        () => import('$lib/galaxy/ui/lazy'),
+        () => import('#lib/galaxy/ui/lazy.ts'),
         'GalaxyHero',
       );
       GalaxyHero = Hero;

@@ -1,10 +1,10 @@
 <script lang="ts">
-  import SocialImage from '$lib/components/SocialImage.svelte';
-  import AboutMe from '$lib/components/AboutMe.svelte';
-  import Experience from '$lib/components/Experience.svelte';
-  import Abilities from '$lib/components/Abilities.svelte';
-  import Projects from '$lib/components/Projects.svelte';
-  import { SITE_DATA } from '$lib/constants';
+  import SocialImage from '#lib/components/SocialImage.svelte';
+  import AboutMe from '#lib/components/AboutMe.svelte';
+  import Experience from '#lib/components/Experience.svelte';
+  import Abilities from '#lib/components/Abilities.svelte';
+  import Projects from '#lib/components/Projects.svelte';
+  import { SITE_DATA } from '#lib/constants.ts';
 
   const canonicalUrl = SITE_DATA.siteUrl;
   const personSchema = {

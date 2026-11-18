@@ -1,14 +1,14 @@
 <script lang="ts">
-  import SocialImage from '$lib/components/SocialImage.svelte';
-  import PostDates from '$lib/components/PostDates.svelte';
-  import { dev } from '$app/environment';
+  import SocialImage from '#lib/components/SocialImage.svelte';
+  import PostDates from '#lib/components/PostDates.svelte';
+  import { dev } from '$app/env';
   import { resolve } from '$app/paths';
-  import Icon from '$lib/components/Icon.svelte';
+  import Icon from '#lib/components/Icon.svelte';
   import { onMount } from 'svelte';
-  import LiveSceneEmbed from '$lib/components/LiveSceneEmbed.svelte';
-  import ZoomableImage from '$lib/components/ZoomableImage.svelte';
-  import { getBlogPost, serializeJsonLd } from '$lib/blog';
-  import { SITE_DATA } from '$lib/constants';
+  import LiveSceneEmbed from '#lib/components/LiveSceneEmbed.svelte';
+  import ZoomableImage from '#lib/components/ZoomableImage.svelte';
+  import { getBlogPost, serializeJsonLd } from '#lib/blog.ts';
+  import { SITE_DATA } from '#lib/constants.ts';
 
   const repoUrl = 'https://github.com/EugeneDraitsev/gamedevjs-2026';
   const liveUrl = 'https://gamedevjs-2026-orb-knight.vercel.app/';
