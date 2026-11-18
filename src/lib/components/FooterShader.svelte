@@ -9,7 +9,7 @@
     hot: ColorTuple;
   };
 
-  let { active = false } = $props<{ active?: boolean }>();
+  let { active = false }: { active?: boolean } = $props();
   let canvas = $state<HTMLCanvasElement>();
   let hover = 0;
   let pointer = { x: 0.5, y: 0.5 };

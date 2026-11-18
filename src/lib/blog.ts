@@ -1,5 +1,20 @@
 export const BLOG_POSTS = [
   {
+    slug: 'agent-evals',
+    title: 'From incident to eval: a safety check for a group-chat agent',
+    label: 'Telegram agent · evaluation notes',
+    datePublished: '2026-11-18',
+    dateModified: '2026-11-18',
+    image: '/blog/agent-evals/eval-loop-dark.svg',
+    imageAlt:
+      'A loop of five steps: a real request, a classifier, a labelled eval, a bypass the eval missed, and a new case',
+    imageMode: 'contain',
+    socialImage: '/og/agent-evals.jpg',
+    description:
+      'One real abuse request turned into a classifier in front of the agent and 36 labelled cases that run against the live model: what the cases cover, the bypass they missed, what failing closed cost, and why the reply gate still has no eval of its own.',
+    tags: ['Evals', 'Agents', 'OpenAI API', 'Prompt design', 'Safety'],
+  },
+  {
     slug: 'rainroam',
     title: 'Rainroam: one action RPG, drawn by two renderers',
     label: 'RevenueCat Shipaton 2026 · 2nd place',
@@ -21,13 +36,13 @@ export const BLOG_POSTS = [
     title: 'Telegram agent architecture: from commands to asynchronous workers',
     label: 'Personal build · since 2015',
     datePublished: '2024-03-12',
-    dateModified: '2026-10-08',
+    dateModified: '2026-11-18',
     image: '/blog/telegram-bot/architecture-overview-dark.svg',
     imageAlt: 'Architecture diagram for the Telegram agent and its asynchronous workers',
     socialImage: '/og/telegram-bot-app.jpg',
     imageMode: 'contain',
     description:
-      'Eleven years of the same bot: how a small image-search webhook became a routing-only ingress with FIFO queues, idempotent workers, a fail-closed authorization gate and a gated agent, in the same group chats throughout.',
+      'Eleven years of the same bot: how a small image-search webhook became a routing-only ingress with FIFO queues, idempotent workers, a fail-closed authorization gate and a gated agent with budgeted tools and per-role models, in the same group chats throughout.',
     tags: ['Agents', 'AWS Lambda', 'SQS', 'Idempotency', 'Tools'],
   },
   {

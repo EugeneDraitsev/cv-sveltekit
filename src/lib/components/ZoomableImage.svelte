@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Icon from '$lib/components/Icon.svelte';
+  import Icon from '#lib/components/Icon.svelte';
   import { SvelteMap } from 'svelte/reactivity';
 
   type Aspect = 'video' | 'process' | 'flow' | 'auto';

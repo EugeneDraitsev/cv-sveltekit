@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ICONS } from '$lib/icons';
+  import { ICONS } from '#lib/icons.ts';
 
   type Props = {
     icon: string;

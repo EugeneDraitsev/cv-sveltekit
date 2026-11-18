@@ -221,12 +221,18 @@ The camera bugs fixed here are independent of the GPU API. Initial-load
 Lighthouse also runs before Three.js is loaded, so a GPU migration cannot explain
 or improve those current first-load scores.
 
-## SvelteKit 3 prerelease
+## SvelteKit 3
 
-On September 13, the registry reports stable Kit `2.70.3` and next
-`3.0.0-next.27`. The project uses the stable release. The official
-[migration guide](https://next.svelte.dev/docs/kit/migrating-to-sveltekit-3)
-requires Node 22.17+ (the local Node runtime is 22.13.1), changes configuration
-placement and migrates `$lib` aliases and application imports. This is a separate
-compatibility migration, with no demonstrated benefit to the current WebGL frame
-loop or first paint. The mobile 100 result above uses Kit 2.
+On September 13 the registry had stable Kit `2.70.3` and next `3.0.0-next.27`,
+and the project stayed on the stable release. On November 18 it moved to Kit
+`3.3.1`, following the official
+[migration guide](https://svelte.dev/docs/kit/migrating-to-sveltekit-3): the
+options from `svelte.config.js` are now passed to `sveltekit()` in
+`vite.config.ts`, `$lib` became `#lib` through the `imports` field of
+`package.json`, `$app/environment` became `$app/env`, and `tsconfig.json`
+extends `$app/tsconfig`. Kit 3 needs Node 22.17 or newer.
+
+This was a compatibility migration, with no expected benefit to the frame loop
+or first paint. The prerendered home page came out within 200 bytes of the Kit 2
+build, with one more `modulepreload` link. The mobile 100 result above was
+measured on Kit 2 and has not been measured again.

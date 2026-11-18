@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('direct pages expose useful titles and landmarks', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveTitle('Eugene Draitsev | Senior Full-Stack / Platform Engineer');
+  await expect(page).toHaveTitle('Eugene Draitsev | Senior Full-Stack Engineer · AI Agents');
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
   await expect(page.getByRole('main')).toHaveAttribute('id', 'main-content');
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
@@ -24,7 +24,9 @@ test('search-engine discovery endpoints list the public routes', async ({ reques
 
   const sitemap = await request.get('/sitemap.xml');
   await expect(sitemap).toBeOK();
-  expect(await sitemap.text()).toContain('/blog/gamedevjs-2026');
+  const sitemapText = await sitemap.text();
+  expect(sitemapText).toContain('/blog/gamedevjs-2026');
+  expect(sitemapText).toContain('/blog/agent-evals');
 });
 
 test('the galaxy starts on its own after load, without blocking the page', async ({
@@ -45,13 +47,39 @@ test('the galaxy starts on its own after load, without blocking the page', async
   expect(errors).toEqual([]);
 });
 
+test('the app hydrates on a deployed hostname, where analytics start', async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  // Vercel's analytics are skipped on localhost, so a break in that code only
+  // shows on a real host: serve the same build under another name.
+  await context.route('http://cv.test/**', async (route) => {
+    const { pathname, search } = new URL(route.request().url());
+    if (pathname.startsWith('/_vercel/')) {
+      // The scripts Vercel serves on its own deployments.
+      await route.fulfill({ status: 200, contentType: 'text/javascript', body: '' });
+      return;
+    }
+    await route.fulfill({ response: await route.fetch({ url: `${baseURL}${pathname}${search}` }) });
+  });
+
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('http://cv.test/');
+  await expect(page.locator('canvas.galaxy-canvas')).toHaveCount(1, { timeout: 15_000 });
+  await expect(page.locator('script[src*="/_vercel/insights/"]')).toHaveCount(1);
+  await expect(page.locator('script[src*="/_vercel/speed-insights/"]')).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
+
 test('client navigation restores route-specific titles', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('link', { name: 'Blog', exact: true }).click();
   await expect(page).toHaveTitle('Blog | Eugene Draitsev');
 
   await page.getByRole('link', { name: 'Home', exact: true }).click();
-  await expect(page).toHaveTitle('Eugene Draitsev | Senior Full-Stack / Platform Engineer');
+  await expect(page).toHaveTitle('Eugene Draitsev | Senior Full-Stack Engineer · AI Agents');
 
   await page.getByRole('link', { name: 'About', exact: true }).click();
   await expect(page).toHaveTitle('About this site | Eugene Draitsev');

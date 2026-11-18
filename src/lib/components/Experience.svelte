@@ -1,8 +1,8 @@
 <script>
-  import { SITE_DATA } from '$lib/constants';
+  import { SITE_DATA } from '#lib/constants.ts';
 
   const { careers, educations } = SITE_DATA;
-  const deliveryLabels = ['partner launch', 'authorization', 'AI agents', 'commerce systems'];
+  const deliveryLabels = ['partner launch', 'AI agents', 'authorization', 'commerce systems'];
   const deliveryCards = SITE_DATA.deliveryHighlights.map((highlight, index) =>
     Object.assign({}, highlight, {
       label: deliveryLabels[index] ?? highlight.tags[0],
@@ -15,9 +15,9 @@
     <div class="mb-7">
       <h2 class="subtitle">Selected recent delivery</h2>
       <p class="max-w-3xl text-sm leading-6 text-identifier/75">
-        A few recent examples where the job went beyond writing a component: partner launches,
-        identity and security flows, commerce delivery and agent systems that need to behave well
-        outside a demo.
+        A few recent examples where the job went beyond writing a component: a partner launch with
+        OpenAI, an agent system that has to behave well outside a demo, identity and security flows,
+        and commerce delivery.
       </p>
     </div>
 
@@ -36,7 +36,7 @@
               <a
                 class="ml-1 cursor-pointer text-declaration underline"
                 href={highlight.href}
-                target="_blank"
+                target={highlight.href.startsWith('/') ? undefined : '_blank'}
                 rel="noreferrer"
               >
                 ({highlight.linkLabel})

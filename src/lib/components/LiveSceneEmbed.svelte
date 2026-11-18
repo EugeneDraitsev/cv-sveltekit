@@ -121,12 +121,12 @@
     return 'Compiling shaders';
   });
 
+  function updateActiveScene(activeLabel: string | null) {
+    isActive = activeLabel === label;
+  }
+
   onMount(() => {
     hasWebGPU = 'gpu' in navigator;
-
-    const updateActiveScene = (activeLabel: string | null) => {
-      isActive = activeLabel === label;
-    };
 
     activeSceneListeners.add(updateActiveScene);
     updateActiveScene(activeSceneLabel);

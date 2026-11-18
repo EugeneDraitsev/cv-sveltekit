@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { formatPostDate } from '$lib/blog';
+  import { formatPostDate } from '#lib/blog.ts';
 
   // When a post was added and when it last changed in substance. The second
   // date is left out until it differs from the first.

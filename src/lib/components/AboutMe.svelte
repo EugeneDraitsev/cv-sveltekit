@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { SITE_DATA } from '$lib/constants';
+  import { SITE_DATA } from '#lib/constants.ts';
 
   const getFullYearsSince = (date: string) => {
     const [year, month, day] = date.split('-').map(Number);

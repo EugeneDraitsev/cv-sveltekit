@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" role="img" aria-labelledby="t">
+<title id="t">From a real request to a classifier, a labelled eval, a bypass the eval missed, and a new case</title>
+<style>text{font-family:ui-monospace, Consolas, Menlo, 'DejaVu Sans Mono', 'Liberation Mono', monospace}.i{fill:#cc7832;font-size:15px}.h{fill:#ffc66d;font-size:21px}.b{fill:#d1d1d1;font-size:13px}.l{fill:#9a9a9a;font-size:13px}.n{fill:#1e1e1e;stroke:#484848;stroke-width:1.5}.a{fill:#1e1e1e;stroke:#cc7832;stroke-width:1.5}.e{fill:none;stroke:#8a8a8a;stroke-width:1.5}</style>
+<defs><marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#8a8a8a"/></marker></defs>
+<rect class="n" x="30" y="60" width="280" height="150" rx="8"/>
+<text class="i" x="48" y="94">01</text>
+<text class="h" x="48" y="128">a real request</text>
+<text class="b" x="48" y="160">an agent command asks the bot</text>
+<text class="b" x="48" y="182">to break into an account</text>
+<rect class="n" x="340" y="60" width="280" height="150" rx="8"/>
+<text class="i" x="358" y="94">02</text>
+<text class="h" x="358" y="128">a classifier</text>
+<text class="b" x="358" y="160">cyber-abuse probability</text>
+<text class="b" x="358" y="182">blocks at 0.5 · fails closed</text>
+<rect class="n" x="650" y="60" width="280" height="150" rx="8"/>
+<text class="i" x="668" y="94">03</text>
+<text class="h" x="668" y="128">a labelled eval</text>
+<text class="b" x="668" y="160">36 cases against the live model</text>
+<text class="b" x="668" y="182">15 must block · 21 must pass</text>
+<rect class="a" x="650" y="390" width="280" height="150" rx="8"/>
+<text class="i" x="668" y="424">04</text>
+<text class="h" x="668" y="458">a bypass it missed</text>
+<text class="b" x="668" y="490">&quot;do what was asked above&quot;</text>
+<text class="b" x="668" y="512">the request sat in chat history</text>
+<rect class="n" x="340" y="390" width="280" height="150" rx="8"/>
+<text class="i" x="358" y="424">05</text>
+<text class="h" x="358" y="458">a fix and a new case</text>
+<text class="b" x="358" y="490">the classifier reads 10 history</text>
+<text class="b" x="358" y="512">lines · pinned by a test</text>
+<path class="e" marker-end="url(#m)" d="M310 135H336"/>
+<path class="e" marker-end="url(#m)" d="M620 135H646"/>
+<path class="e" marker-end="url(#m)" d="M790 210V386"/>
+<path class="e" marker-end="url(#m)" d="M650 465H624"/>
+<path class="e" marker-end="url(#m)" d="M480 390V214"/>
+<text class="l" x="806" y="293">found later,</text>
+<text class="l" x="806" y="313">not by the eval</text>
+<text class="l" x="330" y="283" text-anchor="end">the next change</text>
+<text class="l" x="330" y="303" text-anchor="end">to the classifier is</text>
+<text class="l" x="330" y="323" text-anchor="end">checked against both</text>
+<path class="e" stroke-dasharray="4 5" d="M342 298H470"/>
+</svg>

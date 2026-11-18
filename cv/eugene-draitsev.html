@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Eugene Draitsev — CV</title>
+    <!--
+      Source of static/eugene-draitsev.pdf. Build it with `bun run cv:pdf`;
+      open this file in a browser to preview (fonts come from node_modules).
+    -->
+    <style>
+      @font-face {
+        font-family: 'Lato';
+        font-weight: 400;
+        src: url('../node_modules/@fontsource/lato/files/lato-latin-400-normal.woff2')
+          format('woff2');
+      }
+      @font-face {
+        font-family: 'Lato';
+        font-weight: 400;
+        font-style: italic;
+        src: url('../node_modules/@fontsource/lato/files/lato-latin-400-italic.woff2')
+          format('woff2');
+      }
+      @font-face {
+        font-family: 'Lato';
+        font-weight: 700;
+        src: url('../node_modules/@fontsource/lato/files/lato-latin-700-normal.woff2')
+          format('woff2');
+      }
+      @font-face {
+        font-family: 'Lato';
+        font-weight: 700;
+        font-style: italic;
+        src: url('../node_modules/@fontsource/lato/files/lato-latin-700-italic.woff2')
+          format('woff2');
+      }
+
+      :root {
+        --navy: #17324d;
+        --blue: #2f6fa3;
+        --ink: #1f2933;
+        --muted: #52606d;
+        --faint: #959a9f;
+        --rule: #c9d6e3;
+        --bar: #eaf1f7;
+        --panel: #f5f8fb;
+      }
+
+      @page {
+        size: A4;
+        margin: 11.5mm 15.7mm 15.5mm;
+
+        @bottom-left {
+          content: 'Eugene Draitsev · Senior Full-Stack Engineer · AI Agents and Evals';
+          color: #959a9f;
+          font:
+            7.4pt 'Lato',
+            sans-serif;
+        }
+
+        @bottom-right {
+          content: counter(page) ' / ' counter(pages);
+          color: #959a9f;
+          font:
+            7.4pt 'Lato',
+            sans-serif;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      body {
+        color: var(--ink);
+        font:
+          8.95pt/1.38 'Lato',
+          sans-serif;
+      }
+
+      /* On screen, show the sheet roughly as it prints. */
+      @media screen {
+        body {
+          max-width: 178.6mm;
+          margin: 12mm auto;
+        }
+      }
+
+      a {
+        color: var(--blue);
+        text-decoration: none;
+      }
+
+      b {
+        color: var(--navy);
+        font-weight: 700;
+      }
+
+      header {
+        border-bottom: 1.5pt solid var(--navy);
+        padding-bottom: 7pt;
+      }
+
+      h1 {
+        display: inline;
+        color: var(--navy);
+        font-size: 23pt;
+        line-height: 1.1;
+        letter-spacing: -0.01em;
+      }
+
+      .legal {
+        margin-left: 8pt;
+        color: var(--muted);
+        font-size: 8.4pt;
+      }
+
+      .role {
+        margin-top: 3pt;
+        color: var(--blue);
+        font-size: 11.4pt;
+        font-weight: 700;
+      }
+
+      .contact {
+        margin-top: 5pt;
+        color: var(--muted);
+        font-size: 8.4pt;
+      }
+
+      .contact span + span::before {
+        content: '|';
+        margin: 0 5pt;
+        color: var(--rule);
+      }
+
+      .contact a {
+        color: inherit;
+      }
+
+      h2 {
+        margin: 9.5pt 0 5pt;
+        border-bottom: 0.75pt solid var(--rule);
+        padding-bottom: 3pt;
+        color: var(--navy);
+        font-size: 8.6pt;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        break-after: avoid;
+      }
+
+      .expertise {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5.5pt 22pt;
+        border-left: 2.25pt solid var(--blue);
+        background: var(--panel);
+        padding: 7pt 11pt 8pt;
+      }
+
+      .expertise h3 {
+        color: var(--blue);
+        font-size: 7.2pt;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      .expertise p {
+        line-height: 1.36;
+      }
+
+      .entry {
+        margin-top: 6pt;
+        break-inside: avoid;
+      }
+
+      .entry:first-of-type {
+        margin-top: 0;
+      }
+
+      .bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10pt;
+        background: var(--bar);
+        padding: 3.4pt 8pt 3.8pt;
+      }
+
+      .bar .name {
+        color: var(--navy);
+        font-size: 10.2pt;
+        font-weight: 700;
+      }
+
+      .bar .where {
+        color: var(--muted);
+      }
+
+      .bar .where::before {
+        content: '·';
+        margin: 0 5pt;
+        color: var(--faint);
+      }
+
+      .bar .when {
+        color: var(--navy);
+        font-size: 8.8pt;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .bar .when .kind {
+        color: var(--muted);
+        font-weight: 400;
+      }
+
+      .bar .when .kind::after {
+        content: '·';
+        margin: 0 5pt;
+        color: var(--faint);
+      }
+
+      .position {
+        margin-top: 4.5pt;
+        font-weight: 700;
+      }
+
+      .position i {
+        color: var(--muted);
+        font-weight: 400;
+      }
+
+      .position i::before {
+        content: '·';
+        margin: 0 5pt;
+        font-style: normal;
+      }
+
+      .scope {
+        margin-top: 2pt;
+        color: var(--muted);
+        font-style: italic;
+      }
+
+      .position + .scope {
+        margin-top: 0.5pt;
+      }
+
+      .scope b {
+        color: var(--muted);
+      }
+
+      .entry > p.plain {
+        margin-top: 4pt;
+      }
+
+      ul {
+        margin-top: 3pt;
+        list-style: none;
+      }
+
+      li {
+        position: relative;
+        margin-top: 2.1pt;
+        padding-left: 11pt;
+      }
+
+      li::before {
+        content: '';
+        position: absolute;
+        top: 0.52em;
+        left: 2.5pt;
+        width: 3.4pt;
+        height: 3.4pt;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+
+      .tech {
+        margin-top: 3pt;
+        color: var(--muted);
+        font-size: 7.9pt;
+      }
+
+      .tech b {
+        color: var(--ink);
+      }
+
+      .facts span + span::before {
+        content: '|';
+        margin: 0 7pt;
+        color: var(--rule);
+      }
+
+      .page-break {
+        break-before: page;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Eugene Draitsev</h1>
+      <span class="legal">Legal name: Yauheni Draitsau</span>
+      <p class="role">Senior Full-Stack Engineer · AI Agents and Evals</p>
+      <p class="contact">
+        <span>Stockholm, Sweden</span
+        ><span><a href="mailto:ddrrai@gmail.com">ddrrai@gmail.com</a></span
+        ><span><a href="https://eugene-draitsev.vercel.app/">eugene-draitsev.vercel.app</a></span
+        ><span><a href="https://github.com/EugeneDraitsev">github.com/EugeneDraitsev</a></span
+        ><span
+          ><a href="https://www.linkedin.com/in/eugenedraitsev/"
+            >linkedin.com/in/eugenedraitsev</a
+          ></span
+        >
+      </p>
+    </header>
+
+    <h2>Summary</h2>
+    <p>
+      Senior engineer with ~15 years of shipping production systems end to end, usually with a
+      partner, a provider or a customer on the other side of the work. I build and run an
+      open-source LLM agent that lives in hundreds of Telegram group chats and handles several
+      million messages a month: reply gating, a tool loop with round and time budgets, model routing
+      and fallbacks across OpenAI, Anthropic and Google, and a labelled live evaluation that grew
+      out of a real abuse request. At Yubico I lead authentication for the e-commerce store and
+      shipped Yubico's side of the OpenAI Advanced Account Security partnership. I prototype fast
+      with coding agents (Codex, Claude Code) and like turning a one-off fix into something the next
+      change is tested against.
+    </p>
+
+    <h2>Core expertise</h2>
+    <div class="expertise">
+      <div>
+        <h3>AI agents and LLM applications</h3>
+        <p>
+          Agent loops, tool calling, structured outputs, reply gating, context assembly, model
+          routing and fallbacks
+        </p>
+      </div>
+      <div>
+        <h3>Evaluation and model behaviour</h3>
+        <p>
+          Labelled live evals, adversarial and regression cases, fail-closed safety checks,
+          per-stage model and tool metrics
+        </p>
+      </div>
+      <div>
+        <h3>LLM platforms and tooling</h3>
+        <p>
+          OpenAI API (Responses, Decisions, Images), Anthropic and Gemini APIs, AI SDK, Codex,
+          Claude Code
+        </p>
+      </div>
+      <div>
+        <h3>Languages and frontend</h3>
+        <p>
+          TypeScript, JavaScript, Python (working knowledge), Java, Rust; SvelteKit, React, Next.js,
+          WebGPU/WebGL
+        </p>
+      </div>
+      <div>
+        <h3>Backend and cloud</h3>
+        <p>
+          Node.js, serverless, AWS (Lambda, SQS, DynamoDB, S3), GCP, Kubernetes, Docker, PostgreSQL,
+          Redis
+        </p>
+      </div>
+      <div>
+        <h3>Identity, security and commerce</h3>
+        <p>
+          Passkeys/WebAuthn, authentication and authorization flows, checkout, payments and partner
+          integrations
+        </p>
+      </div>
+    </div>
+
+    <h2>Applied AI work</h2>
+    <section class="entry">
+      <div class="bar">
+        <span
+          ><span class="name">Telegram AI Agent</span
+          ><span class="where"
+            ><a href="https://github.com/EugeneDraitsev/telegram-bot-app"
+              >github.com/EugeneDraitsev/telegram-bot-app</a
+            ></span
+          ></span
+        >
+        <span class="when"><span class="kind">Open source</span>2015 – Present</span>
+      </div>
+      <p class="scope">
+        LLM agent running in <b>hundreds of Telegram group chats</b>, handling
+        <b>several million messages a month</b> at <b>near-100% uptime</b>.
+      </p>
+      <ul>
+        <li>
+          <b>Evaluation from a real incident.</b> After a chat member asked the bot, as a joke, to
+          break into a third party's account, put a cyber-abuse classifier (OpenAI Decisions API) in
+          front of agent commands and wrote a
+          <b>36-case labelled eval that runs against the live model</b>: injection and obfuscation
+          attacks on the classifier itself, requests that point at earlier messages, and 21 benign
+          look-alikes that must pass. Later closed a bypass through chat history the cases had
+          missed. <a href="https://eugene-draitsev.vercel.app/blog/agent-evals">Write-up</a>.
+        </li>
+        <li>
+          <b>Reply gate.</b> One cheap structured engage-or-ignore call per message, ignoring by
+          default and treating mentions and replies as unreliable hints; each real misfire became a
+          rule or an example in the prompt, pinned by regression tests.
+        </li>
+        <li>
+          <b>Agent loop.</b> Typed tool registry (web search, code execution, image, video and voice
+          generation, memory, tools the bot defines per chat) with round and time budgets owned by
+          the runtime. Per-role models with fallbacks across OpenAI, Anthropic and Google; status,
+          latency, model and fallback source recorded per call.
+        </li>
+        <li>
+          <b>Platform.</b> Routing-only webhook, per-chat FIFO SQS queues, idempotent Lambda workers
+          with Redis leases and dead-letter queues, so a redelivered message never produces a
+          duplicate reply; 750+ automated tests.
+        </li>
+      </ul>
+      <p class="tech">
+        <b>Tech:</b> TypeScript, Bun, AI SDK, OpenAI, Anthropic and Gemini APIs, AWS Lambda, SQS,
+        DynamoDB, Upstash Redis, Serverless Framework, grammY
+      </p>
+    </section>
+
+    <h2>Professional experience</h2>
+    <section class="entry">
+      <div class="bar">
+        <span><span class="name">Yubico</span><span class="where">Stockholm, Sweden</span></span>
+        <span class="when">October 2022 – Present</span>
+      </div>
+      <p class="position">Senior Frontend Engineer<i>full-stack / platform scope</i></p>
+      <p class="scope">
+        Customer accounts and e-commerce for consumers, partners, and businesses in 110+ countries;
+        tens of thousands of monthly users.
+      </p>
+      <ul>
+        <li>
+          Shipped Yubico's side of the <b>OpenAI Advanced Account Security partnership</b>: the
+          partner API integration, product page, checkout and authorization handoff behind the
+          public
+          <a href="https://openai.com/index/advanced-account-security/"
+            >OpenAI + Yubico YubiKey bundle</a
+          >.
+        </li>
+        <li>
+          Lead authentication for the e-commerce store: built its auth service and all
+          customer-facing auth flows (passkeys/WebAuthn sign-in, account recovery, cross-service
+          authorization), and led the integration with Yubico's unified auth service.
+        </li>
+        <li>
+          Migrated the accounts and e-commerce frontends from React to SvelteKit: mobile Lighthouse
+          performance went from <b>30–40 to 70+</b>, bundles got smaller, and production rollouts
+          became faster and safer.
+        </li>
+        <li>
+          Own work end to end, from scoping with product, security and partner teams to rollout and
+          monitoring, with <b>near-zero production incidents</b>.
+        </li>
+      </ul>
+      <p class="tech">
+        <b>Tech:</b> TypeScript, SvelteKit, React, Node.js, Magento, WebAuthn/passkeys, GCP,
+        Kubernetes, Docker, Strapi, Vitest, Jest, Cypress
+      </p>
+    </section>
+
+    <section class="entry">
+      <div class="bar">
+        <span
+          ><span class="name">Daniel Wellington</span
+          ><span class="where">Stockholm, Sweden</span></span
+        >
+        <span class="when">June 2020 – October 2022</span>
+      </div>
+      <p class="position">Senior Full-Stack Engineer</p>
+      <p class="scope">
+        Global direct-to-consumer e-commerce across Europe, North America, and Asia: storefront,
+        checkout, and backend services for payments, taxes, shipping, and content.
+      </p>
+      <ul>
+        <li>
+          Personally integrated local payment methods for regional launches, such as KakaoPay in
+          South Korea and Adyen-based methods in India, plus carriers like Yamato Transport in
+          Japan, working directly with payment and shipping providers.
+        </li>
+        <li>
+          Designed and shipped the storefront on React, Gatsby, and TypeScript: mobile Lighthouse
+          performance went from <b>~30 to 70+</b>, and the site held up under Black Friday peak
+          traffic.
+        </li>
+        <li>
+          Built serverless backend services for payments, taxes, shipping, content, and
+          market-specific logic; mentored <b>3 engineers</b>.
+        </li>
+      </ul>
+      <p class="tech">
+        <b>Tech:</b> TypeScript, React, Gatsby, Node.js, AWS, Serverless, GraphQL, Commercetools,
+        Contentful, Adyen, Jest, Cypress
+      </p>
+    </section>
+
+    <section class="entry">
+      <div class="bar">
+        <span><span class="name">eBuilder</span><span class="where">Stockholm, Sweden</span></span>
+        <span class="when">August 2016 – June 2020</span>
+      </div>
+      <p class="position">
+        Senior Software Developer<i
+          >web, analytics, ML tooling and mobile products for telecom and enterprise customers</i
+        >
+      </p>
+      <ul>
+        <li>
+          Built Falcon, an internal web app the data science team used to
+          <b>compare ML models and training jobs</b> (React, D3, GraphQL).
+        </li>
+        <li>
+          Designed the React Native architecture and native Java/Swift modules for a device-care app
+          used by <b>5+ mobile operators</b> in Sweden, Japan, Russia, and other markets.
+        </li>
+      </ul>
+      <p class="tech">
+        <b>Tech:</b> JavaScript, React, React Native, GraphQL, D3, Node.js, AWS, Java, Swift, Jest
+      </p>
+    </section>
+
+    <section class="entry">
+      <div class="bar">
+        <span
+          ><span class="name">ISsoft Solutions</span><span class="where">Minsk, Belarus</span></span
+        >
+        <span class="when">September 2013 – August 2016</span>
+      </div>
+      <p class="position">
+        Senior Software Developer<i
+          >consulting delivery for education, retail and enterprise content clients</i
+        >
+      </p>
+      <ul>
+        <li>
+          Delivered commerce and enterprise content systems for clients such as Lands' End Business
+          Outfitters, working directly with client teams on requirements and trade-offs.
+        </li>
+        <li>
+          Designed the frontend architecture and built Node.js services for Minnesota Reading Corps'
+          education programs.
+        </li>
+      </ul>
+      <p class="tech">
+        <b>Tech:</b> JavaScript, AngularJS, React, Node.js, Java, Spring, REST, AWS, D3, Alfresco,
+        Hybris
+      </p>
+    </section>
+
+    <section class="entry">
+      <div class="bar">
+        <span
+          ><span class="name">Qulix Systems, EPAM Systems</span
+          ><span class="where">Minsk, Belarus</span></span
+        >
+        <span class="when">December 2011 – September 2013</span>
+      </div>
+      <p class="plain">
+        <b>Software Developer.</b> Java/Spring web development for a multi-channel financial
+        services platform, and production support for Oracle ATG commerce portals.
+      </p>
+    </section>
+
+    <h2>Selected projects</h2>
+    <section class="entry">
+      <div class="bar">
+        <span><span class="name">MowFleet Control Center</span></span>
+        <span class="when"><span class="kind">Contract</span>2023 – Present</span>
+      </div>
+      <p class="plain">
+        Built from scratch, alone, and still maintain a production B2B dashboard and serverless
+        backend that turns autonomous Husqvarna mower telemetry into zone coverage, utilization,
+        error tracking, and the PDF reports the customer receives.
+      </p>
+      <p class="tech">
+        <b>Tech:</b> Next.js, React, Tailwind, AWS Lambda, API Gateway, DynamoDB, S3, Husqvarna
+        Fleet APIs, Google Maps
+      </p>
+    </section>
+
+    <section class="entry">
+      <div class="bar">
+        <span><span class="name">Rainroam</span></span>
+        <span class="when"><span class="kind">RevenueCat Shipaton</span>2026</span>
+      </div>
+      <p class="plain">
+        One-thumb action RPG for phones, shipped to the App Store and Galaxy Store by a team of two:
+        <b>2nd place, Best App for Galaxy</b>, at a hackathon with <b>28,000+ participants</b>.
+        Codex and Claude Code wrote most of its ~1,400 commits; we kept direction and review.
+      </p>
+      <p class="tech"><b>Tech:</b> TypeScript, TypeGPU/WebGPU, Phaser, Capacitor, RevenueCat</p>
+    </section>
+
+    <section class="entry">
+      <div class="bar">
+        <span><span class="name">Orb Knight</span></span>
+        <span class="when"><span class="kind">Gamedev.js Jam</span>2026</span>
+      </div>
+      <p class="plain">
+        3D browser roguelite built in 13 days with AI coding agents: <b>12th overall</b> and
+        <b>6th in Gameplay</b> out of <b>495 entries</b>. I owned architecture, review, and game
+        feel; agents handled scoped implementation passes.
+      </p>
+      <p class="tech">
+        <b>Tech:</b> SvelteKit, Svelte 5, Three.js (Threlte), Rapier physics, Bun, Codex, Claude
+        Code
+      </p>
+    </section>
+
+    <h2>Education</h2>
+    <section class="entry">
+      <div class="bar">
+        <span
+          ><span class="name">Belarusian State University of Informatics and Radioelectronics</span
+          ><span class="where">Minsk, Belarus</span></span
+        >
+        <span class="when">2008 – 2013</span>
+      </div>
+      <p class="plain">
+        Specialist Degree in Systems Engineering, Faculty of Computer Systems and Networks
+      </p>
+    </section>
+
+    <h2>Languages and work authorization</h2>
+    <p class="facts">
+      <span><b>Languages:</b> Russian (native), Belarusian (native), English (C1)</span
+      ><span><b>Work authorization:</b> Swedish citizen</span>
+    </p>
+  </body>
+</html>

@@ -105,8 +105,9 @@ frames run long. See [the performance notes](docs/performance.md).
 ## Blog
 
 [The blog](https://eugene-draitsev.vercel.app/blog) covers things I actually run: a Telegram
-bot that has been in the same group chats since 2015, an operations dashboard for robot mower
-fleets, and [Orb Knight](https://eugene-draitsev.vercel.app/blog/gamedevjs-2026) — a 3D
+bot that has been in the same group chats since 2015,
+[the evaluation](https://eugene-draitsev.vercel.app/blog/agent-evals) that grew out of one abuse
+request to its agent, an operations dashboard for robot mower fleets, and [Orb Knight](https://eugene-draitsev.vercel.app/blog/gamedevjs-2026) — a 3D
 roguelite I built in 13 days with coding agents for Gamedev.js Jam 2026, which placed 6th in
 Gameplay out of 495 entries. That post embeds live WebGL scenes straight from the game's
 [Storybook](https://github.com/EugeneDraitsev/gamedevjs-2026), including the laser.
@@ -132,7 +133,17 @@ Other scripts: `bun run lint` (Oxlint), `bun run format` (Oxfmt), `bun run check
 the whole set, and GitHub Actions runs the same thing plus Chromium smoke tests on pull requests
 and pushes to `main`.
 
-Two notes on that toolchain.
+The downloadable CV has its source here too: `bun run cv:pdf` renders
+[cv/eugene-draitsev.html](cv/eugene-draitsev.html) to `static/eugene-draitsev.pdf` with headless
+Chromium. Open the HTML in a browser to preview it; the Lato files come from `node_modules`.
+
+Three notes on that toolchain.
+
+SvelteKit 3 has no `svelte.config.js`: its options go to `sveltekit()` in `vite.config.ts`, and
+`$lib` is `#lib`, resolved through the `imports` field of `package.json` with the file extension
+written out. It needs Node 22.17 or newer. Vercel's analytics and speed-insights packages still
+read the removed `$app/stores` in their `/sveltekit` entries, which throws on a deployed host only,
+so [src/lib/insights.ts](src/lib/insights.ts) calls their generic injectors instead.
 
 Oxlint and Oxfmt are the only linter and formatter here — ESLint and Prettier are gone. Oxlint
 reads the `<script>` block of a `.svelte` file but not the template, so Svelte-specific template

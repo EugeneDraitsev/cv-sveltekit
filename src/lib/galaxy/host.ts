@@ -1,4 +1,4 @@
-import { importAgain } from '$lib/importAgain';
+import { importAgain } from '#lib/importAgain.ts';
 import type { FromEngine, ToEngine } from './engine/protocol';
 import type { DeviceHints } from './engine/quality';
 

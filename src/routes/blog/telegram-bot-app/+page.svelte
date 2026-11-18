@@ -1,11 +1,11 @@
 <script lang="ts">
-  import SocialImage from '$lib/components/SocialImage.svelte';
-  import PostDates from '$lib/components/PostDates.svelte';
+  import SocialImage from '#lib/components/SocialImage.svelte';
+  import PostDates from '#lib/components/PostDates.svelte';
   import { resolve } from '$app/paths';
-  import Icon from '$lib/components/Icon.svelte';
-  import ZoomableImage from '$lib/components/ZoomableImage.svelte';
-  import { getBlogPost, serializeJsonLd } from '$lib/blog';
-  import { SITE_DATA } from '$lib/constants';
+  import Icon from '#lib/components/Icon.svelte';
+  import ZoomableImage from '#lib/components/ZoomableImage.svelte';
+  import { getBlogPost, serializeJsonLd } from '#lib/blog.ts';
+  import { SITE_DATA } from '#lib/constants.ts';
 
   const repoUrl = 'https://github.com/EugeneDraitsev/telegram-bot-app';
   const uiUrl = 'https://github.com/EugeneDraitsev/telegram-bot-ui';
@@ -44,7 +44,7 @@
     {
       key: 'models',
       value:
-        'GPT-6 Astra for the agent loop, GPT-6 Luna for the gate and safety check, Gemini fallbacks',
+        'one table of roles, each with a primary, a fallback and a timeout: GPT-6 Luna for the gate, the safety check and web search; Claude Fable 5.2 for the agent loop, falling back to GPT-6 Astra; Gemini behind the gate and code execution',
     },
     { key: 'frontend', value: 'Next.js on Vercel, private live statistics' },
   ];
@@ -68,7 +68,7 @@
     { name: 'context', detail: '24h history, tools and media, loaded only now' },
     {
       name: 'model and tools',
-      detail: 'GPT-6 Astra, Gemini 3.8 Flash fallback, typed tool registry',
+      detail: 'Claude Fable 5.2, GPT-6 Astra fallback, typed tool registry, round and time budgets',
     },
     { name: 'delivery', detail: 'reply sent, lease swapped for a three-hour marker' },
   ];
@@ -120,6 +120,10 @@
     {
       title: 'attribute failures to a stage',
       text: 'Model and tool calls record status, latency, provider and fallback source. When something breaks, the metrics show which stage failed and whether a fallback ran.',
+    },
+    {
+      title: 'budget the loop, not the model',
+      text: 'How many tool rounds a turn gets is a property of the role, not something the model decides: four rounds and 90 seconds for an ordinary message, eight rounds and 150 seconds for the deep command. Every model and tool call is also clamped to the time the Lambda has left, minus a minute kept for delivery, and a tool with no time left is never started. A loop that stops before the model has read its last tool results gets one final pass without tools.',
     },
   ];
 </script>
@@ -258,7 +262,7 @@
         </ol>
         <p class="trace-note">
           Registered agent commands skip the reply gate, since the command is the request, but first
-          pass a cyber-abuse check that fails closed.
+          pass a cyber-abuse check that fails closed. It has its own labelled evaluation.
         </p>
         <ZoomableImage
           src="/blog/telegram-bot/architecture-command-safety-light.svg"
@@ -349,12 +353,19 @@
       </section>
 
       <section>
-        <h2 class="section-heading">What's missing</h2>
+        <h2 class="section-heading">What is measured, and what isn't</h2>
+        <p class="mb-4">
+          One decision has a real evaluation. The cyber-abuse check in front of agent commands has
+          36 labelled cases that run against the live classifier, including the request that caused
+          it. <a class="text-constant underline" href={resolve('/blog/agent-evals')}
+            >From incident to eval</a
+          > covers what the cases are, the bypass they missed and what failing closed cost.
+        </p>
         <p>
-          Repeatable evaluation. Metrics say which stage failed, not whether an answer got better
-          after a prompt or model change. A replay corpus built from redacted production
-          conversations would let me measure a prompt or model change before deploying it. That is
-          the next piece of work.
+          The rest is not there yet. Metrics say which stage failed, not whether an answer got
+          better after a prompt or model change, and the reply gate's tests mock the model. A replay
+          corpus built from redacted production conversations would let me measure both before
+          deploying. That is the next piece of work.
         </p>
       </section>
     </div>
