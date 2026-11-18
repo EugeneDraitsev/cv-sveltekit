@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('direct pages expose useful titles and landmarks', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveTitle('Eugene Draitsev | Senior Full-Stack / Platform Engineer');
+  await expect(page).toHaveTitle('Eugene Draitsev | Senior Full-Stack Engineer · AI Agents');
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
   await expect(page.getByRole('main')).toHaveAttribute('id', 'main-content');
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
@@ -24,7 +24,9 @@ test('search-engine discovery endpoints list the public routes', async ({ reques
 
   const sitemap = await request.get('/sitemap.xml');
   await expect(sitemap).toBeOK();
-  expect(await sitemap.text()).toContain('/blog/gamedevjs-2026');
+  const sitemapText = await sitemap.text();
+  expect(sitemapText).toContain('/blog/gamedevjs-2026');
+  expect(sitemapText).toContain('/blog/agent-evals');
 });
 
 test('the galaxy starts on its own after load, without blocking the page', async ({
@@ -51,7 +53,7 @@ test('client navigation restores route-specific titles', async ({ page }) => {
   await expect(page).toHaveTitle('Blog | Eugene Draitsev');
 
   await page.getByRole('link', { name: 'Home', exact: true }).click();
-  await expect(page).toHaveTitle('Eugene Draitsev | Senior Full-Stack / Platform Engineer');
+  await expect(page).toHaveTitle('Eugene Draitsev | Senior Full-Stack Engineer · AI Agents');
 
   await page.getByRole('link', { name: 'About', exact: true }).click();
   await expect(page).toHaveTitle('About this site | Eugene Draitsev');

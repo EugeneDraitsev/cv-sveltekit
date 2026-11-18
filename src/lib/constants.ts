@@ -1,26 +1,32 @@
 export const SITE_DATA = {
   siteTitle: 'Eugene Draitsev',
   siteDescription:
-    'Eugene Draitsev — Senior Full-Stack and Platform Engineer in Stockholm, building production web, cloud, security and AI systems.',
+    'Eugene Draitsev — Senior Full-Stack Engineer in Stockholm. Production web, cloud and security systems, LLM agents and the evaluations around them.',
   githubUsername: 'EugeneDraitsev',
   keyWords: [
     'Eugene Draitsev',
     'software-engineer',
     'fullstack-engineer',
+    'ai-agents',
+    'llm-evals',
+    'applied-ai',
     'security',
     'kubernetes',
-    'ai-agents',
-    'webgl',
+    'webgpu',
   ],
   authorDescription: `Hi, I'm Eugene, a full-stack engineer based in Stockholm. I've been building software
-  professionally since 2011 and got my systems engineering degree from BSUIR in 2013. I like math, algorithms,
-  good UX and other boring things. Most of my work has been full-stack: Node and Java on the backend, React and
-  Svelte on the frontend, running on Kubernetes and AWS/GCP. These days I spend a lot of time on security and
-  passkeys, AI agents and real-time graphics with WebGL/WebGPU. I enjoy taking a messy product or platform
-  problem, building the first version that works, and turning it into something a team can run and improve.`,
+  professionally since 2011 and got my systems engineering degree from BSUIR in 2013. Most of my work has been
+  end to end: Node and Java on the backend, React and Svelte on the frontend, Kubernetes and AWS/GCP underneath,
+  often with a partner team, a payment provider or a customer on the other side. At Yubico that means passkeys,
+  customer accounts and partner launches. Outside it, most of my curiosity goes into LLM systems: I run an agent
+  that lives in hundreds of group chats, and I care about when a model should answer, what it gets to see, and
+  how to turn a real failure into a test the next change has to pass. I still like math, algorithms, good UX and
+  real-time graphics, and I enjoy taking a messy problem, building the first version that works, and turning it
+  into something a team can run and improve.`,
   profileHighlights: [
     'End-to-end delivery: scoping, architecture, implementation, rollout and support after launch.',
-    'Currently into security and passkeys, Kubernetes, AI agents, observability and real-time graphics.',
+    'Currently into LLM agents and evals, security and passkeys, Kubernetes, observability and real-time graphics.',
+    'Used to working directly with the other side: partner engineers, payment providers and client teams.',
   ],
   deliveryHighlights: [
     {
@@ -33,18 +39,20 @@ export const SITE_DATA = {
       tags: ['Partner launch', 'Checkout', 'Auth handoff'],
     },
     {
+      title: 'LLM agent in production group chats',
+      text: 'Grew a long-running Telegram bot into an open-source agent system for hundreds of group chats, where the first question is whether the model should speak at all.',
+      result:
+        'Built reply gating, a tool loop with round and time budgets, model routing with fallbacks across OpenAI, Anthropic and Google, per-stage metrics, and a labelled live evaluation that started from a real abuse request.',
+      href: '/blog/agent-evals',
+      linkLabel: 'evaluation notes',
+      tags: ['AI agents', 'Evals', 'Tools'],
+    },
+    {
       title: 'Customer Accounts / FIDO2 authorization',
       text: 'I work directly with Yubico’s authentication and security teams on an organization-wide authorization flow for future products.',
       result:
         'Helped scope service details and integrate the flow across product surfaces, ecommerce, account systems and multiple internal teams.',
       tags: ['FIDO2', 'Security', 'Multi-team'],
-    },
-    {
-      title: 'LLM-powered agentic system',
-      text: 'Evolved a long-running Telegram bot from local chat utilities into a production-like LLM-powered agent system.',
-      result:
-        'Built async workers, reply gating, model routing and fallbacks, tool execution, memory, metrics and feedback loops around real group-chat behavior.',
-      tags: ['AI agents', 'Tools', 'Observability'],
     },
     {
       title: 'Commerce launches and operational readiness',
@@ -58,7 +66,7 @@ export const SITE_DATA = {
   details: {
     name: 'Eugene Draitsev',
     birthDate: '1990-10-02',
-    position: 'Senior Full-Stack / Platform Engineer',
+    position: 'Senior Full-Stack Engineer · AI Agents',
     location: 'Stockholm, Sweden',
   },
   skills: [
@@ -69,6 +77,7 @@ export const SITE_DATA = {
         { name: 'TypeScript', value: 5 },
         { name: 'HTML', value: 5 },
         { name: 'CSS', value: 5 },
+        { name: 'Python', value: 2.5 },
         { name: 'Rust', value: 3 },
         { name: 'Java', value: 3.5 },
         { name: 'Swift', value: 3 },
@@ -77,13 +86,14 @@ export const SITE_DATA = {
     {
       name: 'Tools & Technologies',
       data: [
+        { name: 'LLM Agents', value: 4 },
+        { name: 'LLM Evals', value: 3.5 },
         { name: 'React / Next', value: 5 },
         { name: 'Svelte / SvelteKit', value: 5 },
         { name: 'React Native', value: 4.5 },
         { name: 'AWS', value: 4 },
         { name: 'Kubernetes', value: 4 },
         { name: 'Node', value: 4.5 },
-        { name: 'AI Agents', value: 4 },
         { name: 'Three.js / WebGL', value: 4.5 },
         { name: 'Security/Auth', value: 4 },
         { name: 'Observability', value: 4 },
@@ -131,7 +141,8 @@ export const SITE_DATA = {
       location: 'Stockholm, Sweden / Minsk, Belarus',
       position: 'Senior Software Engineer',
       description: `Architected and delivered customer-facing web applications, a React Native app,
-      GraphQL services and AWS infrastructure with TypeScript, Node.js and React.`,
+      GraphQL services and AWS infrastructure with TypeScript, Node.js and React. Also built Falcon, an internal
+      tool the data science team used to compare ML models and training jobs.`,
     },
     {
       company: 'ISSoft Solutions',
